@@ -72,6 +72,7 @@ public enum BrandFont {
     public static func register(fontURLs: [URL]) -> Bool {
         let urls = fontURLs.filter { $0.lastPathComponent.hasPrefix("Geist") }
         guard !urls.isEmpty else { return false }
+        lock.withLock { registeredFontURLs = urls }
         CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
         lock.withLock {
             for url in urls where !url.lastPathComponent.contains("Italic") {
@@ -176,6 +177,9 @@ public enum BrandFont {
         var skew = CGAffineTransform(a: 1, b: 0, c: 0.2, d: 1, tx: 0, ty: 0)
         return CTFontCreateCopyWithAttributes(font, size, &skew, nil)
     }
+
+    /// The font files registered, for embedding in exported pages.
+    public private(set) nonisolated(unsafe) static var registeredFontURLs: [URL] = []
 
     /// Whether Geist and Geist Mono have been registered.
     public static var isRegistered: Bool {

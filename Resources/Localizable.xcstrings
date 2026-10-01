@@ -277,6 +277,9 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Copy as Rich Text" : {
+      "comment" : "plain: Edit menu item that copies the page or selection as formatted text (#24)"
+    },
     "Copy Link" : {
       "comment" : "plain: block menu item that copies a markdown link to the block",
       "extractionState" : "manual"
@@ -381,6 +384,12 @@
     "esc to wake" : {
       "comment" : "voice: focus mode hint (#10)",
       "extractionState" : "manual"
+    },
+    "Export as HTML…" : {
+      "comment" : "plain: File menu item (#24)"
+    },
+    "Export as PDF…" : {
+      "comment" : "plain: File menu item (#24)"
     },
     "Fade other blocks in focus mode" : {
       "comment" : "plain: setting for focus mode dimming"
@@ -746,6 +755,9 @@
       "comment" : "plain: tooltip",
       "extractionState" : "manual"
     },
+    "Print…" : {
+      "comment" : "plain: File menu item (#24)"
+    },
     "Project" : {
       "comment" : "plain: picker for the project whose own settings are shown"
     },
@@ -877,6 +889,18 @@
     "Settings…" : {
       "comment" : "plain: app menu item that opens Settings"
     },
+    "Share" : {
+      "comment" : "plain: title bar share button"
+    },
+    "Share as PDF…" : {
+      "comment" : "plain: share menu item for the page as a PDF"
+    },
+    "Share File…" : {
+      "comment" : "plain: share menu item for the file itself"
+    },
+    "Share the file, or the page as a PDF" : {
+      "comment" : "plain: tooltip on the share button"
+    },
     "Shortcuts" : {
       "comment" : "plain: Settings tab listing keyboard shortcuts (#15)"
     },
@@ -971,6 +995,14 @@
       "comment" : "plain: error when acting on a deleted project",
       "extractionState" : "manual"
     },
+    "The page couldn't be laid out for printing." : {
+      "comment" : "plain: error when printing or making a PDF fails (#24)",
+      "extractionState" : "manual"
+    },
+    "The PDF couldn't be made." : {
+      "comment" : "plain: error when making a PDF fails (#24)",
+      "extractionState" : "manual"
+    },
     "The project is removed from Grimoire. Its folders and files stay on disk." : {
       "comment" : "plain: delete project confirmation message"
     },
@@ -1031,6 +1063,9 @@
     },
     "Undo" : {
       "comment" : "plain: Edit menu item"
+    },
+    "Untitled" : {
+      "comment" : "plain: name for an export with no file name"
     },
     "Use %@ in Dark Mode" : {
       "comment" : "plain: incantation that picks a dark theme; %@ is the theme name"

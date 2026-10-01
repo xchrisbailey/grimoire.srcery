@@ -39,6 +39,21 @@ struct GrimoireCommands: Commands {
                 .disabled(window?.document == nil)
             Button("Browse Versions…") { window?.showsVersions = true }
                 .disabled(window?.document == nil)
+            Divider()
+            Button("Export as HTML…") { window?.exportHTML() }
+                .disabled(window?.document == nil)
+            Button("Export as PDF…") { window?.exportPDF() }
+                .disabled(window?.document == nil)
+        }
+        CommandGroup(replacing: .printItem) {
+            Button("Print…") { window?.printDocument() }
+                .keyboardShortcut("p", modifiers: [.command, .option])
+                .disabled(window?.document == nil)
+        }
+        CommandGroup(after: .pasteboard) {
+            Button("Copy as Rich Text") { window?.copyAsRichText() }
+                .keyboardShortcut("c", modifiers: [.command, .option, .shift])
+                .disabled(window?.document == nil)
         }
         SidebarCommands()
         CommandGroup(after: .sidebar) {
