@@ -1,4 +1,5 @@
 import AppKit
+import GrimoireEditor
 import SwiftUI
 
 /// The File and View menu commands. Menu bar titles stay plain, per the brand voice.
@@ -30,6 +31,14 @@ struct GrimoireCommands: Commands {
         }
         SidebarCommands()
         CommandGroup(after: .sidebar) {
+            Toggle(
+                "Raw Source",
+                isOn: Binding(
+                    get: { window?.editorMode == .raw },
+                    set: { window?.editorMode = $0 ? .raw : .preview })
+            )
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(window?.document == nil)
             Button(window?.focusMode == true ? "Exit Focus Mode" : "Enter Focus Mode") {
                 guard let window else { return }
                 window.setFocusMode(!window.focusMode)

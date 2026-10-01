@@ -32,6 +32,7 @@ extension EditorController {
     /// Handles the text view's standard commands. Returns false to let it act as usual.
     func handleCommand(_ selector: Selector) -> Bool {
         if spellSession != nil, handleSpellsCommand(selector) { return true }
+        if mode == .raw { return handleRawCommand(selector) }
         let shift = NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false
         let edit: TextEdit?
         switch selector {
@@ -49,6 +50,17 @@ extension EditorController {
             return handleBlockCommand(selector)
         }
         guard let edit else { return false }
+        apply(edit)
+        return true
+    }
+
+    /// Raw mode keeps one block behavior: Enter continues a list.
+    private func handleRawCommand(_ selector: Selector) -> Bool {
+        let shift = NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false
+        guard selector == #selector(NSResponder.insertNewline(_:)), !shift,
+            let block = editing.currentBlock, index.blocks[block].kind.isListItem,
+            let edit = editing.newline()
+        else { return false }
         apply(edit)
         return true
     }
@@ -72,6 +84,7 @@ extension EditorController {
     /// Key equivalents the text view doesn't map to commands: ⌘↩ toggles a task and ⇧⌘D
     /// duplicates the block.
     func handleKey(_ event: NSEvent) -> Bool {
+        guard mode == .preview else { return false }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags == .command, event.keyCode == 36 || event.keyCode == 76 {
             return perform(editing.toggleTask(), actionName: String(localized: "Toggle Task"))

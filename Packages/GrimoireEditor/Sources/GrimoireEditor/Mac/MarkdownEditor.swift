@@ -9,6 +9,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     @Binding var text: String
     var fileURL: URL?
     var placeholder: String?
+    var mode: EditorMode
     var onOpenFile: (URL) -> Void
 
     /// - Parameters:
@@ -17,10 +18,12 @@ public struct MarkdownEditor: NSViewRepresentable {
     ///   - placeholder: Shown while the file is empty.
     ///   - onOpenFile: Called for a ⌘-clicked link to another markdown file.
     public init(
-        text: Binding<String>, fileURL: URL?, placeholder: String? = nil, onOpenFile: @escaping (URL) -> Void = { _ in }
+        text: Binding<String>, fileURL: URL?, mode: EditorMode = .preview, placeholder: String? = nil,
+        onOpenFile: @escaping (URL) -> Void = { _ in }
     ) {
         _text = text
         self.fileURL = fileURL
+        self.mode = mode
         self.placeholder = placeholder
         self.onOpenFile = onOpenFile
     }
@@ -37,6 +40,7 @@ public struct MarkdownEditor: NSViewRepresentable {
         let controller = context.coordinator
         controller.fileURL = fileURL
         controller.styler.baseURL = fileURL?.deletingLastPathComponent()
+        controller.styler.mode = mode
         controller.load(text, flavor: flavor)
         wire(controller)
         return controller.scrollView
@@ -53,11 +57,13 @@ public struct MarkdownEditor: NSViewRepresentable {
             if isSameText {
                 controller.restyleAll()
             } else {
+                controller.styler.mode = mode
                 controller.load(text, flavor: flavor)
             }
         } else if text != controller.lastText {
             controller.replaceText(text, flavor: flavor)
         }
+        controller.mode = mode
     }
 
     private func wire(_ controller: EditorController) {

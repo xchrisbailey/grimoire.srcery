@@ -50,6 +50,11 @@ public struct EditorTheme: @unchecked Sendable {
     public var codeBackground = PlatformColor.brand(\.surface0)
     public var surface = PlatformColor.brand(\.surface1)
     public var page = PlatformColor.brand(\.page)
+    public var string = PlatformColor.brand(\.string)
+    public var attribute = PlatformColor.brand(\.callout)
+    /// Raw mode's line height, as a multiple of Geist Mono's natural height (1.9 in the
+    /// brand book, measured in font sizes).
+    public var rawLineHeightMultiple: CGFloat = 1.45
 
     public init() {}
 

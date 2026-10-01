@@ -137,3 +137,109 @@ import Testing
     }
 }
 #endif
+
+#if os(macOS)
+@MainActor @Suite(.serialized) struct RawModeTests {
+    static let sample = EditorControllerTests.sample
+
+    func makeController(_ text: String = sample) -> (EditorController, NSWindow) {
+        BrandFontTests.registerRepoFonts()
+        let controller = EditorController()
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 300), styleMask: [.titled], backing: .buffered,
+            defer: false)
+        controller.scrollView.frame = window.contentView?.bounds ?? .zero
+        window.contentView?.addSubview(controller.scrollView)
+        controller.load(text, flavor: .markdown)
+        window.displayIfNeeded()
+        return (controller, window)
+    }
+
+    func font(_ controller: EditorController, at offset: Int) -> NSFont? {
+        controller.textView.textStorage?.attribute(.font, at: offset, effectiveRange: nil) as? NSFont
+    }
+
+    @Test func rawShowsEveryMarkerInMono() {
+        let (controller, _) = makeController()
+        controller.mode = .raw
+        #expect(controller.text == Self.sample)
+        let bold = (Self.sample as NSString).range(of: "**autumn").location
+        #expect(font(controller, at: bold)?.pointSize == 14)
+        #expect(font(controller, at: 0)?.familyName == "Geist Mono")
+        let decoration = controller.textView.textStorage?.attribute(
+            .grimoireDecoration, at: (Self.sample as NSString).range(of: "let brew").location, effectiveRange: nil)
+        #expect(decoration == nil)
+        controller.mode = .preview
+        #expect(font(controller, at: bold)?.pointSize ?? 99 < 1)
+    }
+
+    @Test func switchingKeepsUndoAndTheCaret() {
+        let (controller, _) = makeController()
+        let offset = (Self.sample as NSString).range(of: "batch").location
+        controller.textView.setSelectedRange(NSRange(location: offset, length: 0))
+        controller.textView.insertText("big ", replacementRange: controller.textView.selectedRange())
+        controller.mode = .raw
+        #expect(controller.textView.selectedRange().location == offset + 4)
+        controller.mode = .preview
+        controller.textView.undoManager?.undo()
+        #expect(controller.text == Self.sample)
+    }
+
+    @Test func rawKeepsOnlyListContinuation() {
+        let (controller, _) = makeController("- one")
+        controller.mode = .raw
+        controller.textView.setSelectedRange(NSRange(location: 5, length: 0))
+        controller.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
+        #expect(controller.text == "- one\n- ")
+        controller.textView.insertText("/", replacementRange: controller.textView.selectedRange())
+        #expect(controller.spellSession == nil)
+        let (paragraph, _) = makeController("Para")
+        paragraph.mode = .raw
+        paragraph.textView.setSelectedRange(NSRange(location: 4, length: 0))
+        paragraph.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
+        #expect(paragraph.text == "Para\n")
+    }
+
+    /// The "done when" for #9: toggling a large document is instant and the caret's line
+    /// stays put on screen.
+    @Test func togglingALargeDocumentIsQuickAndStable() {
+        var text = ""
+        for section in 0..<1_500 {
+            text += "## Section \(section)\n\nSome **bold** text and `code`.\n\n- item\n\n"
+        }
+        let (controller, _) = makeController(text)
+        let target = (text as NSString).range(of: "## Section 700").location
+        controller.textView.setSelectedRange(NSRange(location: target, length: 0))
+        controller.textView.scrollRangeToVisible(NSRange(location: target, length: 0))
+        let before = caretOffset(controller)
+        let clock = ContinuousClock()
+        let elapsed = clock.measure { controller.mode = .raw }
+        let after = caretOffset(controller)
+        #expect(controller.textView.selectedRange().location == target)
+        #expect(abs((after ?? 0) - (before ?? 0)) < 4)
+        #if DEBUG
+        #expect(elapsed < .milliseconds(1500))
+        #else
+        #expect(elapsed < .milliseconds(250))
+        #endif
+        print("Switched a \(text.split(separator: "\n").count)-line document to Raw in \(elapsed)")
+    }
+
+    private func caretOffset(_ controller: EditorController) -> CGFloat? {
+        guard let rect = controller.textView.layoutManagerRect(for: controller.textView.selectedRange().location) else {
+            return nil
+        }
+        return rect.minY - controller.scrollView.contentView.bounds.minY
+    }
+}
+
+extension NSTextView {
+    @MainActor fileprivate func layoutManagerRect(for offset: Int) -> CGRect? {
+        guard let layoutManager = textLayoutManager, let storage = textContentStorage,
+            let location = storage.location(storage.documentRange.location, offsetBy: offset)
+        else { return nil }
+        layoutManager.ensureLayout(for: NSTextRange(location: location))
+        return layoutManager.textLayoutFragment(for: location)?.layoutFragmentFrame
+    }
+}
+#endif

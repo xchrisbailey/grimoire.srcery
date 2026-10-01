@@ -8,6 +8,14 @@ import AppKit
 import UIKit
 #endif
 
+/// How the editor shows markdown.
+public enum EditorMode: String, Codable, CaseIterable, Sendable {
+    /// Styled in place: headings sized, markers hidden off the caret's block. Editable.
+    case preview
+    /// The exact source in Geist Mono with syntax colors.
+    case raw
+}
+
 /// Turns markdown source into styled text without changing a character: headings sized,
 /// emphasis and code styled, markers dimmed on the caret's block and hidden elsewhere,
 /// and decorations attached for the layout fragments to draw.
@@ -19,6 +27,8 @@ public final class MarkdownStyler {
     public var images: ImageCache
     /// Called when an image preview finishes loading, so its block can be restyled.
     public var onImageLoaded: ((URL) -> Void)?
+    /// Preview styles markdown in place; Raw shows the source with syntax colors.
+    public var mode: EditorMode = .preview
 
     public init(theme: EditorTheme = EditorTheme(), images: ImageCache = .shared) {
         self.theme = theme
@@ -77,6 +87,7 @@ public final class MarkdownStyler {
     private func styleFront(_ storage: NSMutableAttributedString, index: BlockIndex) {
         let range = NSRange(location: 0, length: min(index.bodyStart, storage.length))
         guard range.length > 0 else { return }
+        if mode == .raw { return styleRawFront(storage, index: index, range: range) }
         storage.setAttributes(baseAttributes, range: range)
         if let frontmatter = index.frontmatterRange {
             storage.addAttributes(
@@ -92,6 +103,7 @@ public final class MarkdownStyler {
         let fullRange = NSRange(index.fullRange(of: position))
         let range = NSRange(index.sourceRange(of: position))
         guard NSMaxRange(fullRange) <= storage.length else { return }
+        if mode == .raw { return styleRawBlock(block.kind, range: range, fullRange: fullRange, in: storage) }
         storage.setAttributes(baseAttributes, range: fullRange)
 
         switch block.kind {

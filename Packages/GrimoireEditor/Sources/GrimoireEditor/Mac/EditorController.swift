@@ -75,7 +75,10 @@ public final class EditorController: NSObject {
         textView.onSelectBlock = { [weak self] offset in self?.selectBlock(at: offset) }
         textView.onKeyCommand = { [weak self] event in self?.handleKey(event) ?? false }
         textView.onPaste = { [weak self] pasteboard in self?.paste(from: pasteboard) ?? false }
-        textView.onMouseMoved = { [weak self] point in self?.blockHandle.mouseMoved(to: point) }
+        textView.onMouseMoved = { [weak self] point in
+            guard let self, self.mode == .preview else { return }
+            self.blockHandle.mouseMoved(to: point)
+        }
         textView.onMouseExited = { [weak self] in self?.blockHandle.hide() }
 
         scrollView.documentView = textView
@@ -88,6 +91,46 @@ public final class EditorController: NSObject {
     }
 
     public var text: String { textView.string }
+
+    /// Preview or Raw. Switching restyles the same text in place: no reload, the undo
+    /// history stays, and the caret's line stays where it was on screen.
+    public var mode: EditorMode {
+        get { styler.mode }
+        set {
+            guard newValue != styler.mode else { return }
+            let anchor = caretScreenOffset()
+            styler.mode = newValue
+            closeSpells()
+            blockHandle.hide()
+            restyleAll()
+            if let anchor { restoreCaretScreenOffset(anchor) }
+        }
+    }
+
+    /// How far the caret's line sits below the top of the visible area.
+    private func caretScreenOffset() -> CGFloat? {
+        guard let frame = caretLineFrame() else { return nil }
+        return frame.minY - scrollView.contentView.bounds.minY
+    }
+
+    private func restoreCaretScreenOffset(_ offset: CGFloat) {
+        guard let frame = caretLineFrame() else { return }
+        let clip = scrollView.contentView
+        let maxY = max(0, textView.frame.height - clip.bounds.height)
+        clip.scroll(to: CGPoint(x: clip.bounds.minX, y: min(max(0, frame.minY - offset), maxY)))
+        scrollView.reflectScrolledClipView(clip)
+    }
+
+    /// The caret line's layout fragment, in the text view's coordinates.
+    private func caretLineFrame() -> CGRect? {
+        guard let layoutManager = textView.textLayoutManager, let storage = textView.textContentStorage,
+            let location = storage.location(storage.documentRange.location, offsetBy: textView.selectedRange().location)
+        else { return nil }
+        layoutManager.ensureLayout(for: NSTextRange(location: location))
+        guard let fragment = layoutManager.textLayoutFragment(for: location) else { return nil }
+        return fragment.layoutFragmentFrame.offsetBy(
+            dx: textView.textContainerOrigin.x, dy: textView.textContainerOrigin.y)
+    }
 
     /// Replaces the whole text (opening a file, or a reload from disk). Clears undo.
     public func load(_ text: String, flavor: DocumentFlavor) {
@@ -193,7 +236,7 @@ extension EditorController: NSTextViewDelegate {
         }
         if spellSession != nil {
             updateSpells()
-        } else if let slash = pendingSlash {
+        } else if let slash = pendingSlash, mode == .preview {
             pendingSlash = nil
             openSpells(at: slash)
         }
@@ -206,7 +249,7 @@ extension EditorController: NSTextViewDelegate {
         _ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?
     ) -> Bool {
         // Shortcuts expand right after the character that completes them.
-        pendingShortcut = !isApplying && (text == " " || text == "`" || text == "~")
+        pendingShortcut = !isApplying && mode == .preview && (text == " " || text == "`" || text == "~")
         pendingSlash = !isApplying && text == "/" ? range.location : nil
         if text == "/", spellSession?.isFreshSpells(at: range.location) == true {
             // "//" closes the menu and leaves one literal slash.
@@ -223,6 +266,7 @@ extension EditorController: NSTextViewDelegate {
     public func textViewDidChangeSelection(_ notification: Notification) {
         guard !isLoading else { return }
         if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
+        guard mode == .preview else { return }
         let block = caretBlock()
         guard block != revealed else { return }
         let previous = revealed
