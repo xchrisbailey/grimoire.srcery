@@ -100,6 +100,52 @@ public enum BrandFont {
         return CTFontCreateWithFontDescriptor(descriptor, size, nil)
     }
 
+    /// Geist or Geist Mono at any size and weight, falling back to the system font if
+    /// Geist isn't registered. `italic` slants it (Geist's italic, or a synthesized slant).
+    public static func ctFont(monospaced: Bool, size: CGFloat, weight: CGFloat, italic: Bool = false) -> CTFont {
+        let key = FontKey(monospaced: monospaced, size: size, weight: weight, italic: italic)
+        if let cached = lock.withLock({ fontCache[key] }) { return cached }
+        let font = makeFont(monospaced: monospaced, size: size, weight: weight, italic: italic)
+        // Only cache Geist, so a fallback made before registration doesn't stick.
+        lock.withLock { if variableFonts[family] != nil, variableFonts[monoFamily] != nil { fontCache[key] = font } }
+        return font
+    }
+
+    private struct FontKey: Hashable {
+        var monospaced: Bool
+        var size: CGFloat
+        var weight: CGFloat
+        var italic: Bool
+    }
+
+    /// Fonts made by `ctFont(monospaced:size:weight:italic:)`; the editor asks for the
+    /// same handful over and over.
+    private nonisolated(unsafe) static var fontCache: [FontKey: CTFont] = [:]
+
+    private static func makeFont(monospaced: Bool, size: CGFloat, weight: CGFloat, italic: Bool) -> CTFont {
+        let familyName = monospaced ? monoFamily : family
+        var font: CTFont
+        if let base = lock.withLock({ variableFonts[familyName] }) {
+            let wght = 0x7767_6874  // 'wght'
+            let descriptor = CTFontDescriptorCreateCopyWithAttributes(
+                base, [kCTFontVariationAttribute: [wght: weight]] as CFDictionary)
+            font = CTFontCreateWithFontDescriptor(descriptor, size, nil)
+        } else {
+            font =
+                CTFontCreateUIFontForLanguage(monospaced ? .userFixedPitch : .system, size, nil)
+                ?? CTFontCreateWithName("Helvetica" as CFString, size, nil)
+            if weight >= 600, let bold = CTFontCreateCopyWithSymbolicTraits(font, size, nil, .traitBold, .traitBold) {
+                font = bold
+            }
+        }
+        guard italic else { return font }
+        if let slanted = CTFontCreateCopyWithSymbolicTraits(font, size, nil, .traitItalic, .traitItalic) {
+            return slanted
+        }
+        var skew = CGAffineTransform(a: 1, b: 0, c: 0.2, d: 1, tx: 0, ty: 0)
+        return CTFontCreateCopyWithAttributes(font, size, &skew, nil)
+    }
+
     /// Whether Geist and Geist Mono have been registered.
     public static var isRegistered: Bool {
         lock.withLock { variableFonts[family] != nil && variableFonts[monoFamily] != nil }
