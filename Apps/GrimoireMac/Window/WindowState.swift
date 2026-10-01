@@ -1,5 +1,6 @@
 import AppKit
 import GrimoireCore
+import GrimoireEditor
 import SwiftUI
 
 /// Everything one window shows: its project, the open workspace, the selected file and
@@ -22,6 +23,12 @@ final class WindowState {
     var openError: Error?
     var projectPrompt: ProjectPrompt?
     var focusMode = false
+    /// Preview or Raw for the open file. Each file remembers its own.
+    var editorMode: EditorMode = .preview {
+        didSet {
+            if let selectedFile, editorMode != oldValue { FileModes.remember(editorMode, for: selectedFile) }
+        }
+    }
     var columnVisibility: NavigationSplitViewVisibility = .all
     private var visibilityBeforeFocus: NavigationSplitViewVisibility = .all
 
@@ -103,6 +110,7 @@ final class WindowState {
         closeDocument()
         selectedFile = url
         guard let url else { return }
+        editorMode = FileModes.mode(for: url)
         do {
             document = try OpenDocument(url: url)
             openError = nil
@@ -165,6 +173,7 @@ final class WindowState {
             return
         }
         selectedFile = newURL
+        FileModes.remember(editorMode, for: newURL)
         document?.moved(to: newURL)
         if let projectID, let reference = workspace?.reference(for: newURL) {
             library.update(projectID) { $0.lastOpenedFile = reference }
@@ -201,6 +210,28 @@ final class WindowState {
             FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
         else { return }
         select(url)
+    }
+}
+
+/// Which files were last shown in Raw. Files not listed open in Preview.
+enum FileModes {
+    private static let key = "grimoire.rawFiles"
+    /// Enough to cover the files anyone works in, without growing forever.
+    private static let limit = 300
+
+    static func mode(for url: URL) -> EditorMode {
+        rawFiles.contains(url.standardizedFileURL.path(percentEncoded: false)) ? .raw : .preview
+    }
+
+    static func remember(_ mode: EditorMode, for url: URL) {
+        let path = url.standardizedFileURL.path(percentEncoded: false)
+        var files = rawFiles.filter { $0 != path }
+        if mode == .raw { files.insert(path, at: 0) }
+        UserDefaults.standard.set(Array(files.prefix(limit)), forKey: key)
+    }
+
+    private static var rawFiles: [String] {
+        UserDefaults.standard.stringArray(forKey: key) ?? []
     }
 }
 

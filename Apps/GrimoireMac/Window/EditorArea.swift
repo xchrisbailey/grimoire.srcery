@@ -50,7 +50,7 @@ private struct DocumentEditor: View {
 
     var body: some View {
         MarkdownEditor(
-            text: $document.text, fileURL: document.url,
+            text: $document.text, fileURL: document.url, mode: window.editorMode,
             placeholder: String(localized: "A blank page. Type / to cast a block.")
         ) { url in
             window.openLinkedFile(url)

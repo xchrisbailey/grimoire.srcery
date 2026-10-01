@@ -276,6 +276,9 @@
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
     },
+    "Raw Source" : {
+      "comment" : "plain: View menu toggle between the styled editor and the plain markdown source"
+    },
     "Rename" : {
       "comment" : "plain: confirm button in rename prompts"
     },
