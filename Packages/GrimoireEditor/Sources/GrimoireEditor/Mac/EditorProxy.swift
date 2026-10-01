@@ -94,6 +94,28 @@ public final class EditorProxy {
             TextEdit.difference(from: controller.text, to: text, selection: caret..<caret), actionName: actionName)
     }
 
+    /// Streams a model's response in place of the selection (or at the caret). See
+    /// `EditorController.streamInsertion`.
+    public func streamIntoSelection(
+        _ stream: AsyncThrowingStream<String, Error>, actionName: String, onError: @escaping (Error) -> Void = { _ in }
+    ) {
+        guard let controller else { return }
+        controller.focus()
+        controller.streamInsertion(
+            stream, replacing: controller.textView.selectedRange(), actionName: actionName, onError: onError)
+    }
+
+    /// Streams a model's response in place of `range`.
+    public func stream(
+        _ stream: AsyncThrowingStream<String, Error>, replacing range: NSRange, actionName: String,
+        onError: @escaping (Error) -> Void = { _ in }
+    ) {
+        controller?.focus()
+        controller?.streamInsertion(stream, replacing: range, actionName: actionName, onError: onError)
+    }
+
+    public var isStreaming: Bool { controller?.isStreaming ?? false }
+
     /// Puts the keyboard focus in the editor.
     public func focusEditor() {
         controller?.focus()

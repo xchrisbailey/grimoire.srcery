@@ -1,6 +1,7 @@
 import AppKit
 import GrimoireCore
 import GrimoireEditor
+import GrimoireIntelligence
 import SwiftUI
 
 /// Every command in the app as a palette row: the menu bar's commands, spells, themes and
@@ -10,8 +11,8 @@ enum Incantations {
     static func items(
         for window: WindowState, openWindow: @escaping () -> Void, openSettings: @escaping () -> Void
     ) -> [PaletteItem] {
-        file(window, openWindow: openWindow) + edit(window) + view(window) + spells(window) + themes()
-            + app(openSettings: openSettings)
+        file(window, openWindow: openWindow) + edit(window) + view(window) + spells(window)
+            + intelligence(window) + themes() + app(openSettings: openSettings)
     }
 
     // MARK: - File
@@ -272,7 +273,7 @@ enum Incantations {
         }
     }
 
-    private static func item(
+    static func item(
         _ id: String, _ title: String, _ shortcut: String, icon: String?, keywords: String = "",
         perform: @escaping () -> Void
     ) -> PaletteItem {

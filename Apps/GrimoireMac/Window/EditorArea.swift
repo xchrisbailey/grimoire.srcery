@@ -63,7 +63,7 @@ private struct DocumentEditor: View {
         .typewriterScrolling(preferences.typewriterScrolling)
         .imageFolder(window.imageFolder(for: document.url))
         .proxy(window.editor)
-        .onBeforeLargeEdit { document.keepVersion(.replaceAll) }
+        .onBeforeLargeEdit { reason in document.keepVersion(reason) }
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }

@@ -8,7 +8,9 @@ let package = Package(
         .library(name: "GrimoireIntelligence", targets: ["GrimoireIntelligence"])
     ],
     dependencies: [
-        .package(path: "../GrimoireCore")
+        .package(path: "../GrimoireCore"),
+        // Only the tests use the editor, to stream responses into it end to end.
+        .package(path: "../GrimoireEditor"),
     ],
     targets: [
         .target(
@@ -17,7 +19,7 @@ let package = Package(
         ),
         .testTarget(
             name: "GrimoireIntelligenceTests",
-            dependencies: ["GrimoireIntelligence"]
+            dependencies: ["GrimoireIntelligence", "GrimoireEditor"]
         ),
     ]
 )

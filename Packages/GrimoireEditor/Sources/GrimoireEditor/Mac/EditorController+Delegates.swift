@@ -103,6 +103,7 @@ extension EditorController: NSTextViewDelegate {
 
     public func textViewDidChangeSelection(_ notification: Notification) {
         guard !isLoading else { return }
+        keepStreamedTextOnClick()
         // Arrow keys keep the line centered; clicks leave the page where it is.
         if typewriterScrolling, NSApp.currentEvent?.type == .keyDown { centerCaret() }
         if dimsAroundCaret { updateDimming() }

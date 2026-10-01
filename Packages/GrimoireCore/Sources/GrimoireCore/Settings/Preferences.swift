@@ -55,6 +55,18 @@ public final class Preferences {
     public var smartDashes: Bool { didSet { save(smartDashes, Key.smartDashes) } }
     public var textReplacement: Bool { didSet { save(textReplacement, Key.textReplacement) } }
 
+    // MARK: Intelligence
+
+    /// Whether the on-device AI features are offered at all.
+    public var intelligenceEnabled: Bool { didSet { save(intelligenceEnabled, Key.intelligenceEnabled) } }
+    /// Whether long pages may go to Private Cloud Compute. Off unless the user turns it on.
+    public var allowsPrivateCloud: Bool { didSet { save(allowsPrivateCloud, Key.allowsPrivateCloud) } }
+
+    /// Whether AI features are on for `project`.
+    public func intelligenceEnabled(for project: Project?) -> Bool {
+        intelligenceEnabled && project?.overrides.intelligenceOff != true
+    }
+
     public static let defaultExtensions = ["md", "mdx"]
     public static let defaultProseFont = "Geist"
     public static let defaultCodeFont = "Geist Mono"
@@ -82,6 +94,8 @@ public final class Preferences {
         static let smartQuotes = "settings.smartQuotes"
         static let smartDashes = "settings.smartDashes"
         static let textReplacement = "settings.textReplacement"
+        static let intelligenceEnabled = "settings.intelligenceEnabled"
+        static let allowsPrivateCloud = "settings.allowsPrivateCloud"
     }
 
     /// The system's own Keyboard settings, which the substitutions start from.
@@ -115,6 +129,8 @@ public final class Preferences {
         smartQuotes = defaults.object(forKey: Key.smartQuotes) as? Bool ?? system(SystemKey.quotes)
         smartDashes = defaults.object(forKey: Key.smartDashes) as? Bool ?? system(SystemKey.dashes)
         textReplacement = defaults.object(forKey: Key.textReplacement) as? Bool ?? system(SystemKey.replacement)
+        intelligenceEnabled = defaults.object(forKey: Key.intelligenceEnabled) as? Bool ?? true
+        allowsPrivateCloud = defaults.object(forKey: Key.allowsPrivateCloud) as? Bool ?? false
     }
 
     /// Puts the Editor settings back to their defaults.
@@ -162,9 +178,12 @@ public final class Preferences {
 public struct ProjectOverrides: Codable, Hashable, Sendable {
     public var fileExtensions: [String]?
     public var imageLocation: ImageLocation?
+    /// True when the project has AI features turned off.
+    public var intelligenceOff: Bool?
 
-    public init(fileExtensions: [String]? = nil, imageLocation: ImageLocation? = nil) {
+    public init(fileExtensions: [String]? = nil, imageLocation: ImageLocation? = nil, intelligenceOff: Bool? = nil) {
         self.fileExtensions = fileExtensions
         self.imageLocation = imageLocation
+        self.intelligenceOff = intelligenceOff
     }
 }

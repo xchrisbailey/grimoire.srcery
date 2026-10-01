@@ -93,6 +93,7 @@ extension EditorController {
     /// Key equivalents the text view doesn't map to commands: ⌘↩ toggles a task and ⇧⌘D
     /// duplicates the block.
     func handleKey(_ event: NSEvent) -> Bool {
+        if handleStreamingKey(event) { return true }
         guard mode == .preview else { return false }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags == .command, event.keyCode == 36 || event.keyCode == 76 {
