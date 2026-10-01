@@ -185,14 +185,12 @@ import Testing
         #expect(controller.text == Self.sample)
     }
 
-    @Test func rawKeepsOnlyListContinuation() {
+    @Test func rawKeepsListContinuation() {
         let (controller, _) = makeController("- one")
         controller.mode = .raw
         controller.textView.setSelectedRange(NSRange(location: 5, length: 0))
         controller.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
         #expect(controller.text == "- one\n- ")
-        controller.textView.insertText("/", replacementRange: controller.textView.selectedRange())
-        #expect(controller.spellSession == nil)
         let (paragraph, _) = makeController("Para")
         paragraph.mode = .raw
         paragraph.textView.setSelectedRange(NSRange(location: 4, length: 0))

@@ -58,7 +58,7 @@ extension EditorController: NSTextViewDelegate {
         }
         if spellSession != nil {
             updateSpells()
-        } else if let slash = pendingSlash, mode == .preview {
+        } else if let slash = pendingSlash {
             pendingSlash = nil
             openSpells(at: slash)
         }

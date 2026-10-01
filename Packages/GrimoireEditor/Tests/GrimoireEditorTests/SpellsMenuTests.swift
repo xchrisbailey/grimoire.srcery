@@ -40,6 +40,16 @@ import Testing
         #expect(controller.recentSpells == ["h2"])
     }
 
+    @Test func castsInRawMode() {
+        let controller = makeController("Intro\n\n")
+        controller.mode = .raw
+        type("/h2", into: controller)
+        #expect(controller.spellsMenu.model.selectedItem?.id == "h2")
+        press(#selector(NSResponder.insertNewline(_:)), in: controller)
+        #expect(controller.text == "Intro\n\n## ")
+        #expect(controller.spellSession == nil)
+    }
+
     @Test func arrowsMoveTheSelection() {
         let controller = makeController()
         type("/", into: controller)
