@@ -17,7 +17,7 @@ settings:
     ALWAYS_SEARCH_USER_PATHS: NO
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_APPICON_NAME: Grimoire
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_CFBundleDisplayName: Grimoire
@@ -36,6 +36,9 @@ targets:
       - Apps/GrimoireMac
       - Apps/Shared
       - Resources
+      - path: Brand/Grimoire.icon
+        type: file
+        buildPhase: resources
     dependencies:
       - package: GrimoireCore
       - package: GrimoireEditor
@@ -50,7 +53,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Apps/GrimoireMac/GrimoireMac.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
-        INFOPLIST_KEY_NSHumanReadableCopyright: "bound at srcery.computer"
   GrimoireiOS:
     type: application
     platform: iOS
@@ -58,6 +60,9 @@ targets:
       - Apps/GrimoireiOS
       - Apps/Shared
       - Resources
+      - path: Brand/Grimoire.icon
+        type: file
+        buildPhase: resources
     dependencies:
       - package: GrimoireCore
       - package: GrimoireEditor
