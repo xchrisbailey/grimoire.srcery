@@ -6,8 +6,9 @@ excluded:
 disabled_rules:
   - trailing_comma        # swift-format owns trailing commas
   - opening_brace         # and brace placement
+  - optional_data_string_conversion  # parsing decodes slices of valid UTF-8 on purpose
 line_length:
   warning: 120
   error: 160
 identifier_name:
-  excluded: [id, x, y, i]
+  excluded: [id, x, y, i, to, lf, cr]

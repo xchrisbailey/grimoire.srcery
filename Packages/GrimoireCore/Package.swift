@@ -7,13 +7,18 @@ let package = Package(
     products: [
         .library(name: "GrimoireCore", targets: ["GrimoireCore"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.9.0")
+    ],
     targets: [
         .target(
-            name: "GrimoireCore"
+            name: "GrimoireCore",
+            dependencies: [.product(name: "Markdown", package: "swift-markdown")]
         ),
         .testTarget(
             name: "GrimoireCoreTests",
-            dependencies: ["GrimoireCore"]
+            dependencies: ["GrimoireCore"],
+            resources: [.copy("Corpus")]
         ),
     ]
 )

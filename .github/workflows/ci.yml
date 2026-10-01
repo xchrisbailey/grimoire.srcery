@@ -28,6 +28,10 @@ jobs:
       - name: swift test
         working-directory: Packages/${{ matrix.package }}
         run: swift test
+      - name: Parse speed (release build)
+        if: matrix.package == 'GrimoireCore'
+        working-directory: Packages/GrimoireCore
+        run: swift test -c release --filter PerformanceTests
 
   apps:
     name: Build ${{ matrix.scheme }}

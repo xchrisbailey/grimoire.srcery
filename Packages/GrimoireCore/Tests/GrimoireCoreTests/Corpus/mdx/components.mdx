@@ -1,0 +1,54 @@
+---
+title: Brewing potions
+description: How the cauldron works
+---
+
+import { Callout } from '../components/Callout'
+import Tabs, { Tab } from '../components/Tabs'
+export const meta = {
+  section: 'alchemy',
+}
+
+# Brewing potions
+
+Every potion starts with a <Badge>base</Badge> and a flame.
+
+<Callout type="warning" title="Hot">
+  Keep the lid on while it simmers.
+</Callout>
+
+## Ingredients
+
+- Mandrake root
+- Moonwater
+  - Drawn at midnight
+- [ ] Phoenix feather
+
+<Tabs>
+  <Tab label="Swift">
+
+  ```swift
+  let potion = Cauldron().brew()
+  ```
+
+  </Tab>
+  <Tab label="Shell">
+
+  ```sh
+  brew potion
+  ```
+
+  </Tab>
+</Tabs>
+
+```jsx
+<NotAComponent>
+  This is inside a code fence, so it stays code.
+</NotAComponent>
+```
+
+<Figure src="/cauldron.png" caption="The cauldron" />
+
+export default function Layout({ children }) {
+  return <article>{children}</article>
+}

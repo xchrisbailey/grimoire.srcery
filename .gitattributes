@@ -1,0 +1,2 @@
+# The round-trip corpus must stay byte-exact, line endings included.
+Packages/GrimoireCore/Tests/GrimoireCoreTests/Corpus/** -text
