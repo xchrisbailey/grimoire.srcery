@@ -80,12 +80,20 @@
     "A project's own settings are saved with the project." : {
       "comment" : "plain: footer for the per-project settings"
     },
+    "A short summary as a callout" : {
+      "comment" : "plain: /summarize spell subtitle (#19)",
+      "extractionState" : "manual"
+    },
     "A simple list" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
+    },
+    "Action items" : {
+      "comment" : "plain: /todo spell title (#19)",
+      "extractionState" : "manual"
     },
     "Add" : {
       "comment" : "plain: button that adds a word to a project dictionary"
@@ -95,6 +103,9 @@
     },
     "Add Folder…" : {
       "comment" : "plain: File menu item that binds folders to the window's project"
+    },
+    "Add Frontmatter" : {
+      "comment" : "plain: button that adds the suggested frontmatter (#19)"
     },
     "Align Column" : {
       "comment" : "plain: table editing command (#22)",
@@ -206,6 +217,10 @@
     "Capitalize" : {
       "comment" : "plain: Edit › Transformations item"
     },
+    "Carry on in your own voice" : {
+      "comment" : "plain: /continue spell subtitle (#19)",
+      "extractionState" : "manual"
+    },
     "Cast %@" : {
       "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2",
       "extractionState" : "manual"
@@ -274,6 +289,10 @@
     },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
+      "extractionState" : "manual"
+    },
+    "Continue writing" : {
+      "comment" : "plain: /continue spell title (#19)",
       "extractionState" : "manual"
     },
     "Copied" : {
@@ -363,6 +382,9 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Dismiss" : {
+      "comment" : "plain: button on the frontmatter suggestion bar (#19)"
+    },
     "Divider" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
@@ -398,6 +420,17 @@
     },
     "Everything runs on this Mac by default, and nothing leaves it. With Private Cloud Compute on, pages too long for the on-device model go to Apple's private servers, which keep nothing." : {
       "comment" : "plain: footer explaining AI privacy"
+    },
+    "Expand" : {
+      "comment" : "plain: selection action, menu and undo name (#19)",
+      "extractionState" : "manual"
+    },
+    "Expand Selection" : {
+      "comment" : "plain: incantation (#19)"
+    },
+    "Explain Code" : {
+      "comment" : "plain: code block action, menu and undo name (#19)",
+      "extractionState" : "manual"
     },
     "Export as HTML…" : {
       "comment" : "plain: File menu item (#24)"
@@ -436,6 +469,10 @@
     },
     "Find Previous" : {
       "comment" : "plain: Edit › Find item"
+    },
+    "Find the to-dos in this section" : {
+      "comment" : "plain: /todo spell subtitle (#19)",
+      "extractionState" : "manual"
     },
     "Find…" : {
       "comment" : "plain: Edit › Find item"
@@ -573,6 +610,9 @@
     },
     "Jump to Selection" : {
       "comment" : "plain: Edit › Find item"
+    },
+    "Keep a response" : {
+      "comment" : "plain: shortcuts list (#19)"
     },
     "Keep Mine" : {
       "comment" : "plain: conflict banner button that writes the editor's text over the file"
@@ -714,6 +754,9 @@
       "comment" : "voice: slash menu when the filter matches nothing",
       "extractionState" : "manual"
     },
+    "Not now" : {
+      "comment" : "plain: button on the frontmatter suggestion bar (#19)"
+    },
     "Numbered list" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
@@ -736,6 +779,10 @@
     },
     "Open Quickly…" : {
       "comment" : "plain: File menu item that opens Summon a page (#14)"
+    },
+    "Outline" : {
+      "comment" : "plain: /outline spell title (#19)",
+      "extractionState" : "manual"
     },
     "Paste" : {
       "comment" : "plain: undo action name",
@@ -876,6 +923,16 @@
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
     },
+    "Rewrite" : {
+      "comment" : "plain: selection action, menu and undo name (#19)",
+      "extractionState" : "manual"
+    },
+    "Rewrite Selection" : {
+      "comment" : "plain: incantation (#19)"
+    },
+    "Rewrite, shorten or expand the selection" : {
+      "comment" : "plain: shortcuts list (#19)"
+    },
     "Right" : {
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
@@ -936,6 +993,13 @@
     "Shortcuts" : {
       "comment" : "plain: Settings tab listing keyboard shortcuts (#15)"
     },
+    "Shorten" : {
+      "comment" : "plain: selection action, menu and undo name (#19)",
+      "extractionState" : "manual"
+    },
+    "Shorten Selection" : {
+      "comment" : "plain: incantation (#19)"
+    },
     "Show All" : {
       "comment" : "plain: app menu item"
     },
@@ -992,6 +1056,9 @@
     "Status" : {
       "comment" : "plain: label for whether AI features can run"
     },
+    "Stop or discard a response" : {
+      "comment" : "plain: shortcuts list (#19)"
+    },
     "Stop Speaking" : {
       "comment" : "plain: Edit › Speech item"
     },
@@ -1000,6 +1067,13 @@
     },
     "Substitutions" : {
       "comment" : "plain: Settings section, same as Edit › Substitutions"
+    },
+    "Suggest" : {
+      "comment" : "voice: button that asks the model for frontmatter (#19)"
+    },
+    "Summarize" : {
+      "comment" : "plain: /summarize spell title (#19)",
+      "extractionState" : "manual"
     },
     "Summon a page" : {
       "comment" : "voice: quick open (⌘P) prompt (#14)",
@@ -1010,6 +1084,10 @@
     },
     "Table" : {
       "comment" : "plain: spell title",
+      "extractionState" : "manual"
+    },
+    "Table from text" : {
+      "comment" : "plain: /table spell title (#19)",
       "extractionState" : "manual"
     },
     "Tables" : {
@@ -1082,6 +1160,9 @@
       "comment" : "plain: why AI features are unavailable (#18)",
       "extractionState" : "manual"
     },
+    "This page has no frontmatter. Conjure a title and tags?" : {
+      "comment" : "voice: frontmatter suggestion bar (#19)"
+    },
     "To-do" : {
       "comment" : "plain: block kind in the Turn Into menu (a task list item)",
       "extractionState" : "manual"
@@ -1097,6 +1178,18 @@
       "comment" : "plain: Edit > Undo action name after checking or unchecking a task",
       "extractionState" : "manual"
     },
+    "Translate" : {
+      "comment" : "plain: /translate spell title (#19)",
+      "extractionState" : "manual"
+    },
+    "Translate into" : {
+      "comment" : "plain: slash menu header while picking a language (#19)",
+      "extractionState" : "manual"
+    },
+    "Translate the block above, keeping its markdown" : {
+      "comment" : "plain: /translate spell subtitle (#19)",
+      "extractionState" : "manual"
+    },
     "Try Again" : {
       "comment" : "plain: save error banner button"
     },
@@ -1109,6 +1202,14 @@
     },
     "Turn on Apple Intelligence in System Settings to use these features." : {
       "comment" : "plain: why AI features are unavailable (#18)",
+      "extractionState" : "manual"
+    },
+    "Turn the list or paragraph above into a table" : {
+      "comment" : "plain: /table spell subtitle (#19)",
+      "extractionState" : "manual"
+    },
+    "Turn this line into a heading and points" : {
+      "comment" : "plain: /outline spell subtitle (#19)",
       "extractionState" : "manual"
     },
     "Type a command" : {

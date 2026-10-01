@@ -60,6 +60,9 @@ public struct SpellCaster {
         case .frontmatter:
             draft.frontmatter()
             followUp = .none
+        case .intelligence:
+            // The editor hands these to the app instead of casting them here.
+            followUp = .none
         }
         let edit = TextEdit.difference(from: text, to: draft.text as String, selection: draft.caret..<draft.caret)
         return Result(edit: edit, followUp: followUp)

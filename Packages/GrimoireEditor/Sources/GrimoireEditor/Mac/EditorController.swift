@@ -46,6 +46,10 @@ public final class EditorController: NSObject {
     /// Called before an edit that rewrites much of the file (Replace All, an AI insertion),
     /// so a version can be kept first.
     public var onBeforeLargeEdit: ((Version.Reason) -> Void)?
+    /// Whether the AI spells and selection actions are offered.
+    public var intelligenceEnabled = false
+    /// Runs an AI command the editor planned.
+    public var onIntelligence: ((IntelligenceCast) -> Void)?
     /// An AI response streaming in, or waiting to be kept.
     var streaming: StreamingInsertion?
     private(set) lazy var streamingHint = StreamingHint(controller: self)

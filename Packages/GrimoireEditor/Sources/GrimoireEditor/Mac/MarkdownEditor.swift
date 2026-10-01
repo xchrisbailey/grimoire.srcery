@@ -20,6 +20,8 @@ public struct MarkdownEditor: NSViewRepresentable {
     var onLearnWord: ((String) -> Void)?
     var onTextCheckingChange: ((TextChecking) -> Void)?
     var proxy: EditorProxy?
+    var intelligenceEnabled = false
+    var onIntelligence: ((IntelligenceCast) -> Void)?
     var onBeforeLargeEdit: ((Version.Reason) -> Void)?
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
@@ -94,6 +96,14 @@ public struct MarkdownEditor: NSViewRepresentable {
         return copy
     }
 
+    /// Offers the AI spells and selection actions, and runs them with `perform`.
+    public func intelligence(enabled: Bool, perform: @escaping (IntelligenceCast) -> Void) -> MarkdownEditor {
+        var copy = self
+        copy.intelligenceEnabled = enabled
+        copy.onIntelligence = perform
+        return copy
+    }
+
     /// Runs before an edit that rewrites much of the file, such as Replace All.
     public func onBeforeLargeEdit(_ action: @escaping (Version.Reason) -> Void) -> MarkdownEditor {
         var copy = self
@@ -160,6 +170,8 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.onLearnWord = onLearnWord
         controller.onTextCheckingChange = onTextCheckingChange
         controller.onBeforeLargeEdit = onBeforeLargeEdit
+        controller.intelligenceEnabled = intelligenceEnabled
+        controller.onIntelligence = onIntelligence
         if controller.proxy !== proxy {
             controller.proxy = proxy
             proxy?.controller = controller

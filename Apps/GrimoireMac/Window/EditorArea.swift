@@ -11,6 +11,7 @@ struct EditorArea: View {
             if let document = window.document {
                 DocumentBanners(document: document)
                 if window.editor.isFindVisible { FindBar(proxy: window.editor) }
+                FrontmatterSuggestionBar(document: document, window: window)
                 DocumentEditor(document: document, window: window)
                     // The title bar proxy icon, so the file can be dragged or ⌘-clicked like any document.
                     .navigationDocument(document.url)
@@ -64,6 +65,7 @@ private struct DocumentEditor: View {
         .imageFolder(window.imageFolder(for: document.url))
         .proxy(window.editor)
         .onBeforeLargeEdit { reason in document.keepVersion(reason) }
+        .intelligence(enabled: window.intelligenceReady) { cast in window.runIntelligence(cast) }
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }

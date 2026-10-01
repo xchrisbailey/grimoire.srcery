@@ -20,6 +20,8 @@ public struct Spell: Identifiable, Hashable, Sendable {
         case date
         /// YAML frontmatter at the top of the file.
         case frontmatter
+        /// An on-device AI command (#19), run by the app.
+        case intelligence
     }
 
     public let id: String
@@ -108,6 +110,40 @@ public enum Spellbook {
             id: "frontmatter", title: String(localized: "Frontmatter"), subtitle: String(localized: "YAML properties"),
             aliases: ["yaml", "metadata", "properties"], icon: "list.bullet.rectangle", hint: "---",
             effect: .frontmatter),
+    ]
+
+    /// The AI spells, offered only when the model can run.
+    public static let intelligence: [Spell] = [
+        Spell(
+            id: "continue", title: String(localized: "Continue writing"),
+            subtitle: String(localized: "Carry on in your own voice"), aliases: ["write", "more", "ai"],
+            icon: "text.append", effect: .intelligence),
+        Spell(
+            id: "summarize", title: String(localized: "Summarize"),
+            subtitle: String(localized: "A short summary as a callout"), aliases: ["summary", "tldr", "ai"],
+            icon: "text.quote", effect: .intelligence),
+        Spell(
+            id: "outline", title: String(localized: "Outline"),
+            subtitle: String(localized: "Turn this line into a heading and points"), aliases: ["plan", "ai"],
+            icon: "list.bullet.indent", effect: .intelligence),
+        Spell(
+            id: "tabulate", title: String(localized: "Table from text"),
+            subtitle: String(localized: "Turn the list or paragraph above into a table"),
+            aliases: ["table", "tabulate", "ai"], icon: "tablecells.badge.ellipsis", effect: .intelligence),
+        Spell(
+            id: "actions", title: String(localized: "Action items"),
+            subtitle: String(localized: "Find the to-dos in this section"), aliases: ["todo", "tasks", "ai"],
+            icon: "checklist.checked", effect: .intelligence),
+        Spell(
+            id: "translate", title: String(localized: "Translate"),
+            subtitle: String(localized: "Translate the block above, keeping its markdown"),
+            aliases: ["language", "ai"], icon: "character.bubble", effect: .intelligence),
+    ]
+
+    /// Languages offered after the Translate spell.
+    public static let translationLanguages = [
+        "English", "Spanish", "French", "German", "Italian", "Portuguese", "Dutch", "Japanese", "Korean",
+        "Chinese (Simplified)", "Chinese (Traditional)",
     ]
 
     /// Spells matching `query`, best first. Recently cast spells rank above others that

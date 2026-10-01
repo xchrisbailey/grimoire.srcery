@@ -10,6 +10,8 @@ struct SpellSession {
         case spells
         /// Picking a language; the code goes on the line starting at `codeLine`.
         case language(codeLine: Int)
+        /// Picking the language to translate into, after the Translate spell at `trigger`.
+        case translation(trigger: Range<Int>)
     }
 
     /// The `/` for spells, or the end of the opening fence for languages.
@@ -90,9 +92,15 @@ extension EditorController {
         switch session.mode {
         case .spells:
             model.title = String(localized: "Spells")
-            model.items = Spellbook.matching(query, recent: recentSpells).map {
+            model.items = Spellbook.matching(query, in: availableSpells, recent: recentSpells).map {
                 SpellsMenuModel.Item(id: $0.id, title: $0.title, subtitle: $0.subtitle, icon: $0.icon, hint: $0.hint)
             }
+        case .translation:
+            let lowered = query.lowercased()
+            model.title = String(localized: "Translate into")
+            model.items = Spellbook.translationLanguages
+                .filter { lowered.isEmpty || $0.lowercased().hasPrefix(lowered) }
+                .map { SpellsMenuModel.Item(id: $0, title: $0, subtitle: "", icon: nil, hint: "") }
         case .language:
             let lowered = query.lowercased()
             model.title = String(localized: "Language")
@@ -163,8 +171,14 @@ extension EditorController {
         closeSpells()
         switch session.mode {
         case .spells:
-            guard let spell = Spellbook.standard.first(where: { $0.id == item.id }) else { return }
-            cast(spell, trigger: session.start..<caret)
+            guard let spell = availableSpells.first(where: { $0.id == item.id }) else { return }
+            if spell.effect == .intelligence {
+                castIntelligence(spell, trigger: session.start..<caret)
+            } else {
+                cast(spell, trigger: session.start..<caret)
+            }
+        case .translation(let trigger):
+            castIntelligence(named: "translate", trigger: trigger.lowerBound..<caret, language: item.id)
         case .language(let codeLine):
             // `codeLine` was measured before any language was typed, so the code line now
             // starts the language's length after it.

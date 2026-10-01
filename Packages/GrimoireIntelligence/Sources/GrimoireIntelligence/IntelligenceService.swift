@@ -101,6 +101,35 @@ public final class IntelligenceService {
         return stream
     }
 
+    /// Streams a typed result as it fills in, through guided generation, as text: `render`
+    /// turns each partial result into what to show.
+    public func streamGenerated<Content: Generable>(
+        _ type: Content.Type, for request: IntelligenceRequest,
+        render: @escaping @MainActor (Content.PartiallyGenerated) -> String
+    ) -> AsyncThrowingStream<String, Error> {
+        let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+        let task = Task { @MainActor in
+            do {
+                let session = try await self.session(for: request)
+                let options = GenerationOptions(temperature: request.temperature)
+                let responses = session.streamResponse(generating: type, options: options) {
+                    request.prompt(includingImages: true)
+                }
+                for try await snapshot in responses {
+                    try Task.checkCancellation()
+                    continuation.yield(render(snapshot.content))
+                }
+                continuation.finish()
+            } catch is CancellationError {
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: IntelligenceError(error))
+            }
+        }
+        continuation.onTermination = { _ in task.cancel() }
+        return stream
+    }
+
     /// The whole response to `request` as plain text.
     public func respond(_ request: IntelligenceRequest) async throws -> String {
         var last = ""
