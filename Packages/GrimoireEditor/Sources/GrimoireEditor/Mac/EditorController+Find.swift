@@ -142,7 +142,11 @@ extension EditorController {
     func castAtCaret(_ spell: Spell) {
         let caret = textView.selectedRange().location
         focus()
-        cast(spell, trigger: caret..<caret)
+        if spell.effect == .intelligence {
+            castIntelligence(spell, trigger: caret..<caret)
+        } else {
+            cast(spell, trigger: caret..<caret)
+        }
     }
 }
 #endif

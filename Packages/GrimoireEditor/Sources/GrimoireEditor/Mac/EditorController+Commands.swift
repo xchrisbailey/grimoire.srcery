@@ -94,6 +94,10 @@ extension EditorController {
     /// duplicates the block.
     func handleKey(_ event: NSEvent) -> Bool {
         if handleStreamingKey(event) { return true }
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if modifiers == [.command, .option], event.charactersIgnoringModifiers?.lowercased() == "j" {
+            return showIntelligenceMenu()
+        }
         guard mode == .preview else { return false }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags == .command, event.keyCode == 36 || event.keyCode == 76 {

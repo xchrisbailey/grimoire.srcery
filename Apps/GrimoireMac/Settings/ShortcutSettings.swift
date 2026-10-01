@@ -70,6 +70,13 @@ struct Shortcut {
                 Shortcut(String(localized: "Incantations…"), "⌘K"),
             ]),
         Group(
+            title: String(localized: "Intelligence"),
+            shortcuts: [
+                Shortcut(String(localized: "Rewrite, shorten or expand the selection"), "⌥⌘J"),
+                Shortcut(String(localized: "Keep a response"), "↩"),
+                Shortcut(String(localized: "Stop or discard a response"), "esc"),
+            ]),
+        Group(
             title: String(localized: "Blocks"),
             shortcuts: [
                 Shortcut(String(localized: "Spells"), "/"),

@@ -116,6 +116,12 @@ public final class EditorProxy {
 
     public var isStreaming: Bool { controller?.isStreaming ?? false }
 
+    /// Runs a selection action: `rewrite`, `shorten`, `expand` or `explain`.
+    public func runIntelligenceAction(_ action: String) {
+        controller?.focus()
+        controller?.runIntelligenceAction(action)
+    }
+
     /// Puts the keyboard focus in the editor.
     public func focusEditor() {
         controller?.focus()
