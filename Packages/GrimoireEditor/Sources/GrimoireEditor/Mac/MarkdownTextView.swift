@@ -8,6 +8,32 @@ public final class MarkdownTextView: NSTextView {
     var onOpenLink: ((String) -> Void)?
     /// Called for a click on a drawn checkbox, with the offset of the task's line.
     var onToggleTask: ((Int) -> Void)?
+    /// Called for a ⌘-click away from links, with the clicked offset.
+    var onSelectBlock: ((Int) -> Void)?
+    /// Offered every key press first; returns true when it handled the key.
+    var onKeyCommand: ((NSEvent) -> Bool)?
+    /// Offered every paste first; returns true when it handled the pasteboard.
+    var onPaste: ((NSPasteboard) -> Bool)?
+    /// Follows the mouse over the text, for the block handle.
+    var onMouseMoved: ((CGPoint) -> Void)?
+    var onMouseExited: (() -> Void)?
+
+    private var hoverArea: NSTrackingArea?
+
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverArea { removeTrackingArea(hoverArea) }
+        let area = NSTrackingArea(
+            rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self)
+        addTrackingArea(area)
+        hoverArea = area
+    }
+
+    public override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        onMouseExited?()
+    }
     var maxLineWidth: CGFloat = 680 {
         didSet { updateInsets() }
     }
@@ -55,15 +81,30 @@ public final class MarkdownTextView: NSTextView {
             onToggleTask?(offset)
             return
         }
-        if event.modifierFlags.contains(.command), let link = link(at: point) {
-            onOpenLink?(link)
+        if event.modifierFlags.contains(.command) {
+            if let link = link(at: point) {
+                onOpenLink?(link)
+            } else {
+                onSelectBlock?(characterIndexForInsertion(at: point))
+            }
             return
         }
         super.mouseDown(with: event)
     }
 
+    public override func keyDown(with event: NSEvent) {
+        if onKeyCommand?(event) == true { return }
+        super.keyDown(with: event)
+    }
+
+    public override func paste(_ sender: Any?) {
+        if onPaste?(NSPasteboard.general) == true { return }
+        super.paste(sender)
+    }
+
     public override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        onMouseMoved?(point)
         if taskLine(at: point) != nil || (event.modifierFlags.contains(.command) && link(at: point) != nil) {
             NSCursor.pointingHand.set()
         } else {

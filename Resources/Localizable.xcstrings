@@ -39,6 +39,9 @@
       "comment" : "voice: import a VS Code theme (#12)",
       "extractionState" : "manual"
     },
+    "Bulleted List" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
     "Can't move “%@” into itself." : {
       "comment" : "plain: error when a folder is dropped into itself"
     },
@@ -54,9 +57,15 @@
     "Close" : {
       "comment" : "plain: File menu item"
     },
+    "Code Block" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
       "extractionState" : "manual"
+    },
+    "Copy Link" : {
+      "comment" : "plain: block menu item that copies a markdown link to the block"
     },
     "Couldn't create “%@”." : {
       "comment" : "plain: error when making a file fails"
@@ -74,6 +83,12 @@
     "Create" : {
       "comment" : "plain: confirm button for a new project"
     },
+    "Delete" : {
+      "comment" : "plain: block menu item that removes the block"
+    },
+    "Delete Block" : {
+      "comment" : "plain: undo action name"
+    },
     "Delete Project" : {
       "comment" : "plain: delete confirmation button for a project"
     },
@@ -82,6 +97,12 @@
     },
     "Delete “%@”?" : {
       "comment" : "plain: delete confirmation title; %@ is the project name"
+    },
+    "Duplicate" : {
+      "comment" : "plain: block menu item"
+    },
+    "Duplicate Block" : {
+      "comment" : "plain: undo action name"
     },
     "Enter Focus Mode" : {
       "comment" : "plain: View menu item"
@@ -105,6 +126,15 @@
     "Grimoire can't open this folder anymore. It may have moved, or access needs to be granted again." : {
       "comment" : "plain: shown in place of a bound folder's files when its bookmark no longer resolves"
     },
+    "Heading 1" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
+    "Heading 2" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
+    "Heading 3" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
       "extractionState" : "manual"
@@ -126,6 +156,9 @@
     },
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
+    },
+    "Move Block" : {
+      "comment" : "plain: undo action name"
     },
     "Name" : {
       "comment" : "plain: text field placeholder in name prompts"
@@ -151,12 +184,27 @@
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
     },
+    "Numbered List" : {
+      "comment" : "plain: block kind in the Turn Into menu"
+    },
     "OK" : {
       "comment" : "plain: dismiss button on error alerts"
+    },
+    "Paste" : {
+      "comment" : "plain: undo action name"
+    },
+    "Paste Image" : {
+      "comment" : "plain: undo action name"
+    },
+    "Paste Link" : {
+      "comment" : "plain: undo action name"
     },
     "Preview" : {
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
+    },
+    "Quote" : {
+      "comment" : "plain: block kind in the Turn Into menu"
     },
     "Raw" : {
       "comment" : "plain: title bar mode toggle (#10)",
@@ -191,6 +239,9 @@
       "comment" : "voice: quick open (⌘P) prompt (#14)",
       "extractionState" : "manual"
     },
+    "Text" : {
+      "comment" : "plain: block kind in the Turn Into menu (a paragraph)"
+    },
     "That project no longer exists." : {
       "comment" : "plain: error when acting on a deleted project"
     },
@@ -201,8 +252,17 @@
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
       "extractionState" : "manual"
     },
+    "To-do" : {
+      "comment" : "plain: block kind in the Turn Into menu (a task list item)"
+    },
+    "Toggle Task" : {
+      "comment" : "plain: Edit > Undo action name after checking or unchecking a task"
+    },
     "Try Again" : {
       "comment" : "plain: save error banner button"
+    },
+    "Turn Into" : {
+      "comment" : "plain: block menu item with the kinds a block can become; also an undo action name"
     },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"

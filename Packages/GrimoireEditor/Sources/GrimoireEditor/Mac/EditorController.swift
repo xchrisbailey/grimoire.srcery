@@ -23,6 +23,9 @@ public final class EditorController: NSObject {
     var lastText: String = ""
     private var revealed: Int?
     private var isLoading = false
+    var pendingShortcut = false
+    private(set) lazy var blockHandle = BlockHandle(controller: self)
+    var isApplying = false
     /// Each editor keeps its own undo history, so it belongs to the open file.
     private let undoManager = UndoManager()
 
@@ -62,6 +65,11 @@ public final class EditorController: NSObject {
         textView.textLayoutManager?.delegate = self
         textView.onToggleTask = { [weak self] offset in self?.toggleTask(at: offset) }
         textView.onOpenLink = { [weak self] link in self?.onOpenLink?(link) }
+        textView.onSelectBlock = { [weak self] offset in self?.selectBlock(at: offset) }
+        textView.onKeyCommand = { [weak self] event in self?.handleKey(event) ?? false }
+        textView.onPaste = { [weak self] pasteboard in self?.paste(from: pasteboard) ?? false }
+        textView.onMouseMoved = { [weak self] point in self?.blockHandle.mouseMoved(to: point) }
+        textView.onMouseExited = { [weak self] in self?.blockHandle.hide() }
 
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
@@ -129,16 +137,12 @@ public final class EditorController: NSObject {
     func toggleTask(at offset: Int) {
         let text = textView.string as NSString
         let line = text.lineRange(for: NSRange(location: offset, length: 0))
-        let content = text.substring(with: line) as NSString
-        let prefix = MarkdownSyntax.listPrefix(in: content as String)
-        guard prefix.checkbox > 0 else { return }
-        let boxRange = NSRange(location: line.location + prefix.indent + prefix.marker + 1, length: 1)
-        let current = text.substring(with: boxRange)
-        let replacement = current == " " ? "x" : " "
-        guard textView.shouldChangeText(in: boxRange, replacementString: replacement) else { return }
-        textView.textStorage?.replaceCharacters(in: boxRange, with: replacement)
-        textView.didChangeText()
-        textView.undoManager?.setActionName(String(localized: "Toggle Task"))
+        let selection = textView.selectedRange()
+        guard
+            let edit = BlockEditing.toggleTask(
+                onLine: line, in: text, selection: selection.location..<NSMaxRange(selection))
+        else { return }
+        apply(edit, actionName: String(localized: "Toggle Task"))
     }
 }
 
@@ -175,9 +179,26 @@ extension EditorController: NSTextViewDelegate {
     }
 
     public func textDidChange(_ notification: Notification) {
+        blockHandle.hide()
+        if pendingShortcut {
+            pendingShortcut = false
+            if let edit = editing.shortcut() { apply(edit) }
+        }
         let text = textView.string
         lastText = text
         onTextChange?(text)
+    }
+
+    public func textView(
+        _ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?
+    ) -> Bool {
+        // Shortcuts expand right after the character that completes them.
+        pendingShortcut = !isApplying && (text == " " || text == "`" || text == "~")
+        return true
+    }
+
+    public func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+        handleCommand(selector)
     }
 
     public func textViewDidChangeSelection(_ notification: Notification) {
