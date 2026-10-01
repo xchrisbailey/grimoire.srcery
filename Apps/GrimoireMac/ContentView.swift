@@ -47,6 +47,7 @@ private struct WindowContent: View {
         .toolbar {
             if let document = window.document {
                 ToolbarItem(placement: .status) { InkDot(isWet: document.isDirty) }
+                ToolbarItem(placement: .primaryAction) { ShareMenu(window: window, document: document) }
                 ToolbarItem(placement: .primaryAction) { ModePicker(mode: $window.editorMode) }
             }
         }

@@ -47,6 +47,16 @@ enum Incantations {
             items.append(
                 item("file.save", String(localized: "Save"), "⌘S", icon: "square.and.arrow.down") { window.save() })
             items.append(
+                item("file.html", String(localized: "Export as HTML…"), "", icon: "doc.text") { window.exportHTML() })
+            items.append(
+                item("file.pdf", String(localized: "Export as PDF…"), "", icon: "doc.richtext") { window.exportPDF() })
+            items.append(
+                item("file.print", String(localized: "Print…"), "⌥⌘P", icon: "printer") { window.printDocument() })
+            items.append(
+                item("edit.richText", String(localized: "Copy as Rich Text"), "⌥⇧⌘C", icon: "doc.on.clipboard") {
+                    window.copyAsRichText()
+                })
+            items.append(
                 item(
                     "file.versions", String(localized: "Browse Versions…"), "", icon: "clock.arrow.circlepath",
                     keywords: "history restore"

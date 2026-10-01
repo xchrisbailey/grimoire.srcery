@@ -83,6 +83,9 @@ public final class EditorProxy {
 
     public var hasEditor: Bool { controller != nil }
 
+    /// The selected text, empty when nothing is selected.
+    public var selectedText: String { controller?.selectedText ?? "" }
+
     /// Replaces the whole text as one undoable edit, keeping the caret near where it was.
     public func replaceText(_ text: String, actionName: String) {
         guard let controller else { return }
