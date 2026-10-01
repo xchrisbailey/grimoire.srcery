@@ -24,6 +24,9 @@ struct EditorArea: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.brand(\.page))
+        .sheet(isPresented: Bindable(window).showsVersions) {
+            if let document = window.document { VersionBrowser(document: document, editor: window.editor) }
+        }
         .overlay(alignment: .bottom) {
             if window.focusMode {
                 FocusStatus(text: window.document?.text ?? "")
@@ -60,6 +63,7 @@ private struct DocumentEditor: View {
         .typewriterScrolling(preferences.typewriterScrolling)
         .imageFolder(window.imageFolder(for: document.url))
         .proxy(window.editor)
+        .onBeforeLargeEdit { document.keepVersion(.replaceAll) }
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }

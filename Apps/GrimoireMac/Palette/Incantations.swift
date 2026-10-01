@@ -46,6 +46,11 @@ enum Incantations {
         if window.document != nil {
             items.append(
                 item("file.save", String(localized: "Save"), "⌘S", icon: "square.and.arrow.down") { window.save() })
+            items.append(
+                item(
+                    "file.versions", String(localized: "Browse Versions…"), "", icon: "clock.arrow.circlepath",
+                    keywords: "history restore"
+                ) { window.showsVersions = true })
         }
         items.append(
             item("file.close", String(localized: "Close"), "⌘W", icon: "xmark") {

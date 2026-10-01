@@ -129,6 +129,14 @@ import Testing
         #expect(controller.textView.selectedRange().location == (Self.sample as NSString).range(of: "Storage").location)
     }
 
+    @Test func restoringTextIsOneUndoableEdit() {
+        let (controller, proxy, _) = makeController()
+        proxy.replaceText("# Restored\n", actionName: "Restore Version")
+        #expect(controller.text == "# Restored\n")
+        controller.textView.undoManager?.undo()
+        #expect(controller.text == Self.sample)
+    }
+
     @Test func castsSpellsAtTheCaret() throws {
         let (controller, proxy, _) = makeController()
         let offset = (Self.sample as NSString).range(of: "Keep").location

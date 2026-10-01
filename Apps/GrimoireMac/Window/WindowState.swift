@@ -21,6 +21,8 @@ final class WindowState {
     let search = ProjectSearch()
     /// The palette floating over the window, if one is open.
     var palette: Palette?
+    /// Whether the version browser sheet is showing.
+    var showsVersions = false
     private var preferences: Preferences { .shared }
 
     private(set) var projectID: Project.ID?
@@ -126,6 +128,7 @@ final class WindowState {
         editorMode = FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
             document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
+            document?.versions = .standard
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {
                 library.update(projectID) { $0.lastOpenedFile = reference }
