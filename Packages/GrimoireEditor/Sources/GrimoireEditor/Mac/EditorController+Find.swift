@@ -81,7 +81,7 @@ extension EditorController {
         guard let proxy else { return }
         updateFindMatches()
         guard !findMatches.isEmpty else { return NSSound.beep() }
-        onBeforeLargeEdit?()
+        onBeforeLargeEdit?(.replaceAll)
         let text = textView.string
         let result = NSMutableString(string: text)
         for match in findMatches.reversed() {

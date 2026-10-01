@@ -43,9 +43,12 @@ public final class EditorController: NSObject {
     weak var proxy: EditorProxy?
     /// The current find query's matches.
     var findMatches: [NSRange] = []
-    /// Called before an edit that rewrites much of the file (Replace All), so a version
-    /// can be kept first.
-    public var onBeforeLargeEdit: (() -> Void)?
+    /// Called before an edit that rewrites much of the file (Replace All, an AI insertion),
+    /// so a version can be kept first.
+    public var onBeforeLargeEdit: ((Version.Reason) -> Void)?
+    /// An AI response streaming in, or waiting to be kept.
+    var streaming: StreamingInsertion?
+    private(set) lazy var streamingHint = StreamingHint(controller: self)
     /// Called when a check is switched on or off from the Edit menu.
     var onTextCheckingChange: ((TextChecking) -> Void)?
 

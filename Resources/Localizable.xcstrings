@@ -32,6 +32,10 @@
       "comment" : "voice: slash menu footer hint (#8)",
       "extractionState" : "manual"
     },
+    "↩ keep · esc discard" : {
+      "comment" : "plain: hint under a finished AI response (#18)",
+      "extractionState" : "manual"
+    },
     "↵ cast" : {
       "comment" : "voice: slash menu footer hint for Return (#8)",
       "extractionState" : "manual"
@@ -96,6 +100,9 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Allow Private Cloud Compute for long pages" : {
+      "comment" : "plain: setting, off by default"
+    },
     "An item named “%@” already exists here." : {
       "comment" : "plain: error when a rename or move collides",
       "extractionState" : "manual"
@@ -111,6 +118,10 @@
     },
     "Appearance: Match System" : {
       "comment" : "plain: incantation"
+    },
+    "Apple Intelligence is still downloading. Try again in a little while." : {
+      "comment" : "plain: why AI features are unavailable (#18)",
+      "extractionState" : "manual"
     },
     "At the top of its folder" : {
       "comment" : "plain: images go in an assets folder at the top of the bound folder"
@@ -385,6 +396,9 @@
       "comment" : "voice: focus mode hint (#10)",
       "extractionState" : "manual"
     },
+    "Everything runs on this Mac by default, and nothing leaves it. With Private Cloud Compute on, pages too long for the on-device model go to Apple's private servers, which keep nothing." : {
+      "comment" : "plain: footer explaining AI privacy"
+    },
     "Export as HTML…" : {
       "comment" : "plain: File menu item (#24)"
     },
@@ -530,6 +544,17 @@
     },
     "Insert Row Below" : {
       "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Intelligence" : {
+      "comment" : "plain: Settings tab for AI features (#18)"
+    },
+    "Intelligence is turned off for this project." : {
+      "comment" : "plain: why AI features are unavailable (#18)",
+      "extractionState" : "manual"
+    },
+    "Intelligence is turned off in Settings." : {
+      "comment" : "plain: why AI features are unavailable (#18)",
       "extractionState" : "manual"
     },
     "Invalid pattern" : {
@@ -758,6 +783,10 @@
     "Print…" : {
       "comment" : "plain: File menu item (#24)"
     },
+    "Private Cloud Compute isn't available right now." : {
+      "comment" : "plain: error (#18)",
+      "extractionState" : "manual"
+    },
     "Project" : {
       "comment" : "plain: picker for the project whose own settings are shown"
     },
@@ -783,6 +812,9 @@
     },
     "Raw Source" : {
       "comment" : "plain: View menu toggle between the styled editor and the plain markdown source"
+    },
+    "Ready, on this Mac" : {
+      "comment" : "plain: AI features can run on device"
     },
     "Redo" : {
       "comment" : "plain: Edit menu item"
@@ -957,8 +989,14 @@
     "Start Speaking" : {
       "comment" : "plain: Edit › Speech item"
     },
+    "Status" : {
+      "comment" : "plain: label for whether AI features can run"
+    },
     "Stop Speaking" : {
       "comment" : "plain: Edit › Speech item"
+    },
+    "Stream a Test Response" : {
+      "comment" : "plain: debug-only incantation that streams a model response into the editor"
     },
     "Substitutions" : {
       "comment" : "plain: Settings section, same as Edit › Substitutions"
@@ -995,6 +1033,18 @@
       "comment" : "plain: error when acting on a deleted project",
       "extractionState" : "manual"
     },
+    "The model declined to answer that." : {
+      "comment" : "plain: error when the model refuses (#18)",
+      "extractionState" : "manual"
+    },
+    "The model doesn't support this language yet." : {
+      "comment" : "plain: error (#18)",
+      "extractionState" : "manual"
+    },
+    "The model is busy. Try again in a moment." : {
+      "comment" : "plain: error when rate limited (#18)",
+      "extractionState" : "manual"
+    },
     "The page couldn't be laid out for printing." : {
       "comment" : "plain: error when printing or making a PDF fails (#24)",
       "extractionState" : "manual"
@@ -1024,6 +1074,14 @@
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
       "extractionState" : "manual"
     },
+    "This is too long for the on-device model. Try a shorter selection, or allow Private Cloud Compute in Settings." : {
+      "comment" : "plain: error when a prompt doesn't fit the model (#18)",
+      "extractionState" : "manual"
+    },
+    "This Mac can't run Apple Intelligence." : {
+      "comment" : "plain: why AI features are unavailable (#18)",
+      "extractionState" : "manual"
+    },
     "To-do" : {
       "comment" : "plain: block kind in the Turn Into menu (a task list item)",
       "extractionState" : "manual"
@@ -1044,6 +1102,13 @@
     },
     "Turn Into" : {
       "comment" : "plain: block menu item with the kinds a block can become; also an undo action name",
+      "extractionState" : "manual"
+    },
+    "Turn off intelligence for this project" : {
+      "comment" : "plain: per-project AI opt-out"
+    },
+    "Turn on Apple Intelligence in System Settings to use these features." : {
+      "comment" : "plain: why AI features are unavailable (#18)",
       "extractionState" : "manual"
     },
     "Type a command" : {
@@ -1072,6 +1137,9 @@
     },
     "Use %@ in Light Mode" : {
       "comment" : "plain: incantation that picks a light theme; %@ is the theme name"
+    },
+    "Use Apple Intelligence in Grimoire" : {
+      "comment" : "plain: setting that turns AI features on or off"
     },
     "Use for Dark" : {
       "comment" : "plain: context menu item that uses a theme in dark mode"
@@ -1103,6 +1171,10 @@
     },
     "Words here are spelled right in this project's pages. Right-click a misspelled word to add it." : {
       "comment" : "plain: footer under the project dictionary"
+    },
+    "Writing… esc to stop" : {
+      "comment" : "plain: hint while an AI response streams in (#18)",
+      "extractionState" : "manual"
     },
     "YAML properties" : {
       "comment" : "plain: spell subtitle",

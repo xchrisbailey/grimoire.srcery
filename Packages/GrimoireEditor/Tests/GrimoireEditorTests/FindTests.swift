@@ -92,7 +92,7 @@ import Testing
     @Test func regexReplacementsUseGroups() {
         let (controller, proxy, _) = makeController()
         var snapshots = 0
-        controller.onBeforeLargeEdit = { snapshots += 1 }
+        controller.onBeforeLargeEdit = { _ in snapshots += 1 }
         proxy.showFind(replace: true)
         proxy.regex = true
         proxy.findQuery = "(\\w+)-wells"

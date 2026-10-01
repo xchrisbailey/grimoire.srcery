@@ -20,7 +20,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     var onLearnWord: ((String) -> Void)?
     var onTextCheckingChange: ((TextChecking) -> Void)?
     var proxy: EditorProxy?
-    var onBeforeLargeEdit: (() -> Void)?
+    var onBeforeLargeEdit: ((Version.Reason) -> Void)?
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
 
@@ -95,7 +95,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     }
 
     /// Runs before an edit that rewrites much of the file, such as Replace All.
-    public func onBeforeLargeEdit(_ action: @escaping () -> Void) -> MarkdownEditor {
+    public func onBeforeLargeEdit(_ action: @escaping (Version.Reason) -> Void) -> MarkdownEditor {
         var copy = self
         copy.onBeforeLargeEdit = action
         return copy
