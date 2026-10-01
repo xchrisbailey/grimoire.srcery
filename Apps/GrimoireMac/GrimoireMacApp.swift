@@ -24,6 +24,7 @@ struct GrimoireMacApp: App {
         }
         Settings {
             SettingsView()
+                .environment(library)
         }
     }
 

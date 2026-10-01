@@ -8,6 +8,9 @@
     "%@ changed on disk while you were editing." : {
       "comment" : "plain: conflict banner; %@ is the file name"
     },
+    "%@ pt" : {
+      "comment" : "plain: a size in points; %@ is the number"
+    },
     "%lld min read" : {
       "comment" : "plain: focus mode reading time in minutes"
     },
@@ -21,6 +24,18 @@
     "↵ cast" : {
       "comment" : "voice: slash menu footer hint for Return (#8)",
       "extractionState" : "manual"
+    },
+    "1 second" : {
+      "comment" : "plain: autosave delay option"
+    },
+    "3 seconds" : {
+      "comment" : "plain: autosave delay option"
+    },
+    "10 seconds" : {
+      "comment" : "plain: autosave delay option"
+    },
+    "30 seconds" : {
+      "comment" : "plain: autosave delay option"
     },
     "A blank page. Type / to cast a block." : {
       "comment" : "voice: empty editor placeholder (#5)",
@@ -37,6 +52,9 @@
     "A note that stands out" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
+    },
+    "A project's own settings are saved with the project." : {
+      "comment" : "plain: footer for the per-project settings"
     },
     "A simple list" : {
       "comment" : "plain: spell subtitle",
@@ -59,6 +77,9 @@
     "Appearance" : {
       "comment" : "plain: Settings tab and picker for light, dark or system appearance (#12)"
     },
+    "At the top of its folder" : {
+      "comment" : "plain: images go in an assets folder at the top of the bound folder"
+    },
     "Banish" : {
       "comment" : "voice: delete confirmation button (#5)",
       "extractionState" : "manual"
@@ -76,6 +97,9 @@
     "Bind a folder" : {
       "comment" : "voice: add a folder to the project (#5)",
       "extractionState" : "manual"
+    },
+    "Blocks" : {
+      "comment" : "plain: shortcut group for block editing keys"
     },
     "Borrow a look from VS Code" : {
       "comment" : "voice: import a VS Code theme (#12)",
@@ -137,6 +161,12 @@
     "Code Block" : {
       "comment" : "plain: block kind in the Turn Into menu",
       "extractionState" : "manual"
+    },
+    "Code font" : {
+      "comment" : "plain: Settings › Editor font for code and Raw"
+    },
+    "Code size" : {
+      "comment" : "plain: Settings › Editor size for code and Raw"
     },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
@@ -221,6 +251,9 @@
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
     },
+    "Editor" : {
+      "comment" : "plain: Settings tab (#15)"
+    },
     "esc close" : {
       "comment" : "plain: slash menu footer hint",
       "extractionState" : "manual"
@@ -229,9 +262,15 @@
       "comment" : "voice: focus mode hint (#10)",
       "extractionState" : "manual"
     },
+    "Fade other blocks in focus mode" : {
+      "comment" : "plain: setting for focus mode dimming"
+    },
     "Fenced code with a language" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
+    },
+    "File" : {
+      "comment" : "plain: shortcut group, matching the File menu"
     },
     "Focus Mode" : {
       "comment" : "plain: View menu toggle"
@@ -243,6 +282,9 @@
     "Frontmatter" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
+    },
+    "General" : {
+      "comment" : "plain: Settings tab (#15)"
     },
     "Grant Access" : {
       "comment" : "plain: confirm button in the re-grant folder picker"
@@ -285,6 +327,9 @@
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
       "extractionState" : "manual"
+    },
+    "Indent or outdent a list item" : {
+      "comment" : "plain: shortcut list entry for Tab and Shift-Tab"
     },
     "Ink dry" : {
       "comment" : "voice: tooltip when the file is saved (#5)",
@@ -340,15 +385,33 @@
     "Light" : {
       "comment" : "plain: light appearance; also the slot a theme is used for"
     },
+    "Line break in a block" : {
+      "comment" : "plain: shortcut list entry for Shift-Return"
+    },
+    "Line height" : {
+      "comment" : "plain: Settings › Editor prose line height"
+    },
+    "Line width" : {
+      "comment" : "plain: Settings › Editor widest the text column grows"
+    },
     "Link" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
     },
+    "List files ending in" : {
+      "comment" : "plain: setting for which file extensions the sidebar lists"
+    },
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
     },
+    "Markers like # and ** normally show only on the block you're writing in. Typewriter scrolling keeps that line in the middle of the window." : {
+      "comment" : "plain: footer explaining the editor behavior settings"
+    },
     "Match System" : {
       "comment" : "plain: appearance option that follows the system's light or dark mode"
+    },
+    "md, mdx" : {
+      "comment" : "plain: placeholder for the file extensions field"
     },
     "Medium section heading" : {
       "comment" : "plain: spell subtitle",
@@ -390,6 +453,9 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Next to the page" : {
+      "comment" : "plain: images go in an assets folder next to the file"
+    },
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
     },
@@ -408,6 +474,12 @@
     "OK" : {
       "comment" : "plain: dismiss button on error alerts"
     },
+    "Open a link" : {
+      "comment" : "plain: shortcut list entry for Command-click"
+    },
+    "Open files in" : {
+      "comment" : "plain: setting for the mode files open in, Preview or Raw"
+    },
     "Paste" : {
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
@@ -424,6 +496,9 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Per project" : {
+      "comment" : "plain: Settings section for one project's own settings"
+    },
     "Plain paragraph" : {
       "comment" : "plain: subtitle of the Text spell",
       "extractionState" : "manual"
@@ -435,6 +510,15 @@
     "Previous Cell" : {
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
+    },
+    "Project" : {
+      "comment" : "plain: picker for the project whose own settings are shown"
+    },
+    "Prose font" : {
+      "comment" : "plain: Settings › Editor font for prose"
+    },
+    "Prose size" : {
+      "comment" : "plain: Settings › Editor size for prose"
     },
     "Quote" : {
       "comment" : "plain: block kind in the Turn Into menu",
@@ -471,6 +555,12 @@
     "Rename…" : {
       "comment" : "plain: context menu item for a file or folder"
     },
+    "Reopen the last page when Grimoire starts" : {
+      "comment" : "plain: setting to restore the last session"
+    },
+    "Restore Defaults" : {
+      "comment" : "plain: resets Settings › Editor"
+    },
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
     },
@@ -482,12 +572,39 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Same as above" : {
+      "comment" : "plain: a project uses the app-wide image setting"
+    },
     "Save" : {
       "comment" : "plain: File menu item"
+    },
+    "Save edits after" : {
+      "comment" : "plain: autosave delay setting"
+    },
+    "Save pasted images in" : {
+      "comment" : "plain: setting for where pasted images are saved"
+    },
+    "Select the block" : {
+      "comment" : "plain: shortcut list entry for Escape"
+    },
+    "Separate extensions with commas. Pasted images go in an assets folder." : {
+      "comment" : "plain: footer under the file settings"
     },
     "Set a passage apart" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
+    },
+    "Settings" : {
+      "comment" : "plain: sidebar button that opens Settings"
+    },
+    "Settings…" : {
+      "comment" : "plain: app menu item that opens Settings"
+    },
+    "Shortcuts" : {
+      "comment" : "plain: Settings tab listing keyboard shortcuts (#15)"
+    },
+    "Show markdown markers on every line" : {
+      "comment" : "plain: setting that shows # and ** on every block, not only the caret's"
     },
     "Small section heading" : {
       "comment" : "plain: spell subtitle",
@@ -507,6 +624,9 @@
     "Table" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
+    },
+    "Tables" : {
+      "comment" : "plain: shortcut group for table keys"
     },
     "Text" : {
       "comment" : "plain: block kind in the Turn Into menu (a paragraph)",
@@ -549,6 +669,9 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Toggle Sidebar" : {
+      "comment" : "plain: View menu item"
+    },
     "Toggle Task" : {
       "comment" : "plain: Edit > Undo action name after checking or unchecking a task",
       "extractionState" : "manual"
@@ -559,6 +682,9 @@
     "Turn Into" : {
       "comment" : "plain: block menu item with the kinds a block can become; also an undo action name",
       "extractionState" : "manual"
+    },
+    "Typewriter scrolling" : {
+      "comment" : "plain: setting that keeps the caret's line centered"
     },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
@@ -572,8 +698,14 @@
     "Use in %@ mode" : {
       "comment" : "plain: tooltip on a theme's Light or Dark pill; %@ is Light or Dark"
     },
+    "Use its own file extensions" : {
+      "comment" : "plain: toggle for a project-specific extension list"
+    },
     "Used in %@ mode" : {
       "comment" : "plain: tooltip on a theme's Light or Dark pill when it's in use; %@ is Light or Dark"
+    },
+    "View" : {
+      "comment" : "plain: shortcut group, matching the View menu"
     },
     "YAML properties" : {
       "comment" : "plain: spell subtitle",

@@ -12,6 +12,9 @@ public struct MarkdownEditor: NSViewRepresentable {
     var mode: EditorMode
     var theme: EditorTheme
     var dimsAroundCaret = false
+    var showsAllMarkers = false
+    var typewriterScrolling = false
+    var imageFolder: URL?
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
 
@@ -37,6 +40,27 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func dimmingAroundCaret(_ dims: Bool) -> MarkdownEditor {
         var copy = self
         copy.dimsAroundCaret = dims
+        return copy
+    }
+
+    /// Shows markdown markers on every block, not just the caret's.
+    public func showingAllMarkers(_ shows: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.showsAllMarkers = shows
+        return copy
+    }
+
+    /// Keeps the caret's line in the middle of the view while typing.
+    public func typewriterScrolling(_ isOn: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.typewriterScrolling = isOn
+        return copy
+    }
+
+    /// Saves pasted and picked images in `folder` instead of `assets/` next to the file.
+    public func imageFolder(_ folder: URL?) -> MarkdownEditor {
+        var copy = self
+        copy.imageFolder = folder
         return copy
     }
 
@@ -91,6 +115,9 @@ public struct MarkdownEditor: NSViewRepresentable {
 
     private func wire(_ controller: EditorController) {
         controller.textView.placeholder = placeholder
+        controller.imageFolder = imageFolder
+        controller.revealsAllMarkers = showsAllMarkers
+        controller.typewriterScrolling = typewriterScrolling
         controller.onEscape = onEscape
         let binding = $text
         controller.onTextChange = { binding.wrappedValue = $0 }

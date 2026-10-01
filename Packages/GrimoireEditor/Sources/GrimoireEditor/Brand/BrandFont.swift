@@ -102,12 +102,22 @@ public enum BrandFont {
 
     /// Geist or Geist Mono at any size and weight, falling back to the system font if
     /// Geist isn't registered. `italic` slants it (Geist's italic, or a synthesized slant).
-    public static func ctFont(monospaced: Bool, size: CGFloat, weight: CGFloat, italic: Bool = false) -> CTFont {
-        let key = FontKey(monospaced: monospaced, size: size, weight: weight, italic: italic)
+    /// `family` picks another installed family instead, as chosen in Settings.
+    public static func ctFont(
+        monospaced: Bool, size: CGFloat, weight: CGFloat, italic: Bool = false, family requested: String? = nil
+    ) -> CTFont {
+        let family = requested == (monospaced ? monoFamily : Self.family) ? nil : requested
+        let key = FontKey(monospaced: monospaced, size: size, weight: weight, italic: italic, family: family)
         if let cached = lock.withLock({ fontCache[key] }) { return cached }
+        if let family, let font = installedFont(family: family, size: size, weight: weight, italic: italic) {
+            lock.withLock { fontCache[key] = font }
+            return font
+        }
         let font = makeFont(monospaced: monospaced, size: size, weight: weight, italic: italic)
         // Only cache Geist, so a fallback made before registration doesn't stick.
-        lock.withLock { if variableFonts[family] != nil, variableFonts[monoFamily] != nil { fontCache[key] = font } }
+        lock.withLock {
+            if variableFonts[Self.family] != nil, variableFonts[monoFamily] != nil { fontCache[key] = font }
+        }
         return font
     }
 
@@ -116,6 +126,27 @@ public enum BrandFont {
         var size: CGFloat
         var weight: CGFloat
         var italic: Bool
+        var family: String?
+    }
+
+    /// A font from an installed family at the nearest weight, or nil when the family
+    /// isn't installed.
+    private static func installedFont(family: String, size: CGFloat, weight: CGFloat, italic: Bool) -> CTFont? {
+        // Core Text weights run from -1 to 1, with regular at 0 and bold at 0.4.
+        let trait: CGFloat =
+            switch weight {
+            case ..<450: 0
+            case ..<550: 0.23
+            case ..<670: 0.3
+            default: 0.4
+            }
+        var traits: [CFString: Any] = [kCTFontWeightTrait: trait]
+        if italic { traits[kCTFontSymbolicTrait] = CTFontSymbolicTraits.traitItalic.rawValue }
+        let attributes: [CFString: Any] = [kCTFontFamilyNameAttribute: family, kCTFontTraitsAttribute: traits]
+        let font = CTFontCreateWithFontDescriptor(
+            CTFontDescriptorCreateWithAttributes(attributes as CFDictionary), size, nil)
+        guard (CTFontCopyFamilyName(font) as String) == family else { return nil }
+        return font
     }
 
     /// Fonts made by `ctFont(monospaced:size:weight:italic:)`; the editor asks for the

@@ -13,7 +13,7 @@ public final class Workspace {
     public var lastError: Error?
 
     private let library: ProjectLibrary
-    private let scanner: FileScanner
+    private var scanner: FileScanner
     private var accessed: [FolderRoot.ID: URL] = [:]
     private var watchers: [FolderRoot.ID: FolderWatcher] = [:]
     private var scans: [FolderRoot.ID: Task<Void, Never>] = [:]
@@ -71,6 +71,15 @@ public final class Workspace {
 
     public func refreshAll() {
         for folder in folders { refresh(folder.id) }
+    }
+
+    /// The file extensions the trees list. Changing them rescans every folder.
+    public var extensions: Set<String> { scanner.extensions }
+
+    public func setExtensions(_ extensions: Set<String>) {
+        guard extensions != scanner.extensions else { return }
+        scanner.extensions = extensions
+        refreshAll()
     }
 
     /// Stores access to a folder the user picked again after its bookmark stopped working.

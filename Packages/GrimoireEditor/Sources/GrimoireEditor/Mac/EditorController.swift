@@ -9,7 +9,7 @@ import GrimoireCore
 public final class EditorController: NSObject {
     public let textView: MarkdownTextView
     public let scrollView: NSScrollView
-    public private(set) var index: BlockIndex
+    public internal(set) var index: BlockIndex
     public let styler: MarkdownStyler
 
     /// Called after the user changes the text.
@@ -31,10 +31,31 @@ public final class EditorController: NSObject {
 
     /// The file being edited.
     var fileURL: URL?
+    /// Where pasted and picked images are saved; nil for `assets/` next to the file.
+    public var imageFolder: URL?
+
+    /// Shows markdown markers on every block, not just the caret's.
+    public var revealsAllMarkers: Bool {
+        get { styler.revealsAllMarkers }
+        set {
+            guard newValue != styler.revealsAllMarkers else { return }
+            styler.revealsAllMarkers = newValue
+            restyleAll()
+        }
+    }
+
+    /// Keeps the caret's line in the middle of the view while typing.
+    public var typewriterScrolling = false {
+        didSet {
+            guard typewriterScrolling != oldValue else { return }
+            textView.bottomOverscroll = typewriterScrolling ? scrollView.contentView.bounds.height / 2 : 0
+            if typewriterScrolling { centerCaret() }
+        }
+    }
     /// The text last sent to or received from the owner, to tell its updates from ours.
     var lastText: String = ""
-    private var revealed: Int?
-    private var isLoading = false
+    var revealed: Int?
+    var isLoading = false
     var pendingShortcut = false
     /// Where a `/` was just typed, to check whether it opens the Spells menu.
     var pendingSlash: Int?
@@ -46,7 +67,7 @@ public final class EditorController: NSObject {
     private(set) lazy var blockHandle = BlockHandle(controller: self)
     var isApplying = false
     /// Each editor keeps its own undo history, so it belongs to the open file.
-    private let undoManager = UndoManager()
+    let undoManager = UndoManager()
 
     public init(theme: EditorTheme = EditorTheme()) {
         styler = MarkdownStyler(theme: theme)
@@ -155,6 +176,16 @@ public final class EditorController: NSObject {
         }
     }
 
+    /// Scrolls so the caret's line sits in the middle of the view, for typewriter scrolling.
+    func centerCaret() {
+        guard typewriterScrolling, let frame = caretLineFrame() else { return }
+        let clip = scrollView.contentView
+        textView.bottomOverscroll = clip.bounds.height / 2
+        let maxY = max(0, textView.frame.height - clip.bounds.height)
+        clip.scroll(to: CGPoint(x: clip.bounds.minX, y: min(max(0, frame.midY - clip.bounds.height / 2), maxY)))
+        scrollView.reflectScrolledClipView(clip)
+    }
+
     /// How far the caret's line sits below the top of the visible area.
     private func caretScreenOffset() -> CGFloat? {
         guard let frame = caretLineFrame() else { return nil }
@@ -209,7 +240,7 @@ public final class EditorController: NSObject {
         restyle(0..<index.blocks.count, all: true)
     }
 
-    private func restyle(_ blocks: Range<Int>, all: Bool = false) {
+    func restyle(_ blocks: Range<Int>, all: Bool = false) {
         guard let storage = textView.textStorage else { return }
         styler.caret = textView.selectedRange().location
         storage.beginEditing()
@@ -221,7 +252,7 @@ public final class EditorController: NSObject {
         storage.endEditing()
     }
 
-    private func caretBlock() -> Int? {
+    func caretBlock() -> Int? {
         index.blockIndex(at: textView.selectedRange().location)
     }
 
@@ -274,125 +305,6 @@ public final class EditorController: NSObject {
                 onLine: line, in: text, selection: selection.location..<NSMaxRange(selection))
         else { return }
         apply(edit, actionName: String(localized: "Toggle Task"))
-    }
-}
-
-extension EditorController: NSTextStorageDelegate {
-    public nonisolated func textStorage(
-        _ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
-        range editedRange: NSRange,
-        changeInLength delta: Int
-    ) {
-        guard editedMask.contains(.editedCharacters) else { return }
-        nonisolated(unsafe) let textStorage = textStorage
-        MainActor.assumeIsolated {
-            guard !isLoading else { return }
-            let oldRange = editedRange.location..<(editedRange.location + editedRange.length - delta)
-            let changed = index.replace(oldRange, replacementLength: editedRange.length, in: textStorage.string)
-            let full = changed.count == index.blocks.count
-            revealed = index.blockIndex(at: NSMaxRange(editedRange))
-            styler.caret = NSMaxRange(editedRange)
-            if full {
-                styler.styleAll(textStorage, index: index, revealing: revealed)
-            } else {
-                var blocks = changed
-                if let revealed, !blocks.contains(revealed) {
-                    blocks = min(blocks.lowerBound, revealed)..<max(blocks.upperBound, revealed + 1)
-                }
-                styler.style(textStorage, index: index, blocks: blocks, revealing: revealed)
-            }
-        }
-    }
-}
-
-extension EditorController: NSTextViewDelegate {
-    public func undoManager(for view: NSTextView) -> UndoManager? {
-        undoManager
-    }
-
-    public func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
-        let items = tableMenuItems(at: charIndex)
-        for (position, item) in items.enumerated() { menu.insertItem(item, at: position) }
-        return menu
-    }
-
-    public func textDidChange(_ notification: Notification) {
-        blockHandle.hide()
-        if dimsAroundCaret {
-            litBlock = nil
-            updateDimming()
-        }
-        if pendingShortcut {
-            pendingShortcut = false
-            if let edit = editing.shortcut() { apply(edit) }
-        }
-        if spellSession != nil {
-            updateSpells()
-        } else if let slash = pendingSlash, mode == .preview {
-            pendingSlash = nil
-            openSpells(at: slash)
-        }
-        let text = textView.string
-        lastText = text
-        onTextChange?(text)
-    }
-
-    public func textView(
-        _ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?
-    ) -> Bool {
-        // Shortcuts expand right after the character that completes them.
-        pendingShortcut = !isApplying && mode == .preview && (text == " " || text == "`" || text == "~")
-        pendingSlash = !isApplying && text == "/" ? range.location : nil
-        if text == "/", spellSession?.isFreshSpells(at: range.location) == true {
-            // "//" closes the menu and leaves one literal slash.
-            closeSpells()
-            return false
-        }
-        return true
-    }
-
-    public func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-        handleCommand(selector)
-    }
-
-    public func textViewDidChangeSelection(_ notification: Notification) {
-        guard !isLoading else { return }
-        if dimsAroundCaret { updateDimming() }
-        if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
-        guard mode == .preview else { return }
-        let block = caretBlock()
-        if let previous = revealed, previous != block, previous < index.blocks.count,
-            index.blocks[previous].kind == .table, !isApplying
-        {
-            // Leaving a table tidies its pipes, once the selection change has finished.
-            let table = index.blocks[previous].id
-            DispatchQueue.main.async { [weak self] in self?.formatTable(id: table) }
-        }
-        guard block != revealed else {
-            // Within a table, markers show only on the caret's row, so moving rows restyles it.
-            if let block, index.blocks[block].kind == .table, !isApplying { restyle(block..<(block + 1)) }
-            return
-        }
-        let previous = revealed
-        revealed = block
-        var touched: [Int] = []
-        if let previous, previous < index.blocks.count { touched.append(previous) }
-        if let block { touched.append(block) }
-        for position in touched { restyle(position..<(position + 1)) }
-    }
-}
-
-extension EditorController: NSTextLayoutManagerDelegate {
-    public nonisolated func textLayoutManager(
-        _ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: any NSTextLocation,
-        in textElement: NSTextElement
-    ) -> NSTextLayoutFragment {
-        guard let decoration = MarkdownLayoutFragment.decoration(of: textElement) else {
-            return NSTextLayoutFragment(textElement: textElement, range: textElement.elementRange)
-        }
-        let theme = MainActor.assumeIsolated { styler.theme }
-        return MarkdownLayoutFragment(
-            textElement: textElement, range: textElement.elementRange, decoration: decoration, theme: theme)
     }
 }
 #endif

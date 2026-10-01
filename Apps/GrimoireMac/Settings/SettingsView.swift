@@ -2,12 +2,21 @@ import GrimoireCore
 import GrimoireEditor
 import SwiftUI
 
-/// The Settings window (⌘,).
+/// The Settings window (⌘,). Every setting applies as soon as it changes.
 struct SettingsView: View {
     var body: some View {
         TabView {
+            Tab("General", systemImage: "gearshape") {
+                GeneralSettings()
+            }
+            Tab("Editor", systemImage: "character.cursor.ibeam") {
+                EditorSettings()
+            }
             Tab("Appearance", systemImage: "paintpalette") {
                 AppearanceSettings()
+            }
+            Tab("Shortcuts", systemImage: "command") {
+                ShortcutSettings()
             }
         }
         .frame(width: 600)
@@ -25,8 +34,16 @@ extension ThemeLibrary {
         }
     }
 
-    /// The editor's look from the chosen light and dark themes.
-    var editorTheme: EditorTheme {
-        EditorTheme(light: lightTheme, dark: darkTheme)
+    /// The editor's look: the chosen light and dark themes, with the fonts and sizes from
+    /// Settings › Editor.
+    func editorTheme(_ preferences: Preferences) -> EditorTheme {
+        var theme = EditorTheme(light: lightTheme, dark: darkTheme)
+        theme.bodySize = preferences.proseSize
+        theme.codeSize = preferences.codeSize
+        theme.proseFamily = preferences.proseFont
+        theme.codeFamily = preferences.codeFont
+        theme.setLineHeight(preferences.lineHeight)
+        theme.maxLineWidth = preferences.maxLineWidth
+        return theme
     }
 }

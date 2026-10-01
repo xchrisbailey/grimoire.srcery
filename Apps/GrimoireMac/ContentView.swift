@@ -72,6 +72,8 @@ private struct WindowContent: View {
         }
         .onChange(of: window.selectedFile) { storedFile = window.restorationFile }
         .onChange(of: window.project?.roots) { window.projectRootsChanged() }
+        .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
+        .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
             window.save()
         }

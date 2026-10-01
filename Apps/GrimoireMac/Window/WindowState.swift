@@ -14,6 +14,7 @@ final class WindowState {
 
     let library: ProjectLibrary
     let actions = FileActions()
+    private var preferences: Preferences { .shared }
 
     private(set) var projectID: Project.ID?
     private(set) var workspace: Workspace?
@@ -43,7 +44,8 @@ final class WindowState {
 
     // MARK: - Project
 
-    func selectProject(_ id: Project.ID?) {
+    /// Shows project `id`, reopening the file it last had open unless `openLastFile` is false.
+    func selectProject(_ id: Project.ID?, openLastFile: Bool = true) {
         guard id != projectID else { return }
         closeDocument()
         workspace?.deactivate()
@@ -52,10 +54,11 @@ final class WindowState {
             workspace = nil
             return
         }
-        let workspace = Workspace(projectID: id, library: library)
+        let extensions = Set(preferences.fileExtensions(for: library.project(id)))
+        let workspace = Workspace(projectID: id, library: library, scanner: FileScanner(extensions: extensions))
         workspace.activate()
         self.workspace = workspace
-        if let reference = project?.lastOpenedFile, let url = workspace.url(for: reference) {
+        if openLastFile, let reference = project?.lastOpenedFile, let url = workspace.url(for: reference) {
             select(url)
         }
     }
@@ -110,9 +113,9 @@ final class WindowState {
         closeDocument()
         selectedFile = url
         guard let url else { return }
-        editorMode = FileModes.mode(for: url)
+        editorMode = FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
-            document = try OpenDocument(url: url)
+            document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {
                 library.update(projectID) { $0.lastOpenedFile = reference }
@@ -146,6 +149,21 @@ final class WindowState {
             return selectedFile.deletingLastPathComponent()
         }
         return workspace?.folders.first { $0.status == .available }?.url
+    }
+
+    /// Where images pasted into `url` are saved, when Settings puts them at the top of the
+    /// bound folder. Nil keeps the editor's default, `assets/` next to the page.
+    func imageFolder(for url: URL) -> URL? {
+        guard preferences.imageLocation(for: project) == .projectFolder,
+            let root = workspace?.folder(containing: url)?.url
+        else { return nil }
+        return root.appending(path: "assets", directoryHint: .isDirectory)
+    }
+
+    /// Settings changed which files are listed, or how long edits wait to save.
+    func preferencesChanged() {
+        workspace?.setExtensions(Set(preferences.fileExtensions(for: project)))
+        document?.autosaveDelay = .seconds(preferences.autosaveDelay)
     }
 
     func newFile() {
@@ -202,8 +220,9 @@ final class WindowState {
     func restore(projectID storedProject: String, file storedFile: String, fallbackProject: String) {
         let ids = [storedProject, fallbackProject].compactMap(UUID.init(uuidString:))
         let id = ids.first { library.project($0) != nil } ?? library.projects.first?.id
-        selectProject(id)
-        guard !storedFile.isEmpty else { return }
+        let reopens = preferences.restoresLastSession
+        selectProject(id, openLastFile: reopens)
+        guard reopens, !storedFile.isEmpty else { return }
         let parts = storedFile.split(separator: "/", maxSplits: 1)
         guard parts.count == 2, let rootID = UUID(uuidString: String(parts[0])),
             let url = workspace?.url(for: FileReference(rootID: rootID, relativePath: String(parts[1]))),
@@ -213,25 +232,34 @@ final class WindowState {
     }
 }
 
-/// Which files were last shown in Raw. Files not listed open in Preview.
+/// The mode each file was last shown in. Files not listed open in the default mode.
 enum FileModes {
-    private static let key = "grimoire.rawFiles"
+    private static let key = "grimoire.fileModes"
+    /// Before files remembered Preview too, only Raw files were listed here.
+    private static let legacyKey = "grimoire.rawFiles"
     /// Enough to cover the files anyone works in, without growing forever.
     private static let limit = 300
 
-    static func mode(for url: URL) -> EditorMode {
-        rawFiles.contains(url.standardizedFileURL.path(percentEncoded: false)) ? .raw : .preview
+    static func mode(for url: URL, default fallback: EditorMode = .preview) -> EditorMode {
+        let path = url.standardizedFileURL.path(percentEncoded: false)
+        if let stored = entries.first(where: { $0.first == path }), stored.count == 2,
+            let mode = EditorMode(rawValue: stored[1])
+        {
+            return mode
+        }
+        let legacy = UserDefaults.standard.stringArray(forKey: legacyKey) ?? []
+        return legacy.contains(path) ? .raw : fallback
     }
 
     static func remember(_ mode: EditorMode, for url: URL) {
         let path = url.standardizedFileURL.path(percentEncoded: false)
-        var files = rawFiles.filter { $0 != path }
-        if mode == .raw { files.insert(path, at: 0) }
-        UserDefaults.standard.set(Array(files.prefix(limit)), forKey: key)
+        let rest = entries.filter { $0.first != path }
+        UserDefaults.standard.set(Array(([[path, mode.rawValue]] + rest).prefix(limit)), forKey: key)
     }
 
-    private static var rawFiles: [String] {
-        UserDefaults.standard.stringArray(forKey: key) ?? []
+    /// `[path, mode]` pairs, most recent first.
+    private static var entries: [[String]] {
+        UserDefaults.standard.array(forKey: key) as? [[String]] ?? []
     }
 }
 

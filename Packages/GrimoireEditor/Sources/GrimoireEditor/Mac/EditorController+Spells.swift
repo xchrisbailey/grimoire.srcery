@@ -190,18 +190,13 @@ extension EditorController {
     }
 
     private func pickImage(insertingAt offset: Int) {
-        guard let folder = fileURL?.deletingLastPathComponent() else { return }
+        guard let assets = assetsFolder else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let file = panel.url,
-            let copy = try? copyIntoAssets(file, assets: folder.appending(path: "assets", directoryHint: .isDirectory))
+        guard panel.runModal() == .OK, let file = panel.url, let copy = try? copyIntoAssets(file, assets: assets)
         else { return }
-        let path =
-            "assets/"
-            + (copy.lastPathComponent.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-                ?? copy.lastPathComponent)
-        let markdown = "![\(copy.deletingPathExtension().lastPathComponent)](\(path))"
+        let markdown = imageLink(copy)
         let end = offset + markdown.utf16.count
         apply(TextEdit(range: offset..<offset, replacement: markdown, selection: end..<end))
     }

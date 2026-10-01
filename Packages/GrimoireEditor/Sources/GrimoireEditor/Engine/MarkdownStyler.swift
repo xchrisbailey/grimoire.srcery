@@ -33,6 +33,8 @@ public final class MarkdownStyler {
     public var caret: Int?
     /// Preview styles markdown in place; Raw shows the source with syntax colors.
     public var mode: EditorMode = .preview
+    /// Shows markers quietly on every block instead of only the caret's.
+    public var revealsAllMarkers = false
 
     public init(theme: EditorTheme = EditorTheme(), images: ImageCache = .shared) {
         self.theme = theme
@@ -52,7 +54,7 @@ public final class MarkdownStyler {
     ) {
         if blocks.lowerBound == 0 { styleFront(storage, index: index) }
         for position in blocks where position < index.blocks.count {
-            styleBlock(position, in: storage, index: index, reveal: position == revealed)
+            styleBlock(position, in: storage, index: index, reveal: position == revealed || revealsAllMarkers)
         }
     }
 
