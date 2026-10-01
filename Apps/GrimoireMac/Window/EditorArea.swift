@@ -25,10 +25,7 @@ struct EditorArea: View {
         .background(Color.brand(\.page))
         .overlay(alignment: .bottom) {
             if window.focusMode {
-                Text("esc to wake")
-                    .brandFont(.metadata)
-                    .foregroundStyle(Color.brand(\.overlay0))
-                    .padding(.bottom, 18)
+                FocusStatus(text: window.document?.text ?? "")
             }
         }
     }
@@ -55,6 +52,33 @@ private struct DocumentEditor: View {
         ) { url in
             window.openLinkedFile(url)
         }
+        .dimmingAroundCaret(window.focusMode && window.editorMode == .preview)
+        .onEscape {
+            guard window.focusMode else { return false }
+            window.setFocusMode(false)
+            return true
+        }
+    }
+}
+
+/// The quiet line at the bottom of focus mode: word count, reading time, how to leave.
+private struct FocusStatus: View {
+    let text: String
+
+    private var words: Int {
+        text.split { $0.isWhitespace || $0.isNewline }.count { $0.contains { $0.isLetter || $0.isNumber } }
+    }
+
+    var body: some View {
+        HStack(spacing: 18) {
+            Text("\(words) words")
+            Text("\(max(1, Int((Double(words) / 230).rounded()))) min read")
+            Text("esc to wake")
+        }
+        .font(.brand(.metadata))
+        .foregroundStyle(Color.brand(\.overlay0))
+        .padding(.bottom, 18)
+        .allowsHitTesting(false)
     }
 }
 

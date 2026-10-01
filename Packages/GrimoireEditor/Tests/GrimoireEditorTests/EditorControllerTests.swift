@@ -243,3 +243,43 @@ extension NSTextView {
     }
 }
 #endif
+
+#if os(macOS)
+@MainActor @Suite(.serialized) struct FocusDimmingTests {
+    @Test func dimsEverythingButTheCaretsBlock() {
+        BrandFontTests.registerRepoFonts()
+        let controller = EditorController()
+        let text = "First paragraph.\n\nSecond paragraph.\n\nThird.\n"
+        controller.load(text, flavor: .markdown)
+        controller.textView.setSelectedRange(NSRange(location: 20, length: 0))
+        controller.dimsAroundCaret = true
+        #expect(dimmed(controller).contains(0))
+        #expect(!dimmed(controller).contains(20))
+        #expect(dimmed(controller).contains(40))
+        controller.textView.setSelectedRange(NSRange(location: 2, length: 0))
+        #expect(!dimmed(controller).contains(2))
+        #expect(dimmed(controller).contains(20))
+        controller.dimsAroundCaret = false
+        #expect(dimmed(controller).isEmpty)
+        #expect(controller.text == text)
+    }
+
+    /// Offsets that carry a dimming rendering attribute.
+    private func dimmed(_ controller: EditorController) -> Set<Int> {
+        guard let layoutManager = controller.textView.textLayoutManager,
+            let storage = controller.textView.textContentStorage
+        else { return [] }
+        var offsets = Set<Int>()
+        let start = storage.documentRange.location
+        layoutManager.enumerateRenderingAttributes(from: start, reverse: false) { _, attributes, range in
+            if attributes[.foregroundColor] != nil {
+                let start = storage.offset(from: storage.documentRange.location, to: range.location)
+                let end = storage.offset(from: storage.documentRange.location, to: range.endLocation)
+                offsets.formUnion(start..<end)
+            }
+            return true
+        }
+        return offsets
+    }
+}
+#endif

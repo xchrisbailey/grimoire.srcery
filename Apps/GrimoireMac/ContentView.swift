@@ -44,15 +44,21 @@ private struct WindowContent: View {
         .toolbar {
             if let document = window.document {
                 ToolbarItem(placement: .status) { InkDot(isWet: document.isDirty) }
+                ToolbarItem(placement: .primaryAction) { ModePicker(mode: $window.editorMode) }
             }
         }
         .toolbar(window.focusMode ? .hidden : .automatic, for: .windowToolbar)
+        .background(FocusChrome(isFocused: window.focusMode))
         .background(DocumentEditedMarker(isEdited: window.document?.isDirty ?? false))
         .focusedSceneValue(\.windowState, window)
         .onKeyPress(.escape) {
             guard window.focusMode else { return .ignored }
             window.setFocusMode(false)
             return .handled
+        }
+        .onChange(of: window.columnVisibility) {
+            // Opening the sidebar (its title bar button or ⌃⌘S) wakes from focus mode.
+            if window.focusMode, window.columnVisibility != .detailOnly { window.setFocusMode(false) }
         }
         .onAppear {
             if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }

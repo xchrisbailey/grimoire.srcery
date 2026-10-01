@@ -39,11 +39,13 @@ struct GrimoireCommands: Commands {
             )
             .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(window?.document == nil)
-            Button(window?.focusMode == true ? "Exit Focus Mode" : "Enter Focus Mode") {
-                guard let window else { return }
-                window.setFocusMode(!window.focusMode)
-            }
-            .keyboardShortcut(.return, modifiers: [.command, .shift])
+            Toggle(
+                "Focus Mode",
+                isOn: Binding(
+                    get: { window?.focusMode == true },
+                    set: { window?.setFocusMode($0) })
+            )
+            .keyboardShortcut("f", modifiers: [.command, .shift])
             .disabled(window == nil)
         }
     }
