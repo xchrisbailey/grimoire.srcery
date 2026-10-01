@@ -31,9 +31,7 @@ extension EditorController {
 
     /// Handles the text view's standard commands. Returns false to let it act as usual.
     func handleCommand(_ selector: Selector) -> Bool {
-        if spellSession != nil, handleSpellsCommand(selector) { return true }
-        if selector == #selector(NSResponder.cancelOperation(_:)), onEscape?() == true { return true }
-        if mode == .raw { return handleRawCommand(selector) }
+        if let handled = handleModalCommand(selector) { return handled }
         let shift = NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false
         let edit: TextEdit?
         switch selector {
@@ -53,6 +51,16 @@ extension EditorController {
         guard let edit else { return false }
         apply(edit)
         return true
+    }
+
+    /// Commands something else gets first: the open Spells menu, focus mode's Escape, Raw
+    /// mode, and tables. Nil when none of them claims it.
+    private func handleModalCommand(_ selector: Selector) -> Bool? {
+        if spellSession != nil, handleSpellsCommand(selector) { return true }
+        if selector == #selector(NSResponder.cancelOperation(_:)), onEscape?() == true { return true }
+        if mode == .raw { return handleRawCommand(selector) }
+        if editing.tableCell != nil, let handled = handleTableCommand(selector) { return handled }
+        return nil
     }
 
     /// Raw mode keeps one block behavior: Enter continues a list.

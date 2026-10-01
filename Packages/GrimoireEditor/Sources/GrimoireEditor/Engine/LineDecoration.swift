@@ -24,6 +24,11 @@ public final class LineDecoration: NSObject, @unchecked Sendable {
         case task(checked: Bool, indent: CGFloat)
         /// A preview of the image at `url`, drawn under the line at `size`.
         case image(url: URL, size: CGSize)
+        /// A row of a table drawn as a grid: column edges at `edges` (from the row's start),
+        /// with the header row shaded.
+        case tableRow(edges: [CGFloat], isHeader: Bool, isLast: Bool)
+        /// The table's `| --- |` row, folded down to a line under the header.
+        case tableDelimiter
     }
 
     /// Where a line sits in a multi-line block, for rounding corners.

@@ -42,6 +42,11 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
                 CGRect(
                     x: -frame.minX, y: 0, width: max(size.width + 10, frame.width),
                     height: frame.height + size.height + 16))
+        case .tableRow(let edges, _, _):
+            bounds = bounds.union(
+                CGRect(x: -frame.minX, y: 0, width: frame.minX + (edges.last ?? 0) + 12, height: frame.height))
+        case .tableDelimiter:
+            break
         case .bullet, .task:
             // Drawn in the indent, left of where the fragment's text starts.
             bounds = bounds.union(CGRect(x: -frame.minX, y: 0, width: frame.width + frame.minX, height: frame.height))
@@ -102,7 +107,10 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
             let box = CGRect(
                 x: columnX + indent, y: point.y + firstLineCenterY - size / 2, width: size, height: size)
             drawCheckbox(box, checked: checked, in: context)
-        case .image:
+        case .tableRow(let edges, let isHeader, let isLast):
+            let row = CGRect(x: columnX, y: point.y, width: edges.last ?? 0, height: frame.height)
+            drawTableRow(row, edges: edges, isHeader: isHeader, isLast: isLast, in: context)
+        case .image, .tableDelimiter:
             break
         }
     }
@@ -121,6 +129,37 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         context.addPath(path)
         context.setFillColor(theme.codeBackground.withAlphaComponent(0.55).cgColor)
         context.fillPath()
+    }
+
+    /// One row of the grid: header shading, the line under the row, column edges, and the
+    /// outer border's sides (its top on the header, its bottom on the last row).
+    private func drawTableRow(_ rect: CGRect, edges: [CGFloat], isHeader: Bool, isLast: Bool, in context: CGContext) {
+        let (x, y, width, height) = (rect.minX, rect.minY, rect.width, rect.height)
+        let radius: CGFloat = 6
+        let outline = CGMutablePath()
+        outline.addRoundedRect(in: rect, cornerWidth: radius, cornerHeight: radius)
+        if !isHeader { outline.addRect(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height / 2)) }
+        if !isLast { outline.addRect(CGRect(x: rect.minX, y: rect.midY, width: rect.width, height: rect.height / 2)) }
+        if isHeader {
+            context.addPath(outline)
+            context.setFillColor(theme.codeBackground.withAlphaComponent(0.5).cgColor)
+            context.fillPath()
+        }
+        context.setStrokeColor(theme.surface.cgColor)
+        context.setLineWidth(1)
+        // Column edges, including the outer sides.
+        for edge in edges {
+            let lineX = (x + edge).rounded() + 0.5
+            context.move(to: CGPoint(x: lineX, y: y))
+            context.addLine(to: CGPoint(x: lineX, y: y + height))
+        }
+        context.move(to: CGPoint(x: x, y: y + 0.5))
+        context.addLine(to: CGPoint(x: x + width, y: y + 0.5))
+        if isLast {
+            context.move(to: CGPoint(x: x, y: y + height - 0.5))
+            context.addLine(to: CGPoint(x: x + width, y: y + height - 0.5))
+        }
+        context.strokePath()
     }
 
     private func drawCheckbox(_ box: CGRect, checked: Bool, in context: CGContext) {

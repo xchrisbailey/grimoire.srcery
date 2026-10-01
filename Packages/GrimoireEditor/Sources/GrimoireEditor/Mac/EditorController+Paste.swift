@@ -11,6 +11,10 @@ extension EditorController {
             insert(markdown, actionName: String(localized: "Paste Image"))
             return true
         }
+        if mode == .preview, let table = tableMarkdown(from: pasteboard) {
+            insertBlock(table, actionName: String(localized: "Paste Table"))
+            return true
+        }
         let selection = textView.selectedRange()
         if selection.length > 0, let string = pasteboard.string(forType: .string),
             let url = URL(string: string.trimmingCharacters(in: .whitespacesAndNewlines)), url.scheme != nil,

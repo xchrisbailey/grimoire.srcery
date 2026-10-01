@@ -167,11 +167,7 @@ final class BlockHandle: NSObject {
     ]
 
     private func item(_ title: String, action: @escaping () -> Void) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: #selector(MenuAction.run), keyEquivalent: "")
-        let target = MenuAction(action)
-        item.target = target
-        item.representedObject = target
-        return item
+        MenuClosure.item(title, action)
     }
 
     /// Puts a markdown link to the block on the pasteboard: `[Heading](file.md#heading)` for
@@ -198,13 +194,6 @@ final class BlockHandle: NSObject {
             .filter { $0.isLetter || $0.isNumber || $0 == " " || $0 == "-" || $0 == "_" }
             .replacingOccurrences(of: " ", with: "-")
     }
-}
-
-/// Runs a closure from a menu item.
-private final class MenuAction: NSObject {
-    let action: () -> Void
-    init(_ action: @escaping () -> Void) { self.action = action }
-    @objc func run() { action() }
 }
 
 /// The ⋮⋮ grip itself.

@@ -27,6 +27,10 @@ public final class MarkdownStyler {
     public var images: ImageCache
     /// Called when an image preview finishes loading, so its block can be restyled.
     public var onImageLoaded: ((URL) -> Void)?
+    /// Measured table cell widths, by a hash of the cell's text and fonts.
+    var cellWidths: [Int: CGFloat] = [:]
+    /// Where the caret is, for styling that reveals markers on just its line (table rows).
+    public var caret: Int?
     /// Preview styles markdown in place; Raw shows the source with syntax colors.
     public var mode: EditorMode = .preview
 
@@ -124,18 +128,16 @@ public final class MarkdownStyler {
         case .image:
             styleImage(range, in: storage, reveal: reveal)
         case .table, .html, .mdx, .linkDefinitions:
-            styleSource(block.kind, range: range, in: storage)
+            styleSource(block.kind, range: range, in: storage, reveal: reveal)
         }
     }
 
-    /// Blocks shown as their source: tables (until #22), HTML, MDX and link definitions.
-    private func styleSource(_ kind: BlockKind, range: NSRange, in storage: NSMutableAttributedString) {
+    /// Blocks shown as their source: HTML, MDX and link definitions (and tables that don't
+    /// parse).
+    private func styleSource(_ kind: BlockKind, range: NSRange, in storage: NSMutableAttributedString, reveal: Bool) {
         switch kind {
         case .table:
-            let font = theme.font(size: theme.codeSize, monospaced: true)
-            storage.addAttributes([.font: font, .paragraphStyle: paragraphStyle(lineHeight: 1.15)], range: range)
-            styleInline(range, in: storage, baseFont: font, reveal: true)
-            dimCharacters("|", in: range, of: storage)
+            styleTable(range, in: storage, reveal: reveal)
         case .mdx:
             storage.addAttributes([.font: theme.code, .foregroundColor: theme.sparkle], range: range)
         case .linkDefinitions:
@@ -160,15 +162,6 @@ public final class MarkdownStyler {
             if lineEnd <= location { break }
             location = lineEnd
         } while location < end
-    }
-
-    private func dimCharacters(_ character: Character, in range: NSRange, of storage: NSMutableAttributedString) {
-        let text = storage.string as NSString
-        guard let target = String(character).utf16.first else { return }
-        for offset in 0..<range.length where text.character(at: range.location + offset) == target {
-            storage.addAttribute(
-                .foregroundColor, value: theme.marker, range: NSRange(location: range.location + offset, length: 1))
-        }
     }
 }
 
