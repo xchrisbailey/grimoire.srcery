@@ -174,6 +174,7 @@ public final class EditorController: NSObject {
 
     private func restyle(_ blocks: Range<Int>, all: Bool = false) {
         guard let storage = textView.textStorage else { return }
+        styler.caret = textView.selectedRange().location
         storage.beginEditing()
         if all {
             styler.styleAll(storage, index: index, revealing: revealed)
@@ -253,6 +254,7 @@ extension EditorController: NSTextStorageDelegate {
             let changed = index.replace(oldRange, replacementLength: editedRange.length, in: textStorage.string)
             let full = changed.count == index.blocks.count
             revealed = index.blockIndex(at: NSMaxRange(editedRange))
+            styler.caret = NSMaxRange(editedRange)
             if full {
                 styler.styleAll(textStorage, index: index, revealing: revealed)
             } else {
@@ -269,6 +271,12 @@ extension EditorController: NSTextStorageDelegate {
 extension EditorController: NSTextViewDelegate {
     public func undoManager(for view: NSTextView) -> UndoManager? {
         undoManager
+    }
+
+    public func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+        let items = tableMenuItems(at: charIndex)
+        for (position, item) in items.enumerated() { menu.insertItem(item, at: position) }
+        return menu
     }
 
     public func textDidChange(_ notification: Notification) {
@@ -316,7 +324,18 @@ extension EditorController: NSTextViewDelegate {
         if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
         guard mode == .preview else { return }
         let block = caretBlock()
-        guard block != revealed else { return }
+        if let previous = revealed, previous != block, previous < index.blocks.count,
+            index.blocks[previous].kind == .table, !isApplying
+        {
+            // Leaving a table tidies its pipes, once the selection change has finished.
+            let table = index.blocks[previous].id
+            DispatchQueue.main.async { [weak self] in self?.formatTable(id: table) }
+        }
+        guard block != revealed else {
+            // Within a table, markers show only on the caret's row, so moving rows restyles it.
+            if let block, index.blocks[block].kind == .table, !isApplying { restyle(block..<(block + 1)) }
+            return
+        }
         let previous = revealed
         revealed = block
         var touched: [Int] = []

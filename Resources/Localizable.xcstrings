@@ -48,6 +48,10 @@
     "Add Folder…" : {
       "comment" : "plain: File menu item that binds folders to the window's project"
     },
+    "Align Column" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
     "An item named “%@” already exists here." : {
       "comment" : "plain: error when a rename or move collides",
       "extractionState" : "manual"
@@ -95,6 +99,10 @@
     },
     "Cast %@" : {
       "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2",
+      "extractionState" : "manual"
+    },
+    "Center" : {
+      "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
     "Checkboxes" : {
@@ -162,11 +170,19 @@
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
     },
+    "Delete Column" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
     "Delete Project" : {
       "comment" : "plain: delete confirmation button for a project"
     },
     "Delete Project…" : {
       "comment" : "plain: project switcher menu item"
+    },
+    "Delete Row" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
     },
     "Divider" : {
       "comment" : "plain: spell title",
@@ -194,6 +210,10 @@
     },
     "Focus Mode" : {
       "comment" : "plain: View menu toggle"
+    },
+    "Format Table" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
     },
     "Frontmatter" : {
       "comment" : "plain: spell title",
@@ -243,6 +263,30 @@
       "comment" : "voice: tooltip on the unsaved dot (#5)",
       "extractionState" : "manual"
     },
+    "Insert Column" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Insert Column Left" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Insert Column Right" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Insert Row" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Insert Row Above" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Insert Row Below" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
     "It goes to the Trash." : {
       "comment" : "plain: delete confirmation body; the literal part stays plain (#5)",
       "extractionState" : "manual"
@@ -256,6 +300,10 @@
     },
     "Large section heading" : {
       "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
+    },
+    "Left" : {
+      "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
     "Link" : {
@@ -297,6 +345,14 @@
     "New Window" : {
       "comment" : "plain: File menu item"
     },
+    "Next Cell" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Next Row" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
     },
@@ -327,12 +383,20 @@
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
     },
+    "Paste Table" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
     "Plain paragraph" : {
       "comment" : "plain: subtitle of the Text spell",
       "extractionState" : "manual"
     },
     "Preview" : {
       "comment" : "plain: title bar mode toggle (#10)",
+      "extractionState" : "manual"
+    },
+    "Previous Cell" : {
+      "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
     "Quote" : {
@@ -363,6 +427,10 @@
     },
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
+    },
+    "Right" : {
+      "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
     },
     "Rows and columns" : {
       "comment" : "plain: spell subtitle",
