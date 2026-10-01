@@ -69,9 +69,12 @@ public final class FolderWatcher: @unchecked Sendable {
             let changed = (0..<count).compactMap { array[$0] as? String }
             watcher.deliver(changed)
         }
+        // No kFSEventStreamCreateFlagWatchRoot: it opens every parent folder to watch for the
+        // root moving, and under the sandbox opening a parent like ~/Documents blocks on a
+        // privacy check, which froze the app at launch. A moved root shows up as a stale
+        // bookmark instead.
         let flags = FSEventStreamCreateFlags(
-            kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot | kFSEventStreamCreateFlagNoDefer
-                | kFSEventStreamCreateFlagUseCFTypes)
+            kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagUseCFTypes)
         guard
             let stream = FSEventStreamCreate(
                 nil, callback, &context, [url.path(percentEncoded: false)] as CFArray,
