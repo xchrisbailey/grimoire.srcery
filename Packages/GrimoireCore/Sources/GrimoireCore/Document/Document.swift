@@ -1,3 +1,5 @@
+import Foundation
+
 /// A markdown file as optional frontmatter plus an ordered list of blocks.
 ///
 /// `markdown` concatenates every block's source and trailing text, so an unedited
@@ -67,6 +69,22 @@ public struct Frontmatter: Hashable, Sendable {
     public init(source: String, trailing: String) {
         self.source = source
         self.trailing = trailing
+    }
+
+    /// The value of a top-level `key: value` line, without quotes. Enough for simple keys
+    /// like `lang` or `title`; it isn't a YAML parser.
+    public func value(forKey key: String) -> String? {
+        for line in yaml.split(whereSeparator: \.isNewline) {
+            guard !line.hasPrefix(" "), !line.hasPrefix("\t"), let colon = line.firstIndex(of: ":"),
+                line[..<colon].trimmingCharacters(in: .whitespaces) == key
+            else { continue }
+            var value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+            if value.count >= 2, let first = value.first, first == "\"" || first == "'", value.last == first {
+                value = String(value.dropFirst().dropLast())
+            }
+            return value.isEmpty ? nil : value
+        }
+        return nil
     }
 
     /// The YAML between the fences.

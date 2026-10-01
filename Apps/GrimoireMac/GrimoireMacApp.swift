@@ -20,6 +20,7 @@ struct GrimoireMacApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("About Grimoire") { showAboutPanel() }
             }
+            TextEditingCommands()
             GrimoireCommands()
         }
         Settings {

@@ -46,6 +46,15 @@ public final class Preferences {
     /// Whether focus mode fades every block but the caret's.
     public var focusDimming: Bool { didSet { save(focusDimming, Key.focusDimming) } }
 
+    // MARK: Spelling
+
+    public var checksSpelling: Bool { didSet { save(checksSpelling, Key.checksSpelling) } }
+    public var checksGrammar: Bool { didSet { save(checksGrammar, Key.checksGrammar) } }
+    public var correctsSpelling: Bool { didSet { save(correctsSpelling, Key.correctsSpelling) } }
+    public var smartQuotes: Bool { didSet { save(smartQuotes, Key.smartQuotes) } }
+    public var smartDashes: Bool { didSet { save(smartDashes, Key.smartDashes) } }
+    public var textReplacement: Bool { didSet { save(textReplacement, Key.textReplacement) } }
+
     public static let defaultExtensions = ["md", "mdx"]
     public static let defaultProseFont = "Geist"
     public static let defaultCodeFont = "Geist Mono"
@@ -67,6 +76,20 @@ public final class Preferences {
         static let showsMarkers = "settings.showsMarkers"
         static let typewriterScrolling = "settings.typewriterScrolling"
         static let focusDimming = "settings.focusDimming"
+        static let checksSpelling = "settings.checksSpelling"
+        static let checksGrammar = "settings.checksGrammar"
+        static let correctsSpelling = "settings.correctsSpelling"
+        static let smartQuotes = "settings.smartQuotes"
+        static let smartDashes = "settings.smartDashes"
+        static let textReplacement = "settings.textReplacement"
+    }
+
+    /// The system's own Keyboard settings, which the substitutions start from.
+    private enum SystemKey {
+        static let correction = "NSAutomaticSpellingCorrectionEnabled"
+        static let quotes = "NSAutomaticQuoteSubstitutionEnabled"
+        static let dashes = "NSAutomaticDashSubstitutionEnabled"
+        static let replacement = "NSAutomaticTextReplacementEnabled"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -85,6 +108,13 @@ public final class Preferences {
         showsMarkers = defaults.object(forKey: Key.showsMarkers) as? Bool ?? false
         typewriterScrolling = defaults.object(forKey: Key.typewriterScrolling) as? Bool ?? false
         focusDimming = defaults.object(forKey: Key.focusDimming) as? Bool ?? true
+        checksSpelling = defaults.object(forKey: Key.checksSpelling) as? Bool ?? true
+        checksGrammar = defaults.object(forKey: Key.checksGrammar) as? Bool ?? true
+        func system(_ key: String) -> Bool { defaults.object(forKey: key) as? Bool ?? true }
+        correctsSpelling = defaults.object(forKey: Key.correctsSpelling) as? Bool ?? system(SystemKey.correction)
+        smartQuotes = defaults.object(forKey: Key.smartQuotes) as? Bool ?? system(SystemKey.quotes)
+        smartDashes = defaults.object(forKey: Key.smartDashes) as? Bool ?? system(SystemKey.dashes)
+        textReplacement = defaults.object(forKey: Key.textReplacement) as? Bool ?? system(SystemKey.replacement)
     }
 
     /// Puts the Editor settings back to their defaults.

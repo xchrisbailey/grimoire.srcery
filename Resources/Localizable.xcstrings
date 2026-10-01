@@ -63,6 +63,12 @@
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
     },
+    "Add" : {
+      "comment" : "plain: button that adds a word to a project dictionary"
+    },
+    "Add a word" : {
+      "comment" : "plain: placeholder for adding a word to a project dictionary"
+    },
     "Add Folder…" : {
       "comment" : "plain: File menu item that binds folders to the window's project"
     },
@@ -138,6 +144,12 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Check grammar with spelling" : {
+      "comment" : "plain: setting, same as Edit › Spelling and Grammar"
+    },
+    "Check spelling while typing" : {
+      "comment" : "plain: setting, same as Edit › Spelling and Grammar"
+    },
     "Checkboxes" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
@@ -168,6 +180,9 @@
     "Code size" : {
       "comment" : "plain: Settings › Editor size for code and Raw"
     },
+    "Code, links, HTML, MDX and frontmatter are never checked or corrected." : {
+      "comment" : "plain: footer under the spelling settings"
+    },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
       "extractionState" : "manual"
@@ -179,6 +194,9 @@
     "Copy Link" : {
       "comment" : "plain: block menu item that copies a markdown link to the block",
       "extractionState" : "manual"
+    },
+    "Correct spelling automatically" : {
+      "comment" : "plain: setting, same as Edit › Spelling and Grammar"
     },
     "Couldn't create “%@”." : {
       "comment" : "plain: error when making a file fails",
@@ -378,6 +396,10 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Learn Spelling in This Project" : {
+      "comment" : "plain: context menu item that adds a misspelled word to the project's dictionary (#11)",
+      "extractionState" : "manual"
+    },
     "Left" : {
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
@@ -514,6 +536,9 @@
     "Project" : {
       "comment" : "plain: picker for the project whose own settings are shown"
     },
+    "Project dictionary" : {
+      "comment" : "plain: Settings section listing a project's own words"
+    },
     "Prose font" : {
       "comment" : "plain: Settings › Editor font for prose"
     },
@@ -533,6 +558,9 @@
     },
     "Remove “%@”?" : {
       "comment" : "plain: confirmation for removing an imported theme; %@ is the theme name"
+    },
+    "Remove %@" : {
+      "comment" : "plain: accessibility label for removing a word from a project dictionary; %@ is the word"
     },
     "Remove Theme" : {
       "comment" : "plain: confirm button that removes an imported theme"
@@ -610,9 +638,21 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Smart dashes" : {
+      "comment" : "plain: setting, same as Edit › Substitutions"
+    },
+    "Smart quotes" : {
+      "comment" : "plain: setting, same as Edit › Substitutions"
+    },
+    "Spelling" : {
+      "comment" : "plain: Settings tab for spelling and substitutions (#11)"
+    },
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
       "extractionState" : "manual"
+    },
+    "Substitutions" : {
+      "comment" : "plain: Settings section, same as Edit › Substitutions"
     },
     "Summon a page" : {
       "comment" : "voice: quick open (⌘P) prompt (#14)",
@@ -631,6 +671,9 @@
     "Text" : {
       "comment" : "plain: block kind in the Turn Into menu (a paragraph)",
       "extractionState" : "manual"
+    },
+    "Text replacement" : {
+      "comment" : "plain: setting, same as Edit › Substitutions"
     },
     "Text that goes somewhere" : {
       "comment" : "plain: spell subtitle",
@@ -706,6 +749,9 @@
     },
     "View" : {
       "comment" : "plain: shortcut group, matching the View menu"
+    },
+    "Words here are spelled right in this project's pages. Right-click a misspelled word to add it." : {
+      "comment" : "plain: footer under the project dictionary"
     },
     "YAML properties" : {
       "comment" : "plain: spell subtitle",

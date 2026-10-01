@@ -76,6 +76,24 @@ import Testing
         let projects = try ProjectStore(fileURL: file).load()
         #expect(projects.first?.name == "Old")
         #expect(projects.first?.overrides == ProjectOverrides())
+        #expect(projects.first?.dictionary == [])
+    }
+
+    @Test func spellingFollowsTheSystemUntilChanged() {
+        let defaults = makeDefaults()
+        defaults.set(false, forKey: "NSAutomaticQuoteSubstitutionEnabled")
+        let preferences = Preferences(defaults: defaults)
+        #expect(!preferences.smartQuotes)
+        #expect(preferences.checksSpelling)
+        preferences.smartQuotes = true
+        #expect(Preferences(defaults: defaults).smartQuotes)
+    }
+
+    @Test func readsSimpleFrontmatterValues() {
+        let document = Document(parsing: "---\ntitle: \"Potions\"\nlang: de-DE\nnested:\n  lang: fr\n---\n\nText\n")
+        #expect(document.frontmatter?.value(forKey: "lang") == "de-DE")
+        #expect(document.frontmatter?.value(forKey: "title") == "Potions")
+        #expect(document.frontmatter?.value(forKey: "missing") == nil)
     }
 
     @Test func changingExtensionsRescansTheTree() async throws {

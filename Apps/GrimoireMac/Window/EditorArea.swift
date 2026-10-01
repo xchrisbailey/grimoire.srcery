@@ -58,6 +58,11 @@ private struct DocumentEditor: View {
         .showingAllMarkers(preferences.showsMarkers)
         .typewriterScrolling(preferences.typewriterScrolling)
         .imageFolder(window.imageFolder(for: document.url))
+        .textChecking(preferences.textChecking) { preferences.update(from: $0) }
+        .projectDictionary(window.project?.dictionary ?? []) { word in
+            guard let id = window.projectID else { return }
+            window.library.learnWord(word, in: id)
+        }
         .onEscape {
             guard window.focusMode else { return false }
             window.setFocusMode(false)

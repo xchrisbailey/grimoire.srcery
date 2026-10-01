@@ -33,6 +33,14 @@ public final class EditorController: NSObject {
     var fileURL: URL?
     /// Where pasted and picked images are saved; nil for `assets/` next to the file.
     public var imageFolder: URL?
+    /// Words the spell checker accepts in this file's project.
+    public var projectWords: [String] = [] {
+        didSet { if projectWords != oldValue { projectWordsChanged() } }
+    }
+    /// Called with a word to add to the project's dictionary.
+    var onLearnWord: ((String) -> Void)?
+    /// Called when a check is switched on or off from the Edit menu.
+    var onTextCheckingChange: ((TextChecking) -> Void)?
 
     /// Shows markdown markers on every block, not just the caret's.
     public var revealsAllMarkers: Bool {
@@ -83,10 +91,9 @@ public final class EditorController: NSObject {
         textView.allowsUndo = true
         textView.usesFindBar = true
         textView.isIncrementalSearchingEnabled = true
-        textView.isAutomaticQuoteSubstitutionEnabled = false
-        textView.isAutomaticDashSubstitutionEnabled = false
-        textView.isAutomaticTextReplacementEnabled = false
         textView.isAutomaticLinkDetectionEnabled = false
+        textView.isAutomaticDataDetectionEnabled = false
+        textView.writingToolsBehavior = .complete
         textView.smartInsertDeleteEnabled = false
         textView.drawsBackground = false
         textView.isVerticallyResizable = true
@@ -110,6 +117,7 @@ public final class EditorController: NSObject {
         }
         textView.onMouseExited = { [weak self] in self?.blockHandle.hide() }
         textView.onAppearanceChange = { [weak self] isDark in self?.appearanceChanged(isDark: isDark) }
+        wireTextChecking()
 
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
