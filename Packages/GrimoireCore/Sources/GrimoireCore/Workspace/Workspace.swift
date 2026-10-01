@@ -18,6 +18,9 @@ public final class Workspace {
     private var watchers: [FolderRoot.ID: FolderWatcher] = [:]
     private var scans: [FolderRoot.ID: Task<Void, Never>] = [:]
     public private(set) var isActive = false
+    /// Counts finished scans, so observers (the search index) can follow file changes even
+    /// when a tree's shape stays the same.
+    public private(set) var scanCount = 0
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
@@ -66,6 +69,7 @@ public final class Workspace {
             else { return }
             self.folders[index].tree = tree
             self.folders[index].status = .available
+            self.scanCount += 1
         }
     }
 

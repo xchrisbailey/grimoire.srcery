@@ -17,6 +17,21 @@ public final class MarkdownTextView: NSTextView {
     /// Follows the mouse over the text, for the block handle.
     var onMouseMoved: ((CGPoint) -> Void)?
     var onMouseExited: (() -> Void)?
+    /// Called for the Find menu's items.
+    var onFindAction: ((NSTextFinder.Action) -> Void)?
+
+    public override func performFindPanelAction(_ sender: Any?) {
+        guard let onFindAction, let tag = (sender as? NSValidatedUserInterfaceItem)?.tag,
+            let action = NSTextFinder.Action(rawValue: tag)
+        else { return super.performFindPanelAction(sender) }
+        onFindAction(action)
+    }
+
+    public override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(performFindPanelAction(_:)), onFindAction != nil { return true }
+        return super.validateUserInterfaceItem(item)
+    }
+
     /// Whether a range is code, a link or other non-prose the spell checker must skip.
     var isExcludedFromChecking: ((NSRange) -> Bool)?
     /// Removes checker results that land outside prose before they're applied.

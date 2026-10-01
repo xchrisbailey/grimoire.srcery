@@ -11,8 +11,19 @@
     "%@ pt" : {
       "comment" : "plain: a size in points; %@ is the number"
     },
+    "%lld in %lld files" : {
+      "comment" : "plain: Find in Project summary: matches in files"
+    },
+    "%lld matches" : {
+      "comment" : "plain: how many matches the find query has",
+      "extractionState" : "manual"
+    },
     "%lld min read" : {
       "comment" : "plain: focus mode reading time in minutes"
+    },
+    "%lld of %lld" : {
+      "comment" : "plain: which match is selected, as in 3 of 12",
+      "extractionState" : "manual"
     },
     "%lld words" : {
       "comment" : "plain: focus mode word count"
@@ -24,6 +35,12 @@
     "↵ cast" : {
       "comment" : "voice: slash menu footer hint for Return (#8)",
       "extractionState" : "manual"
+    },
+    "↵ jump" : {
+      "comment" : "voice: heading outline footer hint for Return"
+    },
+    "↵ summon" : {
+      "comment" : "voice: Summon a page footer hint for Return"
     },
     "1 second" : {
       "comment" : "plain: autosave delay option"
@@ -83,8 +100,20 @@
     "Appearance" : {
       "comment" : "plain: Settings tab and picker for light, dark or system appearance (#12)"
     },
+    "Appearance: Dark" : {
+      "comment" : "plain: incantation"
+    },
+    "Appearance: Light" : {
+      "comment" : "plain: incantation"
+    },
+    "Appearance: Match System" : {
+      "comment" : "plain: incantation"
+    },
     "At the top of its folder" : {
       "comment" : "plain: images go in an assets folder at the top of the bound folder"
+    },
+    "Back to files (esc)" : {
+      "comment" : "plain: tooltip on closing Find in Project"
     },
     "Banish" : {
       "comment" : "voice: delete confirmation button (#5)",
@@ -114,6 +143,9 @@
     "Borrow a look from VS Code…" : {
       "comment" : "voice: button that imports a VS Code theme (#12)"
     },
+    "Bring All to Front" : {
+      "comment" : "plain: Window menu item"
+    },
     "Built in" : {
       "comment" : "plain: a theme that ships with Grimoire"
     },
@@ -136,6 +168,9 @@
     "Cancel" : {
       "comment" : "plain: cancel button"
     },
+    "Capitalize" : {
+      "comment" : "plain: Edit › Transformations item"
+    },
     "Cast %@" : {
       "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2",
       "extractionState" : "manual"
@@ -148,11 +183,20 @@
       "comment" : "plain: undo action name for changing a code block's language (#13)",
       "extractionState" : "manual"
     },
+    "Check Document Now" : {
+      "comment" : "plain: Edit › Spelling and Grammar item"
+    },
     "Check grammar with spelling" : {
       "comment" : "plain: setting, same as Edit › Spelling and Grammar"
     },
+    "Check Grammar With Spelling" : {
+      "comment" : "plain: Edit › Spelling and Grammar item"
+    },
     "Check spelling while typing" : {
       "comment" : "plain: setting, same as Edit › Spelling and Grammar"
+    },
+    "Check Spelling While Typing" : {
+      "comment" : "plain: Edit › Spelling and Grammar item"
     },
     "Checkboxes" : {
       "comment" : "plain: spell subtitle",
@@ -169,6 +213,9 @@
     },
     "Close" : {
       "comment" : "plain: File menu item"
+    },
+    "Close search" : {
+      "comment" : "plain: accessibility label for closing Find in Project"
     },
     "Code block" : {
       "comment" : "plain: spell title",
@@ -210,6 +257,9 @@
     "Correct spelling automatically" : {
       "comment" : "plain: setting, same as Edit › Spelling and Grammar"
     },
+    "Correct Spelling Automatically" : {
+      "comment" : "plain: Edit › Spelling and Grammar item"
+    },
     "Couldn't create “%@”." : {
       "comment" : "plain: error when making a file fails",
       "extractionState" : "manual"
@@ -234,8 +284,14 @@
     "Create" : {
       "comment" : "plain: confirm button for a new project"
     },
+    "Cut" : {
+      "comment" : "plain: Edit menu item"
+    },
     "Dark" : {
       "comment" : "plain: dark appearance; also the slot a theme is used for"
+    },
+    "Data Detectors" : {
+      "comment" : "plain: Edit › Substitutions item"
     },
     "Date" : {
       "comment" : "plain: spell title",
@@ -270,6 +326,10 @@
       "comment" : "plain: spell title",
       "extractionState" : "manual"
     },
+    "Done" : {
+      "comment" : "plain: closes the find bar",
+      "extractionState" : "manual"
+    },
     "Drop a VS Code theme here (.json or .vsix) to borrow its look." : {
       "comment" : "voice: drop area for importing a VS Code theme (#12)"
     },
@@ -283,6 +343,9 @@
     },
     "Editor" : {
       "comment" : "plain: Settings tab (#15)"
+    },
+    "Emoji & Symbols" : {
+      "comment" : "plain: Edit menu item"
     },
     "esc close" : {
       "comment" : "plain: slash menu footer hint",
@@ -301,6 +364,31 @@
     },
     "File" : {
       "comment" : "plain: shortcut group, matching the File menu"
+    },
+    "Find" : {
+      "comment" : "plain: placeholder of the find field (#14)",
+      "extractionState" : "manual"
+    },
+    "Find and go" : {
+      "comment" : "plain: shortcut group for find and navigation"
+    },
+    "Find and Replace…" : {
+      "comment" : "plain: Edit › Find item"
+    },
+    "Find in project" : {
+      "comment" : "plain: placeholder of the project search field"
+    },
+    "Find in Project…" : {
+      "comment" : "plain: Edit menu item that searches every page in the project (#14)"
+    },
+    "Find Next" : {
+      "comment" : "plain: Edit › Find item"
+    },
+    "Find Previous" : {
+      "comment" : "plain: Edit › Find item"
+    },
+    "Find…" : {
+      "comment" : "plain: Edit › Find item"
     },
     "Focus Mode" : {
       "comment" : "plain: View menu toggle"
@@ -332,6 +420,9 @@
     "Grimoire can't open this folder anymore. It may have moved, or access needs to be granted again." : {
       "comment" : "plain: shown in place of a bound folder's files when its bookmark no longer resolves"
     },
+    "Grimoire Help" : {
+      "comment" : "plain: Help menu item"
+    },
     "Heading 1" : {
       "comment" : "plain: block kind in the Turn Into menu",
       "extractionState" : "manual"
@@ -343,6 +434,12 @@
     "Heading 3" : {
       "comment" : "plain: block kind in the Turn Into menu",
       "extractionState" : "manual"
+    },
+    "Hide Grimoire" : {
+      "comment" : "plain: app menu item"
+    },
+    "Hide Others" : {
+      "comment" : "plain: app menu item"
     },
     "Image" : {
       "comment" : "plain: spell title",
@@ -357,6 +454,9 @@
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
       "extractionState" : "manual"
+    },
+    "Incantations…" : {
+      "comment" : "voice: View menu item that opens the command palette (#14)"
     },
     "Indent or outdent a list item" : {
       "comment" : "plain: shortcut list entry for Tab and Shift-Tab"
@@ -393,9 +493,22 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Invalid pattern" : {
+      "comment" : "plain: the search is a regular expression that doesn't compile",
+      "extractionState" : "manual"
+    },
     "It goes to the Trash." : {
       "comment" : "plain: delete confirmation body; the literal part stays plain (#5)",
       "extractionState" : "manual"
+    },
+    "Jump to a heading" : {
+      "comment" : "plain: title of the heading outline palette"
+    },
+    "Jump to Heading…" : {
+      "comment" : "plain: View menu item that lists the page's headings"
+    },
+    "Jump to Selection" : {
+      "comment" : "plain: Edit › Find item"
     },
     "Keep Mine" : {
       "comment" : "plain: conflict banner button that writes the editor's text over the file"
@@ -438,8 +551,18 @@
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
     },
+    "Make Lower Case" : {
+      "comment" : "plain: Edit › Transformations item"
+    },
+    "Make Upper Case" : {
+      "comment" : "plain: Edit › Transformations item"
+    },
     "Markers like # and ** normally show only on the block you're writing in. Typewriter scrolling keeps that line in the middle of the window." : {
       "comment" : "plain: footer explaining the editor behavior settings"
+    },
+    "Match case" : {
+      "comment" : "plain: find option",
+      "extractionState" : "manual"
     },
     "Match System" : {
       "comment" : "plain: appearance option that follows the system's light or dark mode"
@@ -450,6 +573,9 @@
     "Medium section heading" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
+    },
+    "Minimize" : {
+      "comment" : "plain: Window menu item"
     },
     "Mode" : {
       "comment" : "plain: accessibility label of the Preview | Raw control"
@@ -479,8 +605,16 @@
     "New Window" : {
       "comment" : "plain: File menu item"
     },
+    "Next" : {
+      "comment" : "plain: accessibility label for the next match button",
+      "extractionState" : "manual"
+    },
     "Next Cell" : {
       "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Next match (⌘G)" : {
+      "comment" : "plain: tooltip",
       "extractionState" : "manual"
     },
     "Next Row" : {
@@ -489,6 +623,19 @@
     },
     "Next to the page" : {
       "comment" : "plain: images go in an assets folder next to the file"
+    },
+    "No headings match." : {
+      "comment" : "plain: empty heading outline"
+    },
+    "No incantations match." : {
+      "comment" : "voice: empty Incantations palette"
+    },
+    "No matches" : {
+      "comment" : "plain: the search found nothing",
+      "extractionState" : "manual"
+    },
+    "No pages match." : {
+      "comment" : "plain: empty Summon a page palette"
     },
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
@@ -511,8 +658,14 @@
     "Open a link" : {
       "comment" : "plain: shortcut list entry for Command-click"
     },
+    "Open a page by name (⌘P)" : {
+      "comment" : "plain: tooltip on the sidebar's Summon a page field"
+    },
     "Open files in" : {
       "comment" : "plain: setting for the mode files open in, Preview or Raw"
+    },
+    "Open Quickly…" : {
+      "comment" : "plain: File menu item that opens Summon a page (#14)"
     },
     "Paste" : {
       "comment" : "plain: undo action name",
@@ -545,8 +698,16 @@
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
     },
+    "Previous" : {
+      "comment" : "plain: accessibility label for the previous match button",
+      "extractionState" : "manual"
+    },
     "Previous Cell" : {
       "comment" : "plain: table editing command (#22)",
+      "extractionState" : "manual"
+    },
+    "Previous match (⇧⌘G)" : {
+      "comment" : "plain: tooltip",
       "extractionState" : "manual"
     },
     "Project" : {
@@ -561,6 +722,9 @@
     "Prose size" : {
       "comment" : "plain: Settings › Editor size for prose"
     },
+    "Quit Grimoire" : {
+      "comment" : "plain: app menu item"
+    },
     "Quote" : {
       "comment" : "plain: block kind in the Turn Into menu",
       "extractionState" : "manual"
@@ -571,6 +735,13 @@
     },
     "Raw Source" : {
       "comment" : "plain: View menu toggle between the styled editor and the plain markdown source"
+    },
+    "Redo" : {
+      "comment" : "plain: Edit menu item"
+    },
+    "Regular expression" : {
+      "comment" : "plain: find option",
+      "extractionState" : "manual"
     },
     "Remove “%@”?" : {
       "comment" : "plain: confirmation for removing an imported theme; %@ is the theme name"
@@ -602,6 +773,14 @@
     "Reopen the last page when Grimoire starts" : {
       "comment" : "plain: setting to restore the last session"
     },
+    "Replace" : {
+      "comment" : "plain: replaces the current match; also an undo action name",
+      "extractionState" : "manual"
+    },
+    "Replace All" : {
+      "comment" : "plain: replaces every match; also an undo action name",
+      "extractionState" : "manual"
+    },
     "Restore Defaults" : {
       "comment" : "plain: resets Settings › Editor"
     },
@@ -628,6 +807,12 @@
     "Save pasted images in" : {
       "comment" : "plain: setting for where pasted images are saved"
     },
+    "Searching…" : {
+      "comment" : "plain: Find in Project is still searching"
+    },
+    "Select All" : {
+      "comment" : "plain: Edit menu item"
+    },
     "Select the block" : {
       "comment" : "plain: shortcut list entry for Escape"
     },
@@ -647,18 +832,45 @@
     "Shortcuts" : {
       "comment" : "plain: Settings tab listing keyboard shortcuts (#15)"
     },
+    "Show All" : {
+      "comment" : "plain: app menu item"
+    },
     "Show markdown markers on every line" : {
       "comment" : "plain: setting that shows # and ** on every block, not only the caret's"
+    },
+    "Show Preview" : {
+      "comment" : "plain: incantation that switches to Preview"
+    },
+    "Show Raw Source" : {
+      "comment" : "plain: incantation that switches to Raw"
+    },
+    "Show Spelling and Grammar" : {
+      "comment" : "plain: Edit › Spelling and Grammar item"
+    },
+    "Show Substitutions" : {
+      "comment" : "plain: Edit › Substitutions item"
     },
     "Small section heading" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Smart Copy/Paste" : {
+      "comment" : "plain: Edit › Substitutions item"
+    },
     "Smart dashes" : {
       "comment" : "plain: setting, same as Edit › Substitutions"
     },
+    "Smart Dashes" : {
+      "comment" : "plain: Edit › Substitutions item"
+    },
+    "Smart Links" : {
+      "comment" : "plain: Edit › Substitutions item"
+    },
     "Smart quotes" : {
       "comment" : "plain: setting, same as Edit › Substitutions"
+    },
+    "Smart Quotes" : {
+      "comment" : "plain: Edit › Substitutions item"
     },
     "Spelling" : {
       "comment" : "plain: Settings tab for spelling and substitutions (#11)"
@@ -666,6 +878,15 @@
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
       "extractionState" : "manual"
+    },
+    "Start Dictation…" : {
+      "comment" : "plain: Edit menu item"
+    },
+    "Start Speaking" : {
+      "comment" : "plain: Edit › Speech item"
+    },
+    "Stop Speaking" : {
+      "comment" : "plain: Edit › Speech item"
     },
     "Substitutions" : {
       "comment" : "plain: Settings section, same as Edit › Substitutions"
@@ -690,6 +911,9 @@
     },
     "Text replacement" : {
       "comment" : "plain: setting, same as Edit › Substitutions"
+    },
+    "Text Replacement" : {
+      "comment" : "plain: Edit › Substitutions item"
     },
     "Text that goes somewhere" : {
       "comment" : "plain: spell subtitle",
@@ -742,11 +966,29 @@
       "comment" : "plain: block menu item with the kinds a block can become; also an undo action name",
       "extractionState" : "manual"
     },
+    "Type a command" : {
+      "comment" : "plain: placeholder in Incantations"
+    },
+    "Type part of a file name" : {
+      "comment" : "plain: placeholder in Summon a page"
+    },
+    "Type part of a heading" : {
+      "comment" : "plain: placeholder in the heading outline"
+    },
     "Typewriter scrolling" : {
       "comment" : "plain: setting that keeps the caret's line centered"
     },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
+    },
+    "Undo" : {
+      "comment" : "plain: Edit menu item"
+    },
+    "Use %@ in Dark Mode" : {
+      "comment" : "plain: incantation that picks a dark theme; %@ is the theme name"
+    },
+    "Use %@ in Light Mode" : {
+      "comment" : "plain: incantation that picks a light theme; %@ is the theme name"
     },
     "Use for Dark" : {
       "comment" : "plain: context menu item that uses a theme in dark mode"
@@ -760,11 +1002,18 @@
     "Use its own file extensions" : {
       "comment" : "plain: toggle for a project-specific extension list"
     },
+    "Use Selection for Find" : {
+      "comment" : "plain: Edit › Find item"
+    },
     "Used in %@ mode" : {
       "comment" : "plain: tooltip on a theme's Light or Dark pill when it's in use; %@ is Light or Dark"
     },
     "View" : {
       "comment" : "plain: shortcut group, matching the View menu"
+    },
+    "Whole words" : {
+      "comment" : "plain: find option",
+      "extractionState" : "manual"
     },
     "Words here are spelled right in this project's pages. Right-click a misspelled word to add it." : {
       "comment" : "plain: footer under the project dictionary"
@@ -772,6 +1021,9 @@
     "YAML properties" : {
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
+    },
+    "Zoom" : {
+      "comment" : "plain: Window menu item"
     }
   },
   "version" : "1.1"

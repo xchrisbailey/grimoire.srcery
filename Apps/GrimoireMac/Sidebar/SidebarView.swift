@@ -15,8 +15,11 @@ struct SidebarView: View {
                 .padding(.bottom, 6)
 
             if let workspace = window.workspace, let project = workspace.project {
+                if !project.roots.isEmpty, !window.search.isActive { summonField }
                 if project.roots.isEmpty {
                     emptyProject
+                } else if window.search.isActive {
+                    SearchResultsView(window: window)
                 } else {
                     FileTreeView(
                         workspace: workspace,
@@ -30,6 +33,30 @@ struct SidebarView: View {
         }
         .background(Color.brand(\.sidebar))
         .fileActionPrompts(window.actions, workspace: window.workspace)
+    }
+
+    /// Looks like a search field, as in the brand mockup; opens Summon a page.
+    private var summonField: some View {
+        Button {
+            window.showPalette(.summon)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                Text("Summon a page")
+                Spacer()
+                Text(verbatim: "⌘P").font(.brand(.metadata))
+            }
+            .font(.brand(.chrome))
+            .foregroundStyle(Color.brand(\.overlay0))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.brand(\.crust), in: .rect(cornerRadius: 7))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 8)
+        .help(Text("Open a page by name (⌘P)"))
     }
 
     private var emptyProject: some View {

@@ -39,6 +39,13 @@ public final class EditorController: NSObject {
     }
     /// Called with a word to add to the project's dictionary.
     var onLearnWord: ((String) -> Void)?
+    /// The window's handle on this editor, for find and navigation.
+    weak var proxy: EditorProxy?
+    /// The current find query's matches.
+    var findMatches: [NSRange] = []
+    /// Called before an edit that rewrites much of the file (Replace All), so a version
+    /// can be kept first.
+    public var onBeforeLargeEdit: (() -> Void)?
     /// Called when a check is switched on or off from the Edit menu.
     var onTextCheckingChange: ((TextChecking) -> Void)?
 
@@ -90,8 +97,7 @@ public final class EditorController: NSObject {
         textView.isRichText = false
         textView.importsGraphics = false
         textView.allowsUndo = true
-        textView.usesFindBar = true
-        textView.isIncrementalSearchingEnabled = true
+        textView.usesFindBar = false
         textView.isAutomaticLinkDetectionEnabled = false
         textView.isAutomaticDataDetectionEnabled = false
         textView.writingToolsBehavior = .complete
@@ -112,6 +118,7 @@ public final class EditorController: NSObject {
         textView.onSelectBlock = { [weak self] offset in self?.selectBlock(at: offset) }
         textView.onKeyCommand = { [weak self] event in self?.handleKey(event) ?? false }
         textView.onPaste = { [weak self] pasteboard in self?.paste(from: pasteboard) ?? false }
+        textView.onFindAction = { [weak self] action in self?.performFindAction(action) }
         textView.onMouseMoved = { [weak self] point in
             guard let self, self.mode == .preview else { return }
             self.blockHandle.mouseMoved(to: point)
@@ -203,6 +210,7 @@ public final class EditorController: NSObject {
         restyle(0..<index.blocks.count, all: true)
         textView.undoManager?.removeAllActions()
         isLoading = false
+        if proxy?.isFindVisible == true { updateFindMatches() }
     }
 
     /// Takes new text from the owner while keeping the caret near where it was.
