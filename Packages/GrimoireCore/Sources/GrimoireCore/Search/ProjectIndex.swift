@@ -24,6 +24,13 @@ public struct LineMatch: Hashable, Sendable {
     public var previewRange: NSRange
 }
 
+/// A document the index has read, with when it last changed and its text.
+public struct ReadDocument: Sendable {
+    public var document: IndexedDocument
+    public var modified: Date
+    public var text: String
+}
+
 public struct FileMatches: Identifiable, Hashable, Sendable {
     public var document: IndexedDocument
     public var matches: [LineMatch]
@@ -39,6 +46,9 @@ public final class ProjectIndex {
     public private(set) var documents: [IndexedDocument] = []
     /// Whether file contents are still being read.
     public private(set) var isReading = false
+
+    /// Called each time new or changed files have been read.
+    @ObservationIgnored public var onRead: (() -> Void)?
 
     @ObservationIgnored private var texts: [URL: (modified: Date, text: String)] = [:]
     @ObservationIgnored private var reading: Task<Void, Never>?
@@ -77,6 +87,7 @@ public final class ProjectIndex {
             guard !Task.isCancelled, let self else { return }
             for (url, entry) in fresh { self.texts[url] = entry }
             self.isReading = false
+            self.onRead?()
         }
     }
 
@@ -114,6 +125,13 @@ public final class ProjectIndex {
             }
             return results
         }.value
+    }
+
+    /// Every document that has been read, with when it last changed and its text.
+    public var readDocuments: [ReadDocument] {
+        documents.compactMap { document in
+            texts[document.url].map { ReadDocument(document: document, modified: $0.modified, text: $0.text) }
+        }
     }
 
     /// The text the index holds for `url`, if it has read it.

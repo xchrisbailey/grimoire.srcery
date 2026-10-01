@@ -1,5 +1,6 @@
 import AppKit
 import GrimoireEditor
+import GrimoireIntelligence
 import SwiftUI
 
 /// The File and View menu commands. Menu bar titles stay plain, per the brand voice.
@@ -30,6 +31,9 @@ struct GrimoireCommands: Commands {
             Button("Find in Project…") { window?.search.begin(with: window?.editor.findQuery) }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(window?.project == nil)
+            Button("Ask Your Project…") { window?.showAsk() }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(window.map { !IntelligenceService.shared.isAvailable(for: $0.project) } ?? true)
         }
         CommandGroup(replacing: .saveItem) {
             Button("Close") { NSApp.keyWindow?.performClose(nil) }

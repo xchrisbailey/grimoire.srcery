@@ -1,6 +1,7 @@
 import AppKit
 import GrimoireCore
 import GrimoireEditor
+import GrimoireIntelligence
 import SwiftUI
 
 /// Everything one window shows: its project, the open workspace, the selected file and
@@ -19,6 +20,10 @@ final class WindowState {
     /// The open project's pages and their text, for Summon a page and Find in Project.
     private(set) var index = ProjectIndex()
     let search = ProjectSearch()
+    /// Ask your project (#21), in the sidebar.
+    let ask = ProjectAsk()
+    /// Meaning-based search over the project's pages, while intelligence is on for it.
+    var semantic: SemanticIndex?
     /// The palette floating over the window, if one is open.
     var palette: Palette?
     /// Whether the version browser sheet is showing.
@@ -48,6 +53,7 @@ final class WindowState {
 
     init(library: ProjectLibrary) {
         self.library = library
+        search.semantic = { [weak self] in self?.currentSemanticIndex() }
         actions.didCreate = { [weak self] url in self?.select(url) }
         actions.didMove = { [weak self] from, to in self?.itemMoved(from: from, to: to) }
         actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
@@ -70,6 +76,9 @@ final class WindowState {
         index = ProjectIndex()
         search.index = index
         search.end()
+        ask.end()
+        semantic = nil
+        index.onRead = { [weak self] in self?.indexMeanings() }
         let extensions = Set(preferences.fileExtensions(for: library.project(id)))
         let workspace = Workspace(projectID: id, library: library, scanner: FileScanner(extensions: extensions))
         workspace.activate()

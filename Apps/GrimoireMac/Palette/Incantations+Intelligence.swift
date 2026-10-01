@@ -22,6 +22,12 @@ extension Incantations {
             }
         }
         items += [
+            item(
+                "ai.ask", String(localized: "Ask Your Project…"), "⇧⌘A", icon: "sparkles",
+                keywords: "question search ai"
+            ) {
+                window.showAsk()
+            },
             item("ai.describe", String(localized: "Describe Image"), "", icon: "photo", keywords: "alt text ai") {
                 window.editor.runImageAction("describe")
             },

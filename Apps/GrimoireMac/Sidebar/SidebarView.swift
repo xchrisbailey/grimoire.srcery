@@ -1,5 +1,6 @@
 import GrimoireCore
 import GrimoireEditor
+import GrimoireIntelligence
 import SwiftUI
 
 /// Projects and their files: the project switcher on top, one section per bound folder,
@@ -15,11 +16,13 @@ struct SidebarView: View {
                 .padding(.bottom, 6)
 
             if let workspace = window.workspace, let project = workspace.project {
-                if !project.roots.isEmpty, !window.search.isActive { summonField }
+                if !project.roots.isEmpty, !window.search.isActive, !window.ask.isActive { summonField }
                 if project.roots.isEmpty {
                     emptyProject
                 } else if window.search.isActive {
                     SearchResultsView(window: window)
+                } else if window.ask.isActive {
+                    AskView(window: window)
                 } else {
                     FileTreeView(
                         workspace: workspace,
@@ -54,9 +57,23 @@ struct SidebarView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .help(Text("Open a page by name (⌘P)"))
+        .overlay(alignment: .trailing) {
+            if IntelligenceService.shared.isAvailable(for: window.project) {
+                Button {
+                    window.showAsk()
+                } label: {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Color.brand(\.magic))
+                        .accessibilityLabel(Text("Ask your project"))
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 40)
+                .help(Text("Ask your project (⇧⌘A)"))
+            }
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 8)
-        .help(Text("Open a page by name (⌘P)"))
     }
 
     private var emptyProject: some View {

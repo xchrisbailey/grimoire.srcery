@@ -1,5 +1,6 @@
 import GrimoireCore
 import GrimoireEditor
+import GrimoireIntelligence
 import SwiftUI
 
 /// Find in Project, in the sidebar: the query and its options, then matches grouped by
@@ -71,6 +72,22 @@ struct SearchResultsView: View {
                         }
                     }
                 }
+                if !search.related.isEmpty {
+                    Section {
+                        ForEach(search.related) { hit in
+                            PassageRow(hit: hit)
+                                .contentShape(.rect)
+                                .onTapGesture {
+                                    window.open(
+                                        hit.passage.url, revealing: NSRange(location: hit.passage.location, length: 0))
+                                }
+                        }
+                    } header: {
+                        Label("Related passages", systemImage: "sparkles")
+                            .brandFont(.chrome)
+                            .foregroundStyle(Color.brand(\.subtext))
+                    }
+                }
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
@@ -82,7 +99,7 @@ struct SearchResultsView: View {
         if search.search.isInvalid { return String(localized: "Invalid pattern") }
         if search.query.isEmpty { return "" }
         if search.isSearching && search.results.isEmpty { return String(localized: "Searching…") }
-        if search.results.isEmpty { return String(localized: "No matches") }
+        if search.results.isEmpty { return search.related.isEmpty ? String(localized: "No matches") : "" }
         return String(localized: "\(search.matchCount) in \(search.results.count) files")
     }
 
@@ -124,5 +141,28 @@ private struct MatchRow: View {
         text[lower..<upper].foregroundColor = Color.brand(\.ink)
         text[lower..<upper].backgroundColor = Color.brand(\.magic).opacity(0.22)
         return text
+    }
+}
+
+/// A passage found by meaning: where it is, and its first lines.
+struct PassageRow: View {
+    let hit: PassageHit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(place)
+                .font(.brand(.metadata))
+                .foregroundStyle(Color.brand(\.overlay1))
+                .lineLimit(1)
+                .truncationMode(.head)
+            Text(hit.passage.text)
+                .brandFont(.chrome)
+                .foregroundStyle(Color.brand(\.subtext))
+                .lineLimit(2)
+        }
+    }
+
+    private var place: String {
+        [hit.passage.path, hit.passage.heading].compactMap { $0 }.joined(separator: " › ")
     }
 }
