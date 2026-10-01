@@ -4,7 +4,7 @@ options:
   deploymentTarget:
     macOS: "27.0"
     iOS: "27.0"
-  createIntermediateGroups: true
+  createIntermediateGroups: false
   groupSortPosition: top
 settings:
   base:
@@ -46,13 +46,18 @@ packages:
   GrimoireIntelligence:
     path: Packages/GrimoireIntelligence
 targets:
+  # Sources are synced folders, so files added under them build without
+  # running `xcodegen generate` again. Regenerate only when this file changes.
   GrimoireMac:
     type: application
     platform: macOS
     sources:
-      - Apps/GrimoireMac
-      - Apps/Shared
-      - Resources
+      - path: Apps/GrimoireMac
+        type: syncedFolder
+      - path: Apps/Shared
+        type: syncedFolder
+      - path: Resources
+        type: syncedFolder
       - path: Brand/Grimoire.icon
         type: file
         buildPhase: resources
@@ -74,9 +79,12 @@ targets:
     type: application
     platform: iOS
     sources:
-      - Apps/GrimoireiOS
-      - Apps/Shared
-      - Resources
+      - path: Apps/GrimoireiOS
+        type: syncedFolder
+      - path: Apps/Shared
+        type: syncedFolder
+      - path: Resources
+        type: syncedFolder
       - path: Brand/Grimoire.icon
         type: file
         buildPhase: resources
