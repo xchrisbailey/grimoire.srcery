@@ -1,4 +1,5 @@
 import GrimoireCore
+import GrimoireIntelligence
 import SwiftUI
 
 /// Find in Project (⇧⌘E): a query over every page in the window's project, with results
@@ -19,11 +20,14 @@ final class ProjectSearch {
         didSet { if wholeWord != oldValue { schedule() } }
     }
     private(set) var results: [FileMatches] = []
+    /// Passages that match the query's meaning without containing it, when intelligence is on.
+    private(set) var related: [PassageHit] = []
     private(set) var isSearching = false
     /// Bumped to ask the search field to take focus.
     private(set) var focusRequest = 0
 
     @ObservationIgnored var index: ProjectIndex?
+    @ObservationIgnored var semantic: (() -> SemanticIndex?)?
     @ObservationIgnored private var task: Task<Void, Never>?
 
     var search: TextSearch {
@@ -49,9 +53,11 @@ final class ProjectSearch {
         task?.cancel()
         guard isActive, let index, !search.isInvalid, !query.isEmpty else {
             results = []
+            related = []
             isSearching = false
             return
         }
+        let semantic = regex ? nil : semantic?()
         let search = search
         isSearching = true
         task = Task { [weak self] in
@@ -61,7 +67,18 @@ final class ProjectSearch {
             let results = await index.search(search)
             guard !Task.isCancelled, let self else { return }
             self.results = results
+            self.related = await Self.related(to: search.query, in: semantic)
             self.isSearching = false
         }
+    }
+
+    /// The best passages by meaning that don't contain the query itself (those are in the
+    /// results already). Only for queries of a few letters or more.
+    private static func related(to query: String, in index: SemanticIndex?) async -> [PassageHit] {
+        guard let index, query.count >= 4 else { return [] }
+        let hits = await index.search(query, limit: 12)
+        return Array(
+            hits.filter { $0.score >= 0.3 && $0.passage.text.range(of: query, options: .caseInsensitive) == nil }
+                .prefix(5))
     }
 }

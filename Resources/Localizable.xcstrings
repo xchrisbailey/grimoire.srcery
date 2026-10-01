@@ -127,6 +127,9 @@
       "comment" : "plain: error when a rename or move collides",
       "extractionState" : "manual"
     },
+    "Answers come from your pages, on this Mac." : {
+      "comment" : "plain: Ask panel note (#21)"
+    },
     "Appearance" : {
       "comment" : "plain: Settings tab and picker for light, dark or system appearance (#12)"
     },
@@ -143,8 +146,20 @@
       "comment" : "plain: why AI features are unavailable (#18)",
       "extractionState" : "manual"
     },
+    "Ask about your pages" : {
+      "comment" : "plain: question field placeholder (#21)"
+    },
     "Ask first" : {
       "comment" : "plain: alt text setting option (#20)"
+    },
+    "Ask your project" : {
+      "comment" : "plain: sidebar button label (#21)"
+    },
+    "Ask your project (⇧⌘A)" : {
+      "comment" : "plain: sidebar button help (#21)"
+    },
+    "Ask Your Project…" : {
+      "comment" : "plain: Edit menu, incantation and shortcuts list (#21)"
     },
     "At the top of its folder" : {
       "comment" : "plain: images go in an assets folder at the top of the bound folder"
@@ -895,6 +910,9 @@
     "Raw Source" : {
       "comment" : "plain: View menu toggle between the styled editor and the plain markdown source"
     },
+    "Reading pages…" : {
+      "comment" : "plain: while the project's pages are indexed for Ask (#21)"
+    },
     "Reading the image…" : {
       "comment" : "plain: sheet while an image is read (#20)"
     },
@@ -907,6 +925,9 @@
     "Regular expression" : {
       "comment" : "plain: find option",
       "extractionState" : "manual"
+    },
+    "Related passages" : {
+      "comment" : "plain: project search section for matches by meaning (#21)"
     },
     "Remove “%@”?" : {
       "comment" : "plain: confirmation for removing an imported theme; %@ is the theme name"
@@ -994,6 +1015,9 @@
     "Save pasted images in" : {
       "comment" : "plain: setting for where pasted images are saved"
     },
+    "Searching your pages…" : {
+      "comment" : "plain: while an answer is found (#21)"
+    },
     "Searching…" : {
       "comment" : "plain: Find in Project is still searching"
     },
@@ -1077,6 +1101,9 @@
     },
     "Smart Quotes" : {
       "comment" : "plain: Edit › Substitutions item"
+    },
+    "Sources" : {
+      "comment" : "plain: Ask panel heading for cited passages (#21)"
     },
     "Spelling" : {
       "comment" : "plain: Settings tab for spelling and substitutions (#11)"
@@ -1180,6 +1207,10 @@
     },
     "There's no text in this image to read." : {
       "comment" : "plain: error (#20)",
+      "extractionState" : "manual"
+    },
+    "There's nothing in this project's pages about that yet." : {
+      "comment" : "plain: Ask answer when nothing matches (#21)",
       "extractionState" : "manual"
     },
     "This extension doesn't contain any color themes." : {

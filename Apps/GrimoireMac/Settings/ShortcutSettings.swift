@@ -72,6 +72,7 @@ struct Shortcut {
         Group(
             title: String(localized: "Intelligence"),
             shortcuts: [
+                Shortcut(String(localized: "Ask Your Project…"), "⇧⌘A"),
                 Shortcut(String(localized: "Rewrite, shorten or expand the selection"), "⌥⌘J"),
                 Shortcut(String(localized: "Keep a response"), "↩"),
                 Shortcut(String(localized: "Stop or discard a response"), "esc"),
