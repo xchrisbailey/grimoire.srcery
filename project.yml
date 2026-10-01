@@ -21,6 +21,23 @@ settings:
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_CFBundleDisplayName: Grimoire
+  # Xcode's usual per-configuration defaults, spelled out so the project builds the
+  # same whether or not this XcodeGen install ships its setting presets.
+  configs:
+    Debug:
+      ONLY_ACTIVE_ARCH: YES
+      DEBUG_INFORMATION_FORMAT: dwarf
+      ENABLE_TESTABILITY: YES
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+      GCC_OPTIMIZATION_LEVEL: "0"
+      GCC_PREPROCESSOR_DEFINITIONS: ["DEBUG=1", "$(inherited)"]
+    Release:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+      SWIFT_COMPILATION_MODE: wholemodule
+      ENABLE_NS_ASSERTIONS: NO
+      VALIDATE_PRODUCT: YES
 packages:
   GrimoireCore:
     path: Packages/GrimoireCore
