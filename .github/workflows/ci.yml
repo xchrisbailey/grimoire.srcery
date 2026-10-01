@@ -9,10 +9,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Everything targets the macOS 27 / iOS 27 SDKs, so the runner needs Xcode 27.
+# Set the MACOS_RUNNER repository variable to use a self-hosted runner until
+# GitHub's hosted macOS images ship it.
 jobs:
   packages:
     name: Package tests
-    runs-on: macos-27
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +31,7 @@ jobs:
 
   apps:
     name: Build ${{ matrix.scheme }}
-    runs-on: macos-27
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +59,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: macos-27
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
