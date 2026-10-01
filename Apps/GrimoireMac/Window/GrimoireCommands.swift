@@ -21,6 +21,15 @@ struct GrimoireCommands: Commands {
             Button("Add Folder…") { window?.bindFolders() }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
                 .disabled(window?.project == nil)
+            Divider()
+            Button("Open Quickly…") { window?.showPalette(.summon) }
+                .keyboardShortcut("p")
+                .disabled(window?.project == nil)
+        }
+        CommandGroup(after: .textEditing) {
+            Button("Find in Project…") { window?.search.begin(with: window?.editor.findQuery) }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(window?.project == nil)
         }
         CommandGroup(replacing: .saveItem) {
             Button("Close") { NSApp.keyWindow?.performClose(nil) }
@@ -47,6 +56,13 @@ struct GrimoireCommands: Commands {
             )
             .keyboardShortcut("f", modifiers: [.command, .shift])
             .disabled(window == nil)
+            Divider()
+            Button("Jump to Heading…") { window?.showPalette(.headings) }
+                .keyboardShortcut("j", modifiers: [.command, .shift])
+                .disabled(window?.document == nil)
+            Button("Incantations…") { window?.showPalette(.incantations) }
+                .keyboardShortcut("k")
+                .disabled(window == nil)
         }
     }
 }

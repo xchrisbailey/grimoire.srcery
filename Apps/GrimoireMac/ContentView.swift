@@ -31,6 +31,8 @@ private struct WindowContent: View {
     @SceneStorage("grimoire.file") private var storedFile = ""
     /// The project the most recently used window showed, for windows with nothing restored.
     @AppStorage("lastProjectID") private var lastProject = ""
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView(columnVisibility: $window.columnVisibility) {
@@ -48,6 +50,7 @@ private struct WindowContent: View {
                 ToolbarItem(placement: .primaryAction) { ModePicker(mode: $window.editorMode) }
             }
         }
+        .overlay(alignment: .top) { paletteOverlay }
         .toolbar(window.focusMode ? .hidden : .automatic, for: .windowToolbar)
         .background(FocusChrome(isFocused: window.focusMode))
         .background(DocumentEditedMarker(isEdited: window.document?.isDirty ?? false))
@@ -72,6 +75,7 @@ private struct WindowContent: View {
         }
         .onChange(of: window.selectedFile) { storedFile = window.restorationFile }
         .onChange(of: window.project?.roots) { window.projectRootsChanged() }
+        .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
         .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
         .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
@@ -85,6 +89,46 @@ private struct WindowContent: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             window.document?.checkDisk()
+        }
+    }
+
+    // MARK: - Palettes
+
+    @ViewBuilder private var paletteOverlay: some View {
+        if let palette = window.palette {
+            ZStack(alignment: .top) {
+                Color.black.opacity(0.001)
+                    .onTapGesture { window.palette = nil }
+                PaletteView(palette: palette, items: items(for: palette)) {
+                    window.palette = nil
+                    DispatchQueue.main.async { window.editor.focusEditor() }
+                }
+                .padding(.top, 60)
+                .id(palette)
+            }
+        }
+    }
+
+    private func items(for palette: Palette) -> [PaletteItem] {
+        switch palette {
+        case .summon:
+            window.index.documents.map { document in
+                PaletteItem(
+                    id: document.url.absoluteString, title: document.name, subtitle: document.path, icon: "doc.text",
+                    keywords: document.path
+                ) { window.select(document.url) }
+            }
+        case .headings:
+            window.editor.headings.map { heading in
+                PaletteItem(
+                    id: String(heading.offset), title: heading.title,
+                    shortcut: String(repeating: "#", count: heading.level),
+                    indent: heading.level - 1
+                ) { window.editor.reveal(NSRange(location: heading.offset, length: 0)) }
+            }
+        case .incantations:
+            Incantations.items(
+                for: window, openWindow: { openWindow(id: "project") }, openSettings: { openSettings() })
         }
     }
 }

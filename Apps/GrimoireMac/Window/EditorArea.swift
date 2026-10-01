@@ -10,6 +10,7 @@ struct EditorArea: View {
         VStack(spacing: 0) {
             if let document = window.document {
                 DocumentBanners(document: document)
+                if window.editor.isFindVisible { FindBar(proxy: window.editor) }
                 DocumentEditor(document: document, window: window)
                     // The title bar proxy icon, so the file can be dragged or ⌘-clicked like any document.
                     .navigationDocument(document.url)
@@ -58,6 +59,7 @@ private struct DocumentEditor: View {
         .showingAllMarkers(preferences.showsMarkers)
         .typewriterScrolling(preferences.typewriterScrolling)
         .imageFolder(window.imageFolder(for: document.url))
+        .proxy(window.editor)
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }

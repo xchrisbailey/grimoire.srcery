@@ -19,6 +19,8 @@ public struct MarkdownEditor: NSViewRepresentable {
     var projectWords: [String] = []
     var onLearnWord: ((String) -> Void)?
     var onTextCheckingChange: ((TextChecking) -> Void)?
+    var proxy: EditorProxy?
+    var onBeforeLargeEdit: (() -> Void)?
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
 
@@ -85,6 +87,20 @@ public struct MarkdownEditor: NSViewRepresentable {
         return copy
     }
 
+    /// Connects the window's handle for find, outline and spells to this editor.
+    public func proxy(_ proxy: EditorProxy?) -> MarkdownEditor {
+        var copy = self
+        copy.proxy = proxy
+        return copy
+    }
+
+    /// Runs before an edit that rewrites much of the file, such as Replace All.
+    public func onBeforeLargeEdit(_ action: @escaping () -> Void) -> MarkdownEditor {
+        var copy = self
+        copy.onBeforeLargeEdit = action
+        return copy
+    }
+
     /// Handles Escape before the editor does; return true when it was handled.
     public func onEscape(_ action: @escaping () -> Bool) -> MarkdownEditor {
         var copy = self
@@ -143,6 +159,11 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.projectWords = projectWords
         controller.onLearnWord = onLearnWord
         controller.onTextCheckingChange = onTextCheckingChange
+        controller.onBeforeLargeEdit = onBeforeLargeEdit
+        if controller.proxy !== proxy {
+            controller.proxy = proxy
+            proxy?.controller = controller
+        }
         controller.onEscape = onEscape
         let binding = $text
         controller.onTextChange = { binding.wrappedValue = $0 }

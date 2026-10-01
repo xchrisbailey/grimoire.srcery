@@ -14,6 +14,13 @@ final class WindowState {
 
     let library: ProjectLibrary
     let actions = FileActions()
+    /// The window's handle on its editor: find, outline, spells.
+    let editor = EditorProxy()
+    /// The open project's pages and their text, for Summon a page and Find in Project.
+    private(set) var index = ProjectIndex()
+    let search = ProjectSearch()
+    /// The palette floating over the window, if one is open.
+    var palette: Palette?
     private var preferences: Preferences { .shared }
 
     private(set) var projectID: Project.ID?
@@ -54,6 +61,9 @@ final class WindowState {
             workspace = nil
             return
         }
+        index = ProjectIndex()
+        search.index = index
+        search.end()
         let extensions = Set(preferences.fileExtensions(for: library.project(id)))
         let workspace = Workspace(projectID: id, library: library, scanner: FileScanner(extensions: extensions))
         workspace.activate()
@@ -164,6 +174,46 @@ final class WindowState {
     func preferencesChanged() {
         workspace?.setExtensions(Set(preferences.fileExtensions(for: project)))
         document?.autosaveDelay = .seconds(preferences.autosaveDelay)
+    }
+
+    // MARK: - Search and palettes
+
+    func showPalette(_ palette: Palette) {
+        self.palette = self.palette == palette ? nil : palette
+    }
+
+    /// The trees changed: keep the index (and any search showing) current.
+    func workspaceScanned() {
+        guard let workspace else { return }
+        index.update(from: workspace.folders)
+        search.schedule(after: .zero)
+    }
+
+    /// Opens `url` and selects `range` in it, for a search result.
+    func open(_ url: URL, revealing range: NSRange) {
+        select(url)
+        // The editor takes the new text on its next update.
+        DispatchQueue.main.async { [editor] in
+            DispatchQueue.main.async { editor.reveal(range) }
+        }
+    }
+
+    /// Sends an action to the editor, as a menu item would.
+    func sendToEditor(_ action: Selector) {
+        DispatchQueue.main.async { [editor] in
+            editor.focusEditor()
+            NSApp.sendAction(action, to: nil, from: nil)
+        }
+    }
+
+    /// Runs one of the Find menu's actions on the editor.
+    func sendFindAction(_ action: NSTextFinder.Action) {
+        let item = NSMenuItem()
+        item.tag = action.rawValue
+        DispatchQueue.main.async { [editor] in
+            editor.focusEditor()
+            NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: item)
+        }
     }
 
     func newFile() {

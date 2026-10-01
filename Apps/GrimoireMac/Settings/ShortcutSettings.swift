@@ -57,6 +57,19 @@ struct Shortcut {
                 Shortcut(String(localized: "Settings…"), "⌘,"),
             ]),
         Group(
+            title: String(localized: "Find and go"),
+            shortcuts: [
+                Shortcut(String(localized: "Find…"), "⌘F"),
+                Shortcut(String(localized: "Find and Replace…"), "⌥⌘F"),
+                Shortcut(String(localized: "Find Next"), "⌘G"),
+                Shortcut(String(localized: "Find Previous"), "⇧⌘G"),
+                Shortcut(String(localized: "Use Selection for Find"), "⌘E"),
+                Shortcut(String(localized: "Find in Project…"), "⇧⌘E"),
+                Shortcut(String(localized: "Open Quickly…"), "⌘P"),
+                Shortcut(String(localized: "Jump to Heading…"), "⇧⌘J"),
+                Shortcut(String(localized: "Incantations…"), "⌘K"),
+            ]),
+        Group(
             title: String(localized: "Blocks"),
             shortcuts: [
                 Shortcut(String(localized: "Spells"), "/"),

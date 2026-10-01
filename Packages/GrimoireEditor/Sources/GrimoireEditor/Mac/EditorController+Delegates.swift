@@ -62,6 +62,7 @@ extension EditorController: NSTextViewDelegate {
         }
         let text = textView.string
         lastText = text
+        if proxy?.isFindVisible == true { updateFindMatches() }
         onTextChange?(text)
         centerCaret()
     }
