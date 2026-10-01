@@ -1,0 +1,98 @@
+[
+ {
+  "extension": "table",
+  "markdown": "| foo | bar |\n| --- | --- |\n| baz | bim |\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | defghi |\n:-: | -----------:\nbar | baz\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| f\\|oo  |\n| ------ |\n| b `\\|` az |\n| b **\\|** im |\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | def |\n| --- | --- |\n| bar | baz |\n> bar\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | def |\n| --- | --- |\n| bar | baz |\nbar\n\nbar\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | def |\n| --- |\n| bar |\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | def |\n| --- | --- |\n| bar |\n| bar | baz | boo |\n"
+ },
+ {
+  "extension": "table",
+  "markdown": "| abc | def |\n| --- | --- |\n"
+ },
+ {
+  "extension": "disabled",
+  "markdown": "- [ ] foo\n- [x] bar\n"
+ },
+ {
+  "extension": "disabled",
+  "markdown": "- [x] foo\n  - [ ] bar\n  - [x] baz\n- [ ] bim\n"
+ },
+ {
+  "extension": "strikethrough",
+  "markdown": "~~Hi~~ Hello, world!\n"
+ },
+ {
+  "extension": "strikethrough",
+  "markdown": "This ~~has a\n\nnew paragraph~~.\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "www.commonmark.org\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "Visit www.commonmark.org/help for more information.\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "Visit www.commonmark.org.\n\nVisit www.commonmark.org/a.b.\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "www.google.com/search?q=Markup+(business)\n\nwww.google.com/search?q=Markup+(business)))\n\n(www.google.com/search?q=Markup+(business))\n\n(www.google.com/search?q=Markup+(business)\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "www.google.com/search?q=(business))+ok\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "www.google.com/search?q=commonmark&hl=en\n\nwww.google.com/search?q=commonmark&hl;\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "www.commonmark.org/he<lp\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "http://commonmark.org\n\n(Visit https://encrypted.google.com/search?q=Markup+(business))\n\nAnonymous FTP is available at ftp://foo.bar.baz.\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "foo@bar.baz\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.\n"
+ },
+ {
+  "extension": "autolink",
+  "markdown": "a.b-c_d@a.b\n\na.b-c_d@a.b.\n\na.b-c_d@a.b-\n\na.b-c_d@a.b_\n"
+ },
+ {
+  "extension": "tagfilter",
+  "markdown": "<strong> <title> <style> <em>\n\n<blockquote>\n  <xmp> is disallowed.  <XMP> is also disallowed.\n</blockquote>\n"
+ }
+]
