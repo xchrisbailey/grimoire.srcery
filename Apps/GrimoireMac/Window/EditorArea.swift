@@ -3,8 +3,6 @@ import GrimoireEditor
 import SwiftUI
 
 /// The detail column: the open document, or an empty state when nothing is selected.
-///
-/// The editor is a plain text view until the TextKit 2 editor lands (#6).
 struct EditorArea: View {
     let window: WindowState
 
@@ -12,7 +10,7 @@ struct EditorArea: View {
         VStack(spacing: 0) {
             if let document = window.document {
                 DocumentBanners(document: document)
-                PlaceholderEditor(document: document)
+                DocumentEditor(document: document, window: window)
                     // The title bar proxy icon, so the file can be dragged or ⌘-clicked like any document.
                     .navigationDocument(document.url)
             } else if let error = window.openError, let url = window.selectedFile {
@@ -45,30 +43,18 @@ struct EditorArea: View {
     }
 }
 
-private struct PlaceholderEditor: View {
+/// The live-styled markdown editor for the open document.
+private struct DocumentEditor: View {
     @Bindable var document: OpenDocument
+    let window: WindowState
 
     var body: some View {
-        TextEditor(text: $document.text)
-            .brandFont(.body)
-            .foregroundStyle(Color.brand(\.ink))
-            .scrollContentBackground(.hidden)
-            .frame(maxWidth: 680)
-            .padding(.horizontal, 24)
-            .padding(.top, 30)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topLeading) {
-                if document.text.isEmpty {
-                    Text("A blank page. Type / to cast a block.")
-                        .brandFont(.body)
-                        .foregroundStyle(Color.brand(\.overlay1))
-                        .allowsHitTesting(false)
-                        .frame(maxWidth: 680, alignment: .leading)
-                        .padding(.horizontal, 29)
-                        .padding(.top, 30)
-                        .frame(maxWidth: .infinity, alignment: .top)
-                }
-            }
+        MarkdownEditor(
+            text: $document.text, fileURL: document.url,
+            placeholder: String(localized: "A blank page. Type / to cast a block.")
+        ) { url in
+            window.openLinkedFile(url)
+        }
     }
 }
 

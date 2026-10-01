@@ -39,4 +39,18 @@ import Testing
         }
         #expect(elapsed < .milliseconds(5))
     }
+
+    /// Typing a character in the middle of a 1 MB document re-parses only nearby blocks.
+    @Test func typingUpdatesTheIndexQuickly() {
+        let text = Self.megabyte
+        var index = BlockIndex(text: text)
+        let middle = index.sourceRange(of: index.blocks.count / 2).lowerBound
+        let edited = (text as NSString).replacingCharacters(in: NSRange(location: middle, length: 0), with: "x")
+        let clock = ContinuousClock()
+        let elapsed = clock.measure {
+            index.replace(middle..<middle, replacementLength: 1, in: edited)
+        }
+        #expect(index.document.markdown == edited)
+        #expect(elapsed < .milliseconds(5))
+    }
 }

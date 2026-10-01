@@ -118,6 +118,20 @@ final class WindowState {
         document?.save()
     }
 
+    /// Opens a markdown file a link pointed at: in this window when it's inside the
+    /// project, otherwise with the default app.
+    func openLinkedFile(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+            openError = CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: url.path(percentEncoded: false)])
+            return
+        }
+        if workspace?.reference(for: url) != nil {
+            select(url)
+        } else {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     /// The folder new files go in: the selected file's folder, else the first bound folder.
     var folderForNewFiles: URL? {
         if let selectedFile, workspace?.reference(for: selectedFile) != nil {

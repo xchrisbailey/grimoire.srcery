@@ -1,0 +1,209 @@
+#if os(macOS)
+import AppKit
+import GrimoireCore
+
+/// Keeps a `MarkdownTextView` and a `BlockIndex` in step: every edit updates the index
+/// for the blocks around it and restyles just those, and moving the caret reveals the
+/// markers of the block it lands in.
+@MainActor
+public final class EditorController: NSObject {
+    public let textView: MarkdownTextView
+    public let scrollView: NSScrollView
+    public private(set) var index: BlockIndex
+    public let styler: MarkdownStyler
+
+    /// Called after the user changes the text.
+    var onTextChange: ((String) -> Void)?
+    /// Called for a ⌘-clicked link.
+    var onOpenLink: ((String) -> Void)?
+
+    /// The file being edited.
+    var fileURL: URL?
+    /// The text last sent to or received from the owner, to tell its updates from ours.
+    var lastText: String = ""
+    private var revealed: Int?
+    private var isLoading = false
+    /// Each editor keeps its own undo history, so it belongs to the open file.
+    private let undoManager = UndoManager()
+
+    public init(theme: EditorTheme = EditorTheme()) {
+        styler = MarkdownStyler(theme: theme)
+        index = BlockIndex(text: "")
+
+        let textView = MarkdownTextView(usingTextLayoutManager: true)
+        self.textView = textView
+        scrollView = NSScrollView()
+        super.init()
+
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.allowsUndo = true
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticLinkDetectionEnabled = false
+        textView.smartInsertDeleteEnabled = false
+        textView.drawsBackground = false
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = true
+        textView.insertionPointColor = theme.caret
+        textView.selectedTextAttributes = [.backgroundColor: theme.magic.withAlphaComponent(0.25)]
+        textView.typingAttributes = [.font: theme.body, .foregroundColor: theme.ink]
+        textView.maxLineWidth = theme.maxLineWidth
+        textView.placeholderAttributes = [.font: theme.body, .foregroundColor: theme.faint]
+        textView.delegate = self
+        textView.textStorage?.delegate = self
+        textView.textLayoutManager?.delegate = self
+        textView.onToggleTask = { [weak self] offset in self?.toggleTask(at: offset) }
+        textView.onOpenLink = { [weak self] link in self?.onOpenLink?(link) }
+
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.drawsBackground = false
+        scrollView.contentView.drawsBackground = false
+
+        styler.onImageLoaded = { [weak self] url in self?.restyleImages(showing: url) }
+    }
+
+    public var text: String { textView.string }
+
+    /// Replaces the whole text (opening a file, or a reload from disk). Clears undo.
+    public func load(_ text: String, flavor: DocumentFlavor) {
+        isLoading = true
+        lastText = text
+        textView.string = text
+        index = BlockIndex(text: text, flavor: flavor)
+        revealed = caretBlock()
+        restyle(0..<index.blocks.count, all: true)
+        textView.undoManager?.removeAllActions()
+        isLoading = false
+    }
+
+    /// Takes new text from the owner while keeping the caret near where it was.
+    public func replaceText(_ text: String, flavor: DocumentFlavor) {
+        let selection = textView.selectedRange()
+        load(text, flavor: flavor)
+        let location = min(selection.location, (text as NSString).length)
+        textView.setSelectedRange(NSRange(location: location, length: 0))
+    }
+
+    // MARK: - Styling
+
+    /// Restyles everything, for example after the file moved and relative images resolve
+    /// somewhere new.
+    public func restyleAll() {
+        restyle(0..<index.blocks.count, all: true)
+    }
+
+    private func restyle(_ blocks: Range<Int>, all: Bool = false) {
+        guard let storage = textView.textStorage else { return }
+        storage.beginEditing()
+        if all {
+            styler.styleAll(storage, index: index, revealing: revealed)
+        } else {
+            styler.style(storage, index: index, blocks: blocks, revealing: revealed)
+        }
+        storage.endEditing()
+    }
+
+    private func caretBlock() -> Int? {
+        index.blockIndex(at: textView.selectedRange().location)
+    }
+
+    private func restyleImages(showing url: URL) {
+        for (position, block) in index.blocks.enumerated() where block.kind == .image {
+            restyle(position..<(position + 1))
+        }
+    }
+
+    // MARK: - Tasks
+
+    /// Flips the checkbox on the task line starting at `offset`, as an undoable edit.
+    func toggleTask(at offset: Int) {
+        let text = textView.string as NSString
+        let line = text.lineRange(for: NSRange(location: offset, length: 0))
+        let content = text.substring(with: line) as NSString
+        let prefix = MarkdownSyntax.listPrefix(in: content as String)
+        guard prefix.checkbox > 0 else { return }
+        let boxRange = NSRange(location: line.location + prefix.indent + prefix.marker + 1, length: 1)
+        let current = text.substring(with: boxRange)
+        let replacement = current == " " ? "x" : " "
+        guard textView.shouldChangeText(in: boxRange, replacementString: replacement) else { return }
+        textView.textStorage?.replaceCharacters(in: boxRange, with: replacement)
+        textView.didChangeText()
+        textView.undoManager?.setActionName(String(localized: "Toggle Task"))
+    }
+}
+
+extension EditorController: NSTextStorageDelegate {
+    public nonisolated func textStorage(
+        _ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
+        range editedRange: NSRange,
+        changeInLength delta: Int
+    ) {
+        guard editedMask.contains(.editedCharacters) else { return }
+        nonisolated(unsafe) let textStorage = textStorage
+        MainActor.assumeIsolated {
+            guard !isLoading else { return }
+            let oldRange = editedRange.location..<(editedRange.location + editedRange.length - delta)
+            let changed = index.replace(oldRange, replacementLength: editedRange.length, in: textStorage.string)
+            let full = changed.count == index.blocks.count
+            revealed = index.blockIndex(at: NSMaxRange(editedRange))
+            if full {
+                styler.styleAll(textStorage, index: index, revealing: revealed)
+            } else {
+                var blocks = changed
+                if let revealed, !blocks.contains(revealed) {
+                    blocks = min(blocks.lowerBound, revealed)..<max(blocks.upperBound, revealed + 1)
+                }
+                styler.style(textStorage, index: index, blocks: blocks, revealing: revealed)
+            }
+        }
+    }
+}
+
+extension EditorController: NSTextViewDelegate {
+    public func undoManager(for view: NSTextView) -> UndoManager? {
+        undoManager
+    }
+
+    public func textDidChange(_ notification: Notification) {
+        let text = textView.string
+        lastText = text
+        onTextChange?(text)
+    }
+
+    public func textViewDidChangeSelection(_ notification: Notification) {
+        guard !isLoading else { return }
+        let block = caretBlock()
+        guard block != revealed else { return }
+        let previous = revealed
+        revealed = block
+        var touched: [Int] = []
+        if let previous, previous < index.blocks.count { touched.append(previous) }
+        if let block { touched.append(block) }
+        for position in touched { restyle(position..<(position + 1)) }
+    }
+}
+
+extension EditorController: NSTextLayoutManagerDelegate {
+    public nonisolated func textLayoutManager(
+        _ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: any NSTextLocation,
+        in textElement: NSTextElement
+    ) -> NSTextLayoutFragment {
+        guard let decoration = MarkdownLayoutFragment.decoration(of: textElement) else {
+            return NSTextLayoutFragment(textElement: textElement, range: textElement.elementRange)
+        }
+        let theme = MainActor.assumeIsolated { styler.theme }
+        return MarkdownLayoutFragment(
+            textElement: textElement, range: textElement.elementRange, decoration: decoration, theme: theme)
+    }
+}
+#endif
