@@ -15,6 +15,7 @@ extension MarkdownStyler {
         let spacing: CGFloat = level <= 2 ? font.pointSize * 0.3 : 0
         storage.addAttributes(
             [.font: font, .paragraphStyle: paragraphStyle(lineHeight: 1.1, spacingBefore: spacing)], range: range)
+        applyPreview(.heading(level), to: range, in: storage)
         let text = (storage.string as NSString).substring(with: range)
         let lines = text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
         if lines.count > 1, let underline = lines.last {
@@ -49,7 +50,7 @@ extension MarkdownStyler {
             styleDrawnMarker(
                 .task(checked: checkbox == .checked, indent: level), level: level, range: range, in: storage,
                 reveal: reveal)
-            applyMarker(markerRange, in: storage, reveal: reveal)
+            applyMarker(markerRange, in: storage, reveal: reveal, token: .listMarker)
             if checkbox == .checked {
                 storage.addAttributes(
                     [
@@ -60,7 +61,7 @@ extension MarkdownStyler {
             }
         case (.bullet, nil):
             styleDrawnMarker(.bullet(indent: level), level: level, range: range, in: storage, reveal: reveal)
-            applyMarker(markerRange, in: storage, reveal: reveal)
+            applyMarker(markerRange, in: storage, reveal: reveal, token: .listMarker)
         case (.ordered, nil):
             storage.addAttribute(
                 .paragraphStyle,
@@ -68,7 +69,7 @@ extension MarkdownStyler {
                 range: range)
             // Numbers stay visible: they carry information.
             storage.addAttributes(
-                [.foregroundColor: theme.caret, .grimoireMarker: true],
+                [.foregroundColor: theme.token(.listMarker, raw: false).color ?? theme.caret, .grimoireMarker: true],
                 range: NSRange(location: range.location + prefix.indent, length: prefix.marker))
             if !reveal {
                 storage.addAttributes(
@@ -101,6 +102,7 @@ extension MarkdownStyler {
         storage.addAttributes(
             [.foregroundColor: theme.subtext, .paragraphStyle: paragraphStyle(firstLineIndent: 16, indent: 16)],
             range: range)
+        applyPreview(.quote, to: range, in: storage)
         forEachLine(of: range, in: text) { line in
             storage.addAttribute(.grimoireDecoration, value: LineDecoration(.quote), range: line)
             let marker = MarkdownSyntax.quoteMarker(in: text.substring(with: line))
@@ -115,7 +117,7 @@ extension MarkdownStyler {
         let text = storage.string as NSString
         storage.addAttributes(
             [
-                .font: theme.code, .foregroundColor: theme.ink,
+                .font: theme.code, .foregroundColor: theme.token(.codeBlock, raw: false).color ?? theme.ink,
                 .paragraphStyle: paragraphStyle(firstLineIndent: 14, indent: 14, tailIndent: -14, lineHeight: 1.15),
             ],
             range: range)
@@ -132,11 +134,12 @@ extension MarkdownStyler {
             storage.addAttribute(.grimoireDecoration, value: LineDecoration(.code(position)), range: covered)
         }
         guard fenced, let first = lines.first else { return }
-        storage.addAttributes([.foregroundColor: theme.marker, .grimoireMarker: true], range: first)
+        let fence = theme.token(.codeFence, raw: false).color ?? theme.marker
+        storage.addAttributes([.foregroundColor: fence, .grimoireMarker: true], range: first)
         if lines.count > 1, let last = lines.last,
             text.substring(with: last).trimmingCharacters(in: .whitespaces).allSatisfy({ $0 == "`" || $0 == "~" })
         {
-            storage.addAttributes([.foregroundColor: theme.marker, .grimoireMarker: true], range: last)
+            storage.addAttributes([.foregroundColor: fence, .grimoireMarker: true], range: last)
         }
     }
 

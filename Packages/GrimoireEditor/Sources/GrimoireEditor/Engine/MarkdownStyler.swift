@@ -76,14 +76,22 @@ public final class MarkdownStyler {
         [.font: theme.body, .foregroundColor: theme.ink, .paragraphStyle: paragraphStyle()]
     }
 
-    /// Dims markdown syntax on the caret's block and hides it everywhere else.
-    func applyMarker(_ range: NSRange, in storage: NSMutableAttributedString, reveal: Bool) {
+    /// Shows markdown syntax quietly on the caret's block and hides it everywhere else.
+    func applyMarker(
+        _ range: NSRange, in storage: NSMutableAttributedString, reveal: Bool, token: MarkdownToken = .syntaxMarker
+    ) {
         guard range.length > 0 else { return }
         let attributes: [NSAttributedString.Key: Any] =
             reveal
-            ? [.foregroundColor: theme.marker, .grimoireMarker: true]
+            ? [.foregroundColor: theme.token(token, raw: false).color ?? theme.marker, .grimoireMarker: true]
             : [.font: EditorTheme.hiddenFont, .foregroundColor: PlatformColor.clear, .grimoireMarker: true]
         storage.addAttributes(attributes, range: range)
+    }
+
+    /// Adds a Preview token's color and decorations to `range`.
+    func applyPreview(_ token: MarkdownToken, to range: NSRange, in storage: NSMutableAttributedString) {
+        guard range.length > 0 else { return }
+        storage.addAttributes(theme.token(token, raw: false).attributes, range: range)
     }
 
     // MARK: - Front matter
@@ -94,9 +102,9 @@ public final class MarkdownStyler {
         if mode == .raw { return styleRawFront(storage, index: index, range: range) }
         storage.setAttributes(baseAttributes, range: range)
         if let frontmatter = index.frontmatterRange {
-            storage.addAttributes(
-                [.font: theme.metadata, .foregroundColor: theme.faint],
-                range: NSRange(location: 0, length: frontmatter.count))
+            let range = NSRange(location: 0, length: frontmatter.count)
+            storage.addAttributes([.font: theme.metadata, .foregroundColor: theme.faint], range: range)
+            applyPreview(.frontmatter, to: range, in: storage)
         }
     }
 
@@ -139,11 +147,12 @@ public final class MarkdownStyler {
         case .table:
             styleTable(range, in: storage, reveal: reveal)
         case .mdx:
-            storage.addAttributes([.font: theme.code, .foregroundColor: theme.sparkle], range: range)
+            styleMDX(range, in: storage, raw: false)
         case .linkDefinitions:
             storage.addAttributes([.font: theme.metadata, .foregroundColor: theme.faint], range: range)
         default:
             storage.addAttributes([.font: theme.code, .foregroundColor: theme.subtext], range: range)
+            applyPreview(.html, to: range, in: storage)
         }
     }
 

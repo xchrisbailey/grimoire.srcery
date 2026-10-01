@@ -17,6 +17,12 @@ public final class MarkdownTextView: NSTextView {
     /// Follows the mouse over the text, for the block handle.
     var onMouseMoved: ((CGPoint) -> Void)?
     var onMouseExited: (() -> Void)?
+    /// Called when the view switches between light and dark, with whether it's dark now.
+    var onAppearanceChange: ((Bool) -> Void)?
+    /// Drawn behind the caret's line (Raw mode); nil draws nothing.
+    var caretLineColor: NSColor? {
+        didSet { needsDisplay = true }
+    }
 
     private var hoverArea: NSTrackingArea?
 
@@ -47,7 +53,27 @@ public final class MarkdownTextView: NSTextView {
     }
     var placeholderAttributes: [NSAttributedString.Key: Any] = [:]
 
+    public override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        onAppearanceChange?(isDarkAppearance)
+    }
+
+    var isDarkAppearance: Bool {
+        effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
+    public override func setSelectedRanges(
+        _ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool
+    ) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if caretLineColor != nil { needsDisplay = true }
+    }
+
     public override func draw(_ dirtyRect: NSRect) {
+        if let caretLineColor, selectedRange().length == 0, let line = caretLineRect() {
+            caretLineColor.setFill()
+            line.fill()
+        }
         super.draw(dirtyRect)
         guard string.isEmpty, let placeholder else { return }
         let padding = textContainer?.lineFragmentPadding ?? 5
@@ -71,6 +97,25 @@ public final class MarkdownTextView: NSTextView {
         let horizontal = max(24, (bounds.width - maxLineWidth - padding * 2) / 2)
         let inset = NSSize(width: horizontal.rounded(.down), height: verticalInset)
         if textContainerInset != inset { textContainerInset = inset }
+    }
+
+    /// The caret's line across the text column, in view coordinates.
+    private func caretLineRect() -> CGRect? {
+        guard let layoutManager = textLayoutManager, let storage = textContentStorage,
+            let location = storage.location(storage.documentRange.location, offsetBy: selectedRange().location)
+        else { return nil }
+        var lineFrame: CGRect?
+        let firstSegment: (NSTextRange?, CGRect, CGFloat, NSTextContainer) -> Bool = { _, frame, _, _ in
+            lineFrame = frame
+            return false
+        }
+        layoutManager.enumerateTextSegments(
+            in: NSTextRange(location: location), type: .standard, options: [], using: firstSegment)
+        guard let frame = lineFrame else { return nil }
+        let padding = textContainer?.lineFragmentPadding ?? 5
+        return CGRect(
+            x: textContainerOrigin.x + padding - 6, y: textContainerOrigin.y + frame.minY,
+            width: (textContainer?.size.width ?? bounds.width) - padding * 2 + 12, height: frame.height)
     }
 
     // MARK: - Clicks

@@ -8,11 +8,16 @@ import UIKit
 #endif
 
 extension Color {
-    /// A color for one brand role that follows the system appearance: Latte in light mode,
-    /// Mocha in dark mode. `Color.brand(\.magic)`.
+    /// A color for one brand role from the chosen themes, following the appearance: the
+    /// light theme in light mode, the dark theme in dark mode. `Color.brand(\.magic)`.
+    ///
+    /// Reading it in a view's body ties the view to the theme library, so the view redraws
+    /// when a theme changes.
+    @MainActor
     public static func brand(_ role: KeyPath<BrandPalette, PaletteColor>) -> Color {
-        let light = BrandPalette.latte[keyPath: role]
-        let dark = BrandPalette.mocha[keyPath: role]
+        let themes = ThemeLibrary.shared
+        let light = themes.lightTheme.palette[keyPath: role]
+        let dark = themes.darkTheme.palette[keyPath: role]
         #if os(macOS)
         return Color(
             nsColor: NSColor(name: nil) { appearance in

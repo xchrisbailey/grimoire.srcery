@@ -20,10 +20,15 @@ extension MarkdownStyler {
             if let attributes = attributes(for: span.kind) {
                 storage.addAttributes(attributes, range: content)
             }
+            let markerToken: MarkdownToken
+            switch span.kind {
+            case .strong, .emphasis, .strikethrough: markerToken = .emphasisMarker
+            default: markerToken = .syntaxMarker
+            }
             for marker in span.markers {
                 applyMarker(
                     NSRange(location: range.location + marker.lowerBound, length: marker.count), in: storage,
-                    reveal: reveal)
+                    reveal: reveal, token: markerToken)
             }
         }
     }
@@ -68,15 +73,17 @@ extension MarkdownStyler {
     private func attributes(for kind: InlineSpan.Kind) -> [NSAttributedString.Key: Any]? {
         switch kind {
         case .code:
-            [.backgroundColor: theme.codeBackground]
+            theme.token(.inlineCode, raw: false).attributes
         case .strikethrough:
-            [.strikethroughStyle: NSUnderlineStyle.single.rawValue, .foregroundColor: theme.subtext]
+            theme.token(.strikethrough, raw: false).attributes
         case .link(let destination), .autolink(let destination):
-            [.foregroundColor: theme.link, .grimoireLink: destination]
+            theme.token(.link, raw: false).attributes.merging([.grimoireLink: destination]) { $1 }
         case .image(let source):
             [.foregroundColor: theme.faint, .grimoireLink: source]
-        case .strong, .emphasis:
-            nil
+        case .strong:
+            theme.token(.bold, raw: false).attributes
+        case .emphasis:
+            theme.token(.italic, raw: false).attributes
         }
     }
 }

@@ -15,20 +15,24 @@ final class BlockHandle: NSObject {
     init(controller: EditorController) {
         self.controller = controller
         super.init()
-        let theme = controller.styler.theme
         handle.isHidden = true
-        handle.tint = theme.marker
-        handle.hoverFill = theme.codeBackground
         handle.onMouseDown = { [weak self] event in self?.mouseDown(event) }
         dropLine.wantsLayer = true
-        dropLine.layer?.backgroundColor = theme.magic.cgColor
         dropLine.layer?.cornerRadius = 1
+        applyTheme(controller.styler.theme)
         dropLine.isHidden = true
         controller.textView.addSubview(handle)
         controller.textView.addSubview(dropLine)
     }
 
     var textView: MarkdownTextView? { controller?.textView }
+
+    func applyTheme(_ theme: EditorTheme) {
+        handle.tint = theme.marker
+        handle.hoverFill = theme.codeBackground
+        handle.needsDisplay = true
+        dropLine.layer?.backgroundColor = theme.magic.cgColor
+    }
 
     // MARK: - Hover
 

@@ -22,6 +22,9 @@ struct GrimoireMacApp: App {
             }
             GrimoireCommands()
         }
+        Settings {
+            SettingsView()
+        }
     }
 
     private func showAboutPanel() {
