@@ -10,6 +10,8 @@ public struct MarkdownEditor: NSViewRepresentable {
     var fileURL: URL?
     var placeholder: String?
     var mode: EditorMode
+    var dimsAroundCaret = false
+    var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
 
     /// - Parameters:
@@ -26,6 +28,20 @@ public struct MarkdownEditor: NSViewRepresentable {
         self.mode = mode
         self.placeholder = placeholder
         self.onOpenFile = onOpenFile
+    }
+
+    /// Fades everything but the caret's block, for focus mode.
+    public func dimmingAroundCaret(_ dims: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.dimsAroundCaret = dims
+        return copy
+    }
+
+    /// Handles Escape before the editor does; return true when it was handled.
+    public func onEscape(_ action: @escaping () -> Bool) -> MarkdownEditor {
+        var copy = self
+        copy.onEscape = action
+        return copy
     }
 
     private var flavor: DocumentFlavor {
@@ -64,10 +80,12 @@ public struct MarkdownEditor: NSViewRepresentable {
             controller.replaceText(text, flavor: flavor)
         }
         controller.mode = mode
+        controller.dimsAroundCaret = dimsAroundCaret
     }
 
     private func wire(_ controller: EditorController) {
         controller.textView.placeholder = placeholder
+        controller.onEscape = onEscape
         let binding = $text
         controller.onTextChange = { binding.wrappedValue = $0 }
         let fileURL = fileURL

@@ -16,6 +16,18 @@ public final class EditorController: NSObject {
     var onTextChange: ((String) -> Void)?
     /// Called for a ⌘-clicked link.
     var onOpenLink: ((String) -> Void)?
+    /// Offered Escape before the editor uses it to select the block; returns true when it
+    /// handled it (focus mode uses it to wake).
+    var onEscape: (() -> Bool)?
+
+    /// Focus mode: everything but the caret's block fades back.
+    public var dimsAroundCaret = false {
+        didSet {
+            guard dimsAroundCaret != oldValue else { return }
+            updateDimming()
+        }
+    }
+    private var litBlock: Int?
 
     /// The file being edited.
     var fileURL: URL?
@@ -181,6 +193,37 @@ public final class EditorController: NSObject {
         }
     }
 
+    // MARK: - Focus
+
+    /// Fades every block but the caret's with a rendering attribute, which changes how text
+    /// draws without touching the text storage.
+    func updateDimming() {
+        guard let layoutManager = textView.textLayoutManager, let storage = textView.textContentStorage else { return }
+        let block = dimsAroundCaret ? index.blockIndex(at: textView.selectedRange().location) : nil
+        guard block != litBlock || !dimsAroundCaret else { return }
+        litBlock = block
+        let documentRange = storage.documentRange
+        layoutManager.removeRenderingAttribute(.foregroundColor, for: documentRange)
+        guard dimsAroundCaret else { return }
+        let dim = styler.theme.marker
+        let lit = block.map { NSRange(index.sourceRange(of: $0)) }
+        let length = (textView.string as NSString).length
+        var ranges: [NSRange] = []
+        if let lit {
+            ranges.append(NSRange(location: 0, length: lit.location))
+            ranges.append(NSRange(location: NSMaxRange(lit), length: length - NSMaxRange(lit)))
+        } else {
+            ranges.append(NSRange(location: 0, length: length))
+        }
+        for range in ranges where range.length > 0 {
+            guard let start = storage.location(documentRange.location, offsetBy: range.location),
+                let end = storage.location(start, offsetBy: range.length),
+                let textRange = NSTextRange(location: start, end: end)
+            else { continue }
+            layoutManager.addRenderingAttribute(.foregroundColor, value: dim, for: textRange)
+        }
+    }
+
     // MARK: - Tasks
 
     /// Flips the checkbox on the task line starting at `offset`, as an undoable edit.
@@ -230,6 +273,10 @@ extension EditorController: NSTextViewDelegate {
 
     public func textDidChange(_ notification: Notification) {
         blockHandle.hide()
+        if dimsAroundCaret {
+            litBlock = nil
+            updateDimming()
+        }
         if pendingShortcut {
             pendingShortcut = false
             if let edit = editing.shortcut() { apply(edit) }
@@ -265,6 +312,7 @@ extension EditorController: NSTextViewDelegate {
 
     public func textViewDidChangeSelection(_ notification: Notification) {
         guard !isLoading else { return }
+        if dimsAroundCaret { updateDimming() }
         if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
         guard mode == .preview else { return }
         let block = caretBlock()
