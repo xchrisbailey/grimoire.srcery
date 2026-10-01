@@ -10,6 +10,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     var fileURL: URL?
     var placeholder: String?
     var mode: EditorMode
+    var theme: EditorTheme
     var dimsAroundCaret = false
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
@@ -17,15 +18,17 @@ public struct MarkdownEditor: NSViewRepresentable {
     /// - Parameters:
     ///   - fileURL: The file being edited, for resolving relative links and images and
     ///     choosing `.md` or `.mdx` parsing.
+    ///   - theme: The light and dark themes and the editor's sizes.
     ///   - placeholder: Shown while the file is empty.
     ///   - onOpenFile: Called for a ⌘-clicked link to another markdown file.
     public init(
-        text: Binding<String>, fileURL: URL?, mode: EditorMode = .preview, placeholder: String? = nil,
-        onOpenFile: @escaping (URL) -> Void = { _ in }
+        text: Binding<String>, fileURL: URL?, mode: EditorMode = .preview, theme: EditorTheme = EditorTheme(),
+        placeholder: String? = nil, onOpenFile: @escaping (URL) -> Void = { _ in }
     ) {
         _text = text
         self.fileURL = fileURL
         self.mode = mode
+        self.theme = theme
         self.placeholder = placeholder
         self.onOpenFile = onOpenFile
     }
@@ -54,6 +57,8 @@ public struct MarkdownEditor: NSViewRepresentable {
 
     public func makeNSView(context: Context) -> NSScrollView {
         let controller = context.coordinator
+        controller.styler.theme.isDark = controller.textView.isDarkAppearance
+        controller.theme = theme
         controller.fileURL = fileURL
         controller.styler.baseURL = fileURL?.deletingLastPathComponent()
         controller.styler.mode = mode
@@ -80,6 +85,7 @@ public struct MarkdownEditor: NSViewRepresentable {
             controller.replaceText(text, flavor: flavor)
         }
         controller.mode = mode
+        controller.theme = theme
         controller.dimsAroundCaret = dimsAroundCaret
     }
 

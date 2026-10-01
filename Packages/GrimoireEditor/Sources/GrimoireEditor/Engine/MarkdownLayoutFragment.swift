@@ -99,7 +99,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
             let diameter: CGFloat = 5.5
             let center = CGPoint(
                 x: columnX + indent + LineDecoration.bulletWidth / 2 - 3, y: point.y + firstLineCenterY)
-            context.setFillColor(theme.caret.cgColor)
+            context.setFillColor((theme.token(.listMarker, raw: false).color ?? theme.caret).cgColor)
             context.fillEllipse(
                 in: CGRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter))
         case .task(let checked, let indent):
@@ -127,7 +127,8 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         case .last: path.addRect(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height / 2))
         }
         context.addPath(path)
-        context.setFillColor(theme.codeBackground.withAlphaComponent(0.55).cgColor)
+        let fill = theme.token(.codeBlock, raw: false).background ?? theme.codeBackground
+        context.setFillColor(fill.withAlphaComponent(0.55).cgColor)
         context.fillPath()
     }
 

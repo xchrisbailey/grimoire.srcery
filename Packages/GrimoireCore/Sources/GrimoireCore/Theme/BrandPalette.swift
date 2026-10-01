@@ -1,3 +1,5 @@
+import Foundation
+
 /// An sRGB color as 8-bit components, platform-neutral so GrimoireCore stays free of
 /// AppKit and UIKit.
 public struct PaletteColor: Hashable, Sendable, CustomStringConvertible {
@@ -19,13 +21,65 @@ public struct PaletteColor: Hashable, Sendable, CustomStringConvertible {
     public var description: String {
         "#" + [red, green, blue].map { String($0, radix: 16).leftPadded(to: 2) }.joined()
     }
+
+    /// A CSS-style hex color: `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`. A color with alpha
+    /// is laid over `background`, since the editor draws themes as opaque colors.
+    public init?(hex string: String, over background: PaletteColor? = nil) {
+        var digits = string.trimmingCharacters(in: .whitespaces)
+        guard digits.hasPrefix("#") else { return nil }
+        digits.removeFirst()
+        if digits.count == 3 || digits.count == 4 { digits = String(digits.flatMap { [$0, $0] }) }
+        guard digits.count == 6 || digits.count == 8, let value = UInt64(digits, radix: 16) else { return nil }
+        if digits.count == 6 {
+            self.init(hex: UInt32(value))
+            return
+        }
+        let color = PaletteColor(hex: UInt32(value >> 8))
+        let alpha = Double(value & 0xFF) / 255
+        self = (background ?? color).mixed(with: color, amount: alpha)
+    }
+
+    /// This color moved `amount` (0...1) of the way toward `other`.
+    public func mixed(with other: PaletteColor, amount: Double) -> PaletteColor {
+        let fraction = min(max(amount, 0), 1)
+        func channel(_ from: UInt8, _ to: UInt8) -> UInt8 {
+            UInt8((Double(from) + (Double(to) - Double(from)) * fraction).rounded())
+        }
+        return PaletteColor(
+            red: channel(red, other.red), green: channel(green, other.green), blue: channel(blue, other.blue))
+    }
+
+    /// Relative luminance (0 black ... 1 white), for telling dark themes from light ones.
+    public var luminance: Double {
+        func linear(_ channel: UInt8) -> Double {
+            let value = Double(channel) / 255
+            return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
+}
+
+extension PaletteColor: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let string = try container.decode(String.self)
+        guard let color = PaletteColor(hex: string) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Not a hex color: \(string)")
+        }
+        self = color
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(description)
+    }
 }
 
 /// The color roles from the brand book, filled from Catppuccin.
 ///
-/// Mocha is the default dark theme and Latte the default light theme (#12 exposes both
-/// as built-in themes).
-public struct BrandPalette: Hashable, Sendable {
+/// Mocha is the default dark theme and Latte the default light theme. A `Theme` carries
+/// one, and an imported VS Code theme fills the same roles from its own colors.
+public struct BrandPalette: Codable, Hashable, Sendable {
     public var name: String
     public var isDark: Bool
 

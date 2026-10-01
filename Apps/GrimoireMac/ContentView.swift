@@ -19,6 +19,7 @@ struct ContentView: View {
         .frame(minWidth: 640, minHeight: 400)
         .onAppear {
             if window == nil { window = WindowState(library: library) }
+            ThemeLibrary.shared.applyAppearance()
         }
     }
 }

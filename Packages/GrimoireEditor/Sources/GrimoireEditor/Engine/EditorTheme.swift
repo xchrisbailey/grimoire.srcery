@@ -12,10 +12,9 @@ public typealias PlatformFont = UIFont
 #endif
 
 extension PlatformColor {
-    /// A brand color that follows the system appearance: Latte in light mode, Mocha in dark.
-    public static func brand(_ role: KeyPath<BrandPalette, PaletteColor>) -> PlatformColor {
-        let light = BrandPalette.latte[keyPath: role]
-        let dark = BrandPalette.mocha[keyPath: role]
+    /// A color that follows the appearance: `light` in light mode, `dark` in dark mode.
+    public static func dynamic(light: PaletteColor, dark: PaletteColor) -> PlatformColor {
+        if light == dark { return PlatformColor(light) }
         #if os(macOS)
         return NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
@@ -27,8 +26,17 @@ extension PlatformColor {
     }
 }
 
-/// Fonts, colors and metrics for the editor, built from the brand tokens.
-public struct EditorTheme: @unchecked Sendable {
+/// Fonts, colors and metrics for the editor: the light and dark themes, and the sizes
+/// Settings controls.
+public struct EditorTheme: Equatable, @unchecked Sendable {
+    /// The theme drawn in light mode.
+    public var light: Theme
+    /// The theme drawn in dark mode.
+    public var dark: Theme
+    /// Which of the two the view is showing now. Colors follow the appearance by
+    /// themselves; this picks font styles (bold, italic) that a theme sets per token.
+    public var isDark = false
+
     public var bodySize: CGFloat = BrandFont.Style.body.size
     public var codeSize: CGFloat = BrandFont.Style.raw.size
     /// Line height as a multiple of the font's natural line height.
@@ -37,26 +45,98 @@ public struct EditorTheme: @unchecked Sendable {
     public var maxLineWidth: CGFloat = 680
     /// How far each list level indents.
     public var listIndent: CGFloat = 22
-
-    public var ink = PlatformColor.brand(\.ink)
-    public var subtext = PlatformColor.brand(\.subtext)
-    public var marker = PlatformColor.brand(\.overlay0)
-    public var faint = PlatformColor.brand(\.overlay1)
-    public var magic = PlatformColor.brand(\.magic)
-    public var caret = PlatformColor.brand(\.caret)
-    public var link = PlatformColor.brand(\.link)
-    public var quote = PlatformColor.brand(\.quote)
-    public var sparkle = PlatformColor.brand(\.sparkle)
-    public var codeBackground = PlatformColor.brand(\.surface0)
-    public var surface = PlatformColor.brand(\.surface1)
-    public var page = PlatformColor.brand(\.page)
-    public var string = PlatformColor.brand(\.string)
-    public var attribute = PlatformColor.brand(\.callout)
     /// Raw mode's line height, as a multiple of Geist Mono's natural height (1.9 in the
     /// brand book, measured in font sizes).
     public var rawLineHeightMultiple: CGFloat = 1.45
 
-    public init() {}
+    public init(light: Theme = .latte, dark: Theme = .mocha) {
+        self.light = light
+        self.dark = dark
+    }
+
+    /// The theme for the current appearance.
+    public var current: Theme { isDark ? dark : light }
+
+    /// A brand role, following the appearance.
+    public func color(_ role: KeyPath<BrandPalette, PaletteColor>) -> PlatformColor {
+        .dynamic(light: light.palette[keyPath: role], dark: dark.palette[keyPath: role])
+    }
+
+    public func editorColor(_ role: KeyPath<EditorColors, PaletteColor>) -> PlatformColor {
+        .dynamic(light: light.editor[keyPath: role], dark: dark.editor[keyPath: role])
+    }
+
+    // MARK: - Roles
+
+    public var ink: PlatformColor { color(\.ink) }
+    public var subtext: PlatformColor { color(\.subtext) }
+    public var marker: PlatformColor { color(\.overlay0) }
+    public var faint: PlatformColor { color(\.overlay1) }
+    public var magic: PlatformColor { color(\.magic) }
+    public var caret: PlatformColor { color(\.caret) }
+    public var link: PlatformColor { color(\.link) }
+    public var quote: PlatformColor { color(\.quote) }
+    public var sparkle: PlatformColor { color(\.sparkle) }
+    public var codeBackground: PlatformColor { color(\.surface0) }
+    public var surface: PlatformColor { color(\.surface1) }
+    public var page: PlatformColor { color(\.page) }
+    public var string: PlatformColor { color(\.string) }
+    public var attribute: PlatformColor { color(\.callout) }
+    public var selection: PlatformColor { editorColor(\.selection) }
+    public var insertionPoint: PlatformColor { editorColor(\.caret) }
+    public var lineHighlight: PlatformColor { editorColor(\.lineHighlight) }
+
+    // MARK: - Tokens
+
+    /// How `token` draws in Preview or Raw. Its color follows the appearance; a token
+    /// one theme colors and the other doesn't falls back to that theme's ink.
+    public func token(_ token: MarkdownToken, raw: Bool) -> ResolvedStyle {
+        resolve(light.style(token, raw: raw), dark.style(token, raw: raw))
+    }
+
+    public func code(_ token: CodeToken) -> ResolvedStyle {
+        resolve(light.style(token), dark.style(token))
+    }
+
+    private func resolve(_ lightStyle: TokenStyle, _ darkStyle: TokenStyle) -> ResolvedStyle {
+        let style = isDark ? darkStyle : lightStyle
+        var resolved = ResolvedStyle(
+            bold: style.bold, italic: style.italic, underline: style.underline == true,
+            strikethrough: style.strikethrough == true)
+        if lightStyle.color != nil || darkStyle.color != nil {
+            resolved.color = .dynamic(
+                light: lightStyle.color ?? light.palette.ink, dark: darkStyle.color ?? dark.palette.ink)
+        }
+        if lightStyle.background != nil || darkStyle.background != nil {
+            resolved.background = .dynamic(
+                light: lightStyle.background ?? light.palette.page, dark: darkStyle.background ?? dark.palette.page)
+        }
+        return resolved
+    }
+
+    /// A token's style as text attributes.
+    public struct ResolvedStyle {
+        public var color: PlatformColor?
+        public var background: PlatformColor?
+        /// Nil leaves the weight as the surrounding text has it.
+        public var bold: Bool?
+        public var italic: Bool?
+        public var underline: Bool
+        public var strikethrough: Bool
+
+        /// The color, underline and strikethrough as attributes. Fonts are set separately,
+        /// since weight and slant combine with the text around them.
+        public var attributes: [NSAttributedString.Key: Any] {
+            var attributes: [NSAttributedString.Key: Any] = [:]
+            if let color { attributes[.foregroundColor] = color }
+            if let background { attributes[.backgroundColor] = background }
+            if underline { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
+            if strikethrough { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
+            return attributes
+        }
+    }
+
+    // MARK: - Fonts
 
     public func font(size: CGFloat? = nil, weight: CGFloat = 400, italic: Bool = false, monospaced: Bool = false)
         -> PlatformFont
@@ -71,11 +151,17 @@ public struct EditorTheme: @unchecked Sendable {
     public var metadata: PlatformFont { font(size: BrandFont.Style.metadata.size, monospaced: true) }
 
     public func heading(_ level: Int) -> PlatformFont {
+        let style = token(.heading(level), raw: false)
+        let italic = style.italic == true
         switch level {
-        case 1: font(size: BrandFont.Style.title.size, weight: BrandFont.Style.title.weight)
-        case 2: font(size: BrandFont.Style.heading.size, weight: BrandFont.Style.heading.weight)
-        case 3: font(size: 17, weight: 650)
-        default: font(weight: 650)
+        case 1:
+            let weight = style.bold == false ? 500 : BrandFont.Style.title.weight
+            return font(size: BrandFont.Style.title.size, weight: weight, italic: italic)
+        case 2:
+            let weight = style.bold == false ? 500 : BrandFont.Style.heading.weight
+            return font(size: BrandFont.Style.heading.size, weight: weight, italic: italic)
+        case 3: return font(size: 17, weight: style.bold == false ? 500 : 650, italic: italic)
+        default: return font(weight: style.bold == false ? 500 : 650, italic: italic)
         }
     }
 

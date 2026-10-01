@@ -27,7 +27,7 @@ public final class EditorController: NSObject {
             updateDimming()
         }
     }
-    private var litBlock: Int?
+    var litBlock: Int?
 
     /// The file being edited.
     var fileURL: URL?
@@ -74,11 +74,7 @@ public final class EditorController: NSObject {
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
-        textView.insertionPointColor = theme.caret
-        textView.selectedTextAttributes = [.backgroundColor: theme.magic.withAlphaComponent(0.25)]
-        textView.typingAttributes = [.font: theme.body, .foregroundColor: theme.ink]
-        textView.maxLineWidth = theme.maxLineWidth
-        textView.placeholderAttributes = [.font: theme.body, .foregroundColor: theme.faint]
+        applyChrome(theme)
         textView.delegate = self
         textView.textStorage?.delegate = self
         textView.textLayoutManager?.delegate = self
@@ -92,6 +88,7 @@ public final class EditorController: NSObject {
             self.blockHandle.mouseMoved(to: point)
         }
         textView.onMouseExited = { [weak self] in self?.blockHandle.hide() }
+        textView.onAppearanceChange = { [weak self] isDark in self?.appearanceChanged(isDark: isDark) }
 
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
@@ -104,6 +101,44 @@ public final class EditorController: NSObject {
 
     public var text: String { textView.string }
 
+    /// The look: the light and dark themes and the editor's sizes. Setting a different one
+    /// restyles the text in place.
+    public var theme: EditorTheme {
+        get { styler.theme }
+        set {
+            var theme = newValue
+            theme.isDark = styler.theme.isDark
+            guard theme != styler.theme else { return }
+            styler.theme = theme
+            styler.cellWidths.removeAll()
+            applyChrome(theme)
+            blockHandle.applyTheme(theme)
+            restyleAll()
+            if dimsAroundCaret {
+                litBlock = nil
+                updateDimming()
+            }
+        }
+    }
+
+    /// The text view's own colors: caret, selection, typing and the placeholder.
+    private func applyChrome(_ theme: EditorTheme) {
+        textView.insertionPointColor = theme.insertionPoint
+        textView.selectedTextAttributes = [.backgroundColor: theme.selection]
+        textView.typingAttributes = [.font: theme.body, .foregroundColor: theme.ink]
+        textView.maxLineWidth = theme.maxLineWidth
+        textView.placeholderAttributes = [.font: theme.body, .foregroundColor: theme.faint]
+        textView.caretLineColor = mode == .raw ? theme.lineHighlight : nil
+    }
+
+    /// Light and dark themes can set different font styles, so the text is restyled when
+    /// the appearance flips. Colors follow by themselves.
+    private func appearanceChanged(isDark: Bool) {
+        guard styler.theme.isDark != isDark else { return }
+        styler.theme.isDark = isDark
+        restyleAll()
+    }
+
     /// Preview or Raw. Switching restyles the same text in place: no reload, the undo
     /// history stays, and the caret's line stays where it was on screen.
     public var mode: EditorMode {
@@ -112,6 +147,7 @@ public final class EditorController: NSObject {
             guard newValue != styler.mode else { return }
             let anchor = caretScreenOffset()
             styler.mode = newValue
+            textView.caretLineColor = newValue == .raw ? styler.theme.lineHighlight : nil
             closeSpells()
             blockHandle.hide()
             restyleAll()
@@ -148,6 +184,7 @@ public final class EditorController: NSObject {
     public func load(_ text: String, flavor: DocumentFlavor) {
         isLoading = true
         lastText = text
+        textView.caretLineColor = mode == .raw ? styler.theme.lineHighlight : nil
         textView.string = text
         index = BlockIndex(text: text, flavor: flavor)
         revealed = caretBlock()
