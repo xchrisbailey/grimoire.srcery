@@ -8,6 +8,9 @@
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
     },
+    "An item named “%@” already exists here." : {
+      "comment" : "plain: error when a rename or move collides"
+    },
     "Banish" : {
       "comment" : "voice: delete confirmation button (#5)",
       "extractionState" : "manual"
@@ -15,6 +18,12 @@
     "Banish %@?" : {
       "comment" : "voice: delete confirmation title; %@ is the file name, e.g. potions.md (#5)",
       "extractionState" : "manual"
+    },
+    "Banish…" : {
+      "comment" : "voice: context menu item that moves a file or folder to the Trash"
+    },
+    "Bind" : {
+      "comment" : "voice: confirm button in the folder picker that binds folders to the project (#4)"
     },
     "Bind a folder" : {
       "comment" : "voice: add a folder to the project (#5)",
@@ -24,17 +33,53 @@
       "comment" : "voice: import a VS Code theme (#12)",
       "extractionState" : "manual"
     },
+    "Can't move “%@” into itself." : {
+      "comment" : "plain: error when a folder is dropped into itself"
+    },
+    "Cancel" : {
+      "comment" : "plain: cancel button"
+    },
+    "Choose “%@” to keep using it in this project." : {
+      "comment" : "plain: message in the re-grant folder picker; %@ is the folder name"
+    },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
       "extractionState" : "manual"
+    },
+    "Couldn't create “%@”." : {
+      "comment" : "plain: error when making a file fails"
     },
     "Couldn't save %@. The folder is read-only." : {
       "comment" : "plain: error when saving fails; %@ is the file name. Errors are always plain.",
       "extractionState" : "manual"
     },
+    "Create" : {
+      "comment" : "plain: confirm button for a new project"
+    },
+    "Delete Project" : {
+      "comment" : "plain: delete confirmation button for a project"
+    },
+    "Delete Project…" : {
+      "comment" : "plain: project switcher menu item"
+    },
+    "Delete “%@”?" : {
+      "comment" : "plain: delete confirmation title; %@ is the project name"
+    },
+    "Grant Access" : {
+      "comment" : "plain: confirm button in the re-grant folder picker"
+    },
+    "Grant Access…" : {
+      "comment" : "plain: button that reopens the folder picker for a folder that lost access"
+    },
+    "Grimoire" : {
+      "comment" : "plain: name of the first project, made on first launch"
+    },
     "Grimoire %@, bound at srcery.computer" : {
       "comment" : "voice: About box line; %@ is the version (#16)",
       "extractionState" : "manual"
+    },
+    "Grimoire can't open this folder anymore. It may have moved, or access needs to be granted again." : {
+      "comment" : "plain: shown in place of a bound folder's files when its bookmark no longer resolves"
     },
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
@@ -52,6 +97,27 @@
       "comment" : "plain: delete confirmation body; the literal part stays plain (#5)",
       "extractionState" : "manual"
     },
+    "Name" : {
+      "comment" : "plain: text field placeholder in name prompts"
+    },
+    "Needs access" : {
+      "comment" : "plain: tooltip on a bound folder that lost access"
+    },
+    "New Folder" : {
+      "comment" : "plain: context menu item that makes a folder"
+    },
+    "New Project" : {
+      "comment" : "plain: title of the new project prompt"
+    },
+    "New Project…" : {
+      "comment" : "plain: project switcher menu item"
+    },
+    "No Project" : {
+      "comment" : "plain: project switcher label when no project is selected"
+    },
+    "OK" : {
+      "comment" : "plain: dismiss button on error alerts"
+    },
     "Preview" : {
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
@@ -59,6 +125,24 @@
     "Raw" : {
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
+    },
+    "Rename" : {
+      "comment" : "plain: confirm button in rename prompts"
+    },
+    "Rename Project" : {
+      "comment" : "plain: title of the rename project prompt"
+    },
+    "Rename Project…" : {
+      "comment" : "plain: project switcher menu item"
+    },
+    "Rename “%@”" : {
+      "comment" : "plain: rename prompt title; %@ is the file or folder name"
+    },
+    "Rename…" : {
+      "comment" : "plain: context menu item for a file or folder"
+    },
+    "Reveal in Finder" : {
+      "comment" : "plain: context menu item"
     },
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
@@ -68,13 +152,25 @@
       "comment" : "voice: quick open (⌘P) prompt (#14)",
       "extractionState" : "manual"
     },
+    "That project no longer exists." : {
+      "comment" : "plain: error when acting on a deleted project"
+    },
+    "The project is removed from Grimoire. Its folders and files stay on disk." : {
+      "comment" : "plain: delete project confirmation message"
+    },
     "This grimoire is empty. Bind a folder to begin." : {
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
       "extractionState" : "manual"
     },
+    "Unbind Folder" : {
+      "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
+    },
     "esc to wake" : {
       "comment" : "voice: focus mode hint (#10)",
       "extractionState" : "manual"
+    },
+    "“%@” can't be used as a name." : {
+      "comment" : "plain: error when a rename uses an empty name, a slash or a leading dot"
     },
     "↵ cast" : {
       "comment" : "voice: slash menu footer hint for Return (#8)",
