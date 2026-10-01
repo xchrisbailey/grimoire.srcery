@@ -1,9 +1,12 @@
 import AppKit
+import GrimoireCore
 import GrimoireEditor
 import SwiftUI
 
 @main
 struct GrimoireMacApp: App {
+    @State private var library = ProjectLibrary()
+
     init() {
         BrandFont.register()
     }
@@ -11,6 +14,7 @@ struct GrimoireMacApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(library)
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
