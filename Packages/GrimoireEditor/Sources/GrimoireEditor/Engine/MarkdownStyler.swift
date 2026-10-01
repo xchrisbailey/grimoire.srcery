@@ -35,6 +35,17 @@ public final class MarkdownStyler {
     public var mode: EditorMode = .preview
     /// Shows markers quietly on every block instead of only the caret's.
     public var revealsAllMarkers = false
+    /// Colors code inside fenced blocks.
+    public var highlighter = CodeHighlighter.shared
+    /// Highlights code on the spot instead of in the background, for tests and export.
+    public var highlightsSynchronously = false
+    /// Called when code finishes highlighting in the background, so blocks holding it can
+    /// be restyled.
+    public var onCodeHighlighted: ((CodeKey) -> Void)?
+    var codeHighlights: [CodeKey: [CodeHighlight]] = [:]
+    var pendingCode: Set<CodeKey> = []
+    /// The last few highlighted versions of code in each language, to tide edits over.
+    var recentCode: [String: [(code: String, highlights: [CodeHighlight])]] = [:]
 
     public init(theme: EditorTheme = EditorTheme(), images: ImageCache = .shared) {
         self.theme = theme
@@ -129,9 +140,10 @@ public final class MarkdownStyler {
             styleListItem(item, range: range, in: storage, reveal: reveal)
         case .blockquote:
             styleQuote(range, in: storage, reveal: reveal)
-        case .codeBlock:
+        case .codeBlock(let language):
             let source = (storage.string as NSString).substring(with: range)
             styleCode(range, in: storage, fenced: MarkdownSyntax.isFenced(source))
+            highlightCode(range, language: language, in: storage, raw: false)
         case .thematicBreak:
             storage.addAttribute(.grimoireDecoration, value: LineDecoration(.rule), range: range)
             applyMarker(range, in: storage, reveal: reveal)

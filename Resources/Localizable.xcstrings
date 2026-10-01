@@ -144,6 +144,10 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Change Language" : {
+      "comment" : "plain: undo action name for changing a code block's language (#13)",
+      "extractionState" : "manual"
+    },
     "Check grammar with spelling" : {
       "comment" : "plain: setting, same as Edit › Spelling and Grammar"
     },
@@ -185,6 +189,14 @@
     },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
+      "extractionState" : "manual"
+    },
+    "Copied" : {
+      "comment" : "plain: accessibility label after a code block's code is copied (#13)",
+      "extractionState" : "manual"
+    },
+    "Copy" : {
+      "comment" : "plain: button on a code block that copies its code (#13)",
       "extractionState" : "manual"
     },
     "Copy a picture into assets" : {
@@ -389,7 +401,7 @@
       "comment" : "plain: conflict banner button that writes the editor's text over the file"
     },
     "Language" : {
-      "comment" : "plain: header of the language list after the Code block spell",
+      "comment" : "plain: header of the language list after the Code block spell, and the language button on a code block",
       "extractionState" : "manual"
     },
     "Large section heading" : {
@@ -523,6 +535,10 @@
     },
     "Plain paragraph" : {
       "comment" : "plain: subtitle of the Text spell",
+      "extractionState" : "manual"
+    },
+    "Plain text" : {
+      "comment" : "plain: a code block with no language (#13)",
       "extractionState" : "manual"
     },
     "Preview" : {

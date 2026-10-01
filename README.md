@@ -24,6 +24,8 @@ xcodegen generate
 open Grimoire.xcodeproj
 ```
 
+The first build fetches the tree-sitter grammars that color code blocks (#13), so it needs a network connection and takes a few minutes.
+
 Package tests run on their own:
 
 ```sh

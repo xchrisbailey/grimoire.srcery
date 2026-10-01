@@ -45,6 +45,7 @@ extension EditorController: NSTextViewDelegate {
 
     public func textDidChange(_ notification: Notification) {
         blockHandle.hide()
+        codeChrome.update()
         if dimsAroundCaret {
             litBlock = nil
             updateDimming()
@@ -105,6 +106,7 @@ extension EditorController: NSTextViewDelegate {
         if typewriterScrolling, NSApp.currentEvent?.type == .keyDown { centerCaret() }
         if dimsAroundCaret { updateDimming() }
         if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
+        codeChrome.update()
         guard mode == .preview else { return }
         let block = caretBlock()
         formatTableIfLeft(for: block)

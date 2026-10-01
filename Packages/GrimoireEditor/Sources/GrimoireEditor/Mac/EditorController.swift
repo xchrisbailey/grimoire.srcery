@@ -73,6 +73,7 @@ public final class EditorController: NSObject {
     /// Where recently cast spells are remembered.
     public var defaults = UserDefaults.standard
     private(set) lazy var blockHandle = BlockHandle(controller: self)
+    private(set) lazy var codeChrome = CodeBlockChrome(controller: self)
     var isApplying = false
     /// Each editor keeps its own undo history, so it belongs to the open file.
     let undoManager = UndoManager()
@@ -114,8 +115,12 @@ public final class EditorController: NSObject {
         textView.onMouseMoved = { [weak self] point in
             guard let self, self.mode == .preview else { return }
             self.blockHandle.mouseMoved(to: point)
+            self.codeChrome.pointerMoved(toBlock: self.blockHandle.block(at: point))
         }
-        textView.onMouseExited = { [weak self] in self?.blockHandle.hide() }
+        textView.onMouseExited = { [weak self] in
+            self?.blockHandle.hide()
+            self?.codeChrome.pointerMoved(toBlock: nil)
+        }
         textView.onAppearanceChange = { [weak self] isDark in self?.appearanceChanged(isDark: isDark) }
         wireTextChecking()
 
@@ -126,6 +131,7 @@ public final class EditorController: NSObject {
         scrollView.contentView.drawsBackground = false
 
         styler.onImageLoaded = { [weak self] url in self?.restyleImages(showing: url) }
+        styler.onCodeHighlighted = { [weak self] key in self?.restyleCode(key) }
     }
 
     public var text: String { textView.string }
@@ -142,6 +148,7 @@ public final class EditorController: NSObject {
             styler.cellWidths.removeAll()
             applyChrome(theme)
             blockHandle.applyTheme(theme)
+            codeChrome.applyTheme(theme)
             restyleAll()
             if dimsAroundCaret {
                 litBlock = nil
@@ -179,44 +186,10 @@ public final class EditorController: NSObject {
             textView.caretLineColor = newValue == .raw ? styler.theme.lineHighlight : nil
             closeSpells()
             blockHandle.hide()
+            codeChrome.update()
             restyleAll()
             if let anchor { restoreCaretScreenOffset(anchor) }
         }
-    }
-
-    /// Scrolls so the caret's line sits in the middle of the view, for typewriter scrolling.
-    func centerCaret() {
-        guard typewriterScrolling, let frame = caretLineFrame() else { return }
-        let clip = scrollView.contentView
-        textView.bottomOverscroll = clip.bounds.height / 2
-        let maxY = max(0, textView.frame.height - clip.bounds.height)
-        clip.scroll(to: CGPoint(x: clip.bounds.minX, y: min(max(0, frame.midY - clip.bounds.height / 2), maxY)))
-        scrollView.reflectScrolledClipView(clip)
-    }
-
-    /// How far the caret's line sits below the top of the visible area.
-    private func caretScreenOffset() -> CGFloat? {
-        guard let frame = caretLineFrame() else { return nil }
-        return frame.minY - scrollView.contentView.bounds.minY
-    }
-
-    private func restoreCaretScreenOffset(_ offset: CGFloat) {
-        guard let frame = caretLineFrame() else { return }
-        let clip = scrollView.contentView
-        let maxY = max(0, textView.frame.height - clip.bounds.height)
-        clip.scroll(to: CGPoint(x: clip.bounds.minX, y: min(max(0, frame.minY - offset), maxY)))
-        scrollView.reflectScrolledClipView(clip)
-    }
-
-    /// The caret line's layout fragment, in the text view's coordinates.
-    private func caretLineFrame() -> CGRect? {
-        guard let layoutManager = textView.textLayoutManager, let storage = textView.textContentStorage,
-            let location = storage.location(storage.documentRange.location, offsetBy: textView.selectedRange().location)
-        else { return nil }
-        layoutManager.ensureLayout(for: NSTextRange(location: location))
-        guard let fragment = layoutManager.textLayoutFragment(for: location) else { return nil }
-        return fragment.layoutFragmentFrame.offsetBy(
-            dx: textView.textContainerOrigin.x, dy: textView.textContainerOrigin.y)
     }
 
     /// Replaces the whole text (opening a file, or a reload from disk). Clears undo.
@@ -262,6 +235,19 @@ public final class EditorController: NSObject {
 
     func caretBlock() -> Int? {
         index.blockIndex(at: textView.selectedRange().location)
+    }
+
+    /// Restyles the code blocks holding `key`'s code, once it's highlighted.
+    private func restyleCode(_ key: CodeKey) {
+        let text = textView.string as NSString
+        for (position, block) in index.blocks.enumerated() {
+            guard case .codeBlock(let language?) = block.kind, language.lowercased() == key.language else { continue }
+            let range = NSRange(index.sourceRange(of: position))
+            guard NSMaxRange(range) <= text.length, let body = styler.codeBody(of: range, in: text),
+                text.substring(with: body) == key.code
+            else { continue }
+            restyle(position..<(position + 1))
+        }
     }
 
     private func restyleImages(showing url: URL) {

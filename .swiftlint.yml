@@ -11,4 +11,4 @@ line_length:
   warning: 120
   error: 160
 identifier_name:
-  excluded: [id, x, y, i, to, lf, cr]
+  excluded: [id, x, y, i, to, lf, cr, c, go]

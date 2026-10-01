@@ -64,9 +64,10 @@ extension MarkdownStyler {
             styleRawListItem(range, in: storage)
         case .blockquote:
             styleRawQuote(range, in: storage)
-        case .codeBlock:
+        case .codeBlock(let language):
             applyRaw(.codeBlock, to: range, in: storage)
             styleRawFences(range, in: storage)
+            highlightCode(range, language: language, in: storage, raw: true)
         case .thematicBreak, .html, .linkDefinitions:
             let token: MarkdownToken = kind == .html ? .html : kind == .thematicBreak ? .syntaxMarker : .linkDestination
             applyRaw(token, to: range, in: storage)
