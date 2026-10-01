@@ -1,0 +1,13 @@
+included:
+  - Apps
+  - Packages
+excluded:
+  - "**/.build"
+disabled_rules:
+  - trailing_comma        # swift-format owns trailing commas
+  - opening_brace         # and brace placement
+line_length:
+  warning: 120
+  error: 160
+identifier_name:
+  excluded: [id, x, y, i]

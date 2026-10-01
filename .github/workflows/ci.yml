@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Everything targets the macOS 27 / iOS 27 SDKs, so the runner needs Xcode 27.
+# Set the MACOS_RUNNER repository variable to use a self-hosted runner until
+# GitHub's hosted macOS images ship it.
+jobs:
+  packages:
+    name: Package tests
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [GrimoireCore, GrimoireEditor, GrimoireIntelligence]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "27"
+      - name: swift test
+        working-directory: Packages/${{ matrix.package }}
+        run: swift test
+
+  apps:
+    name: Build ${{ matrix.scheme }}
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scheme: GrimoireMac
+            destination: platform=macOS
+          - scheme: GrimoireiOS
+            destination: generic/platform=iOS Simulator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "27"
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: xcodebuild
+        run: >
+          xcodebuild build
+          -project Grimoire.xcodeproj
+          -scheme ${{ matrix.scheme }}
+          -destination '${{ matrix.destination }}'
+          CODE_SIGNING_ALLOWED=NO
+
+  lint:
+    name: Lint
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "27"
+      - name: swift-format
+        run: xcrun swift-format lint --strict --recursive Apps Packages
+      - name: SwiftLint
+        run: brew install swiftlint && swiftlint --strict

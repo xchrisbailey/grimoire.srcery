@@ -1,0 +1,9 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "A blank page. Type / to cast a block." : {
+      "comment" : "voice: empty editor placeholder"
+    }
+  },
+  "version" : "1.0"
+}
