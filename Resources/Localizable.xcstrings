@@ -114,6 +114,15 @@
     "Allow Private Cloud Compute for long pages" : {
       "comment" : "plain: setting, off by default"
     },
+    "Alt text for %@: “%@”" : {
+      "comment" : "plain: bar offering alt text for an image (#20)"
+    },
+    "Alt text for new images" : {
+      "comment" : "plain: setting (#20)"
+    },
+    "Always add" : {
+      "comment" : "plain: alt text setting option (#20)"
+    },
     "An item named “%@” already exists here." : {
       "comment" : "plain: error when a rename or move collides",
       "extractionState" : "manual"
@@ -133,6 +142,9 @@
     "Apple Intelligence is still downloading. Try again in a little while." : {
       "comment" : "plain: why AI features are unavailable (#18)",
       "extractionState" : "manual"
+    },
+    "Ask first" : {
+      "comment" : "plain: alt text setting option (#20)"
     },
     "At the top of its folder" : {
       "comment" : "plain: images go in an assets folder at the top of the bound folder"
@@ -382,6 +394,13 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "Describe Image" : {
+      "comment" : "plain: image context menu, incantation and undo name (#20)",
+      "extractionState" : "manual"
+    },
+    "Describing %@…" : {
+      "comment" : "plain: bar while alt text is written (#20)"
+    },
     "Dismiss" : {
       "comment" : "plain: button on the frontmatter suggestion bar (#19)"
     },
@@ -535,6 +554,13 @@
       "comment" : "plain: spell title",
       "extractionState" : "manual"
     },
+    "Image to Markdown" : {
+      "comment" : "plain: sheet title and undo name (#20)"
+    },
+    "Image to Markdown…" : {
+      "comment" : "plain: image context menu and incantation (#20)",
+      "extractionState" : "manual"
+    },
     "Imported from %@" : {
       "comment" : "plain: where an imported theme came from; %@ is the file name"
     },
@@ -558,6 +584,9 @@
     "Ink still wet" : {
       "comment" : "voice: tooltip on the unsaved dot (#5)",
       "extractionState" : "manual"
+    },
+    "Insert" : {
+      "comment" : "plain: button (#20)"
     },
     "Insert Column" : {
       "comment" : "plain: table editing command (#22)",
@@ -697,6 +726,9 @@
     "Needs access" : {
       "comment" : "plain: tooltip on a bound folder that lost access"
     },
+    "Never" : {
+      "comment" : "plain: alt text setting option (#20)"
+    },
     "New File" : {
       "comment" : "plain: File menu item"
     },
@@ -792,6 +824,9 @@
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
     },
+    "Paste Image as Markdown…" : {
+      "comment" : "plain: Edit menu and incantation (#20)"
+    },
     "Paste Link" : {
       "comment" : "plain: undo action name",
       "extractionState" : "manual"
@@ -859,6 +894,9 @@
     },
     "Raw Source" : {
       "comment" : "plain: View menu toggle between the styled editor and the plain markdown source"
+    },
+    "Reading the image…" : {
+      "comment" : "plain: sheet while an image is read (#20)"
     },
     "Ready, on this Mac" : {
       "comment" : "plain: AI features can run on device"
@@ -1139,6 +1177,10 @@
     },
     "Themes" : {
       "comment" : "plain: heading of the theme list in Settings"
+    },
+    "There's no text in this image to read." : {
+      "comment" : "plain: error (#20)",
+      "extractionState" : "manual"
     },
     "This extension doesn't contain any color themes." : {
       "comment" : "plain: error when a .vsix has no color themes (#12)",

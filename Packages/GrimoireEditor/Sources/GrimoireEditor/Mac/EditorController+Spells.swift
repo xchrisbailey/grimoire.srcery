@@ -213,6 +213,7 @@ extension EditorController {
         let markdown = imageLink(copy)
         let end = offset + markdown.utf16.count
         apply(TextEdit(range: offset..<offset, replacement: markdown, selection: end..<end))
+        imagesAdded([copy])
     }
 }
 #endif

@@ -9,6 +9,15 @@ public enum ImageLocation: String, Codable, CaseIterable, Sendable {
     case projectFolder
 }
 
+/// Whether pasted and inserted images get alt text written for them.
+public enum AltTextMode: String, Codable, CaseIterable, Sendable {
+    /// Fill it in without asking.
+    case always
+    /// Offer it, and fill it in only when the offer is taken.
+    case ask
+    case never
+}
+
 /// The user's settings, saved in `UserDefaults`. Views and windows read them from the
 /// shared instance, so a change applies everywhere at once.
 @MainActor @Observable
@@ -61,6 +70,8 @@ public final class Preferences {
     public var intelligenceEnabled: Bool { didSet { save(intelligenceEnabled, Key.intelligenceEnabled) } }
     /// Whether long pages may go to Private Cloud Compute. Off unless the user turns it on.
     public var allowsPrivateCloud: Bool { didSet { save(allowsPrivateCloud, Key.allowsPrivateCloud) } }
+    /// Alt text for images as they're pasted or inserted. Asks first by default.
+    public var altText: AltTextMode { didSet { save(altText.rawValue, Key.altText) } }
 
     /// Whether AI features are on for `project`.
     public func intelligenceEnabled(for project: Project?) -> Bool {
@@ -96,6 +107,7 @@ public final class Preferences {
         static let textReplacement = "settings.textReplacement"
         static let intelligenceEnabled = "settings.intelligenceEnabled"
         static let allowsPrivateCloud = "settings.allowsPrivateCloud"
+        static let altText = "settings.altText"
     }
 
     /// The system's own Keyboard settings, which the substitutions start from.
@@ -131,6 +143,7 @@ public final class Preferences {
         textReplacement = defaults.object(forKey: Key.textReplacement) as? Bool ?? system(SystemKey.replacement)
         intelligenceEnabled = defaults.object(forKey: Key.intelligenceEnabled) as? Bool ?? true
         allowsPrivateCloud = defaults.object(forKey: Key.allowsPrivateCloud) as? Bool ?? false
+        altText = defaults.string(forKey: Key.altText).flatMap(AltTextMode.init) ?? .ask
     }
 
     /// Puts the Editor settings back to their defaults.

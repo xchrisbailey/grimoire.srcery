@@ -242,6 +242,7 @@ public enum IntelligenceError: LocalizedError, Equatable {
     case refused
     case unsupportedLanguage
     case busy
+    case noText
     case failed(String)
 
     init(_ error: Error) {
@@ -275,6 +276,7 @@ public enum IntelligenceError: LocalizedError, Equatable {
         case .refused: String(localized: "The model declined to answer that.")
         case .unsupportedLanguage: String(localized: "The model doesn't support this language yet.")
         case .busy: String(localized: "The model is busy. Try again in a moment.")
+        case .noText: String(localized: "There's no text in this image to read.")
         case .failed(let message): message
         }
     }

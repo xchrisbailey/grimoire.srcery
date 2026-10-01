@@ -166,7 +166,7 @@ extension IntelligenceService {
 }
 
 /// The instructions each writing command gives the model.
-private enum Prompts {
+enum Prompts {
     static let continuing = """
         You continue a markdown document in the author's own voice, picking up exactly where the text \
         stops. If it stops mid-sentence, your first words finish that sentence. Then write a few more \
