@@ -1,82 +1,85 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "A blank page. Type / to cast a block.": {
-      "comment": "voice: empty editor placeholder (#5)",
-      "extractionState": "manual"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "A blank page. Type / to cast a block." : {
+      "comment" : "voice: empty editor placeholder (#5)",
+      "extractionState" : "manual"
     },
-    "Banish": {
-      "comment": "voice: delete confirmation button (#5)",
-      "extractionState": "manual"
+    "About Grimoire" : {
+      "comment" : "plain: macOS menu bar item that opens the About box"
     },
-    "Banish %@?": {
-      "comment": "voice: delete confirmation title; %@ is the file name, e.g. potions.md (#5)",
-      "extractionState": "manual"
+    "Banish" : {
+      "comment" : "voice: delete confirmation button (#5)",
+      "extractionState" : "manual"
     },
-    "Bind a folder": {
-      "comment": "voice: add a folder to the project (#5)",
-      "extractionState": "manual"
+    "Banish %@?" : {
+      "comment" : "voice: delete confirmation title; %@ is the file name, e.g. potions.md (#5)",
+      "extractionState" : "manual"
     },
-    "Borrow a look from VS Code": {
-      "comment": "voice: import a VS Code theme (#12)",
-      "extractionState": "manual"
+    "Bind a folder" : {
+      "comment" : "voice: add a folder to the project (#5)",
+      "extractionState" : "manual"
     },
-    "Conjure a page": {
-      "comment": "voice: new file action (#5)",
-      "extractionState": "manual"
+    "Borrow a look from VS Code" : {
+      "comment" : "voice: import a VS Code theme (#12)",
+      "extractionState" : "manual"
     },
-    "Couldn't save %@. The folder is read-only.": {
-      "comment": "plain: error when saving fails; %@ is the file name. Errors are always plain.",
-      "extractionState": "manual"
+    "Conjure a page" : {
+      "comment" : "voice: new file action (#5)",
+      "extractionState" : "manual"
     },
-    "Grimoire %@, bound at srcery.computer": {
-      "comment": "voice: About box line; %@ is the version (#16)",
-      "extractionState": "manual"
+    "Couldn't save %@. The folder is read-only." : {
+      "comment" : "plain: error when saving fails; %@ is the file name. Errors are always plain.",
+      "extractionState" : "manual"
     },
-    "Incantations": {
-      "comment": "voice: command palette (⌘K) title (#14)",
-      "extractionState": "manual"
+    "Grimoire %@, bound at srcery.computer" : {
+      "comment" : "voice: About box line; %@ is the version (#16)",
+      "extractionState" : "manual"
     },
-    "Ink dry": {
-      "comment": "voice: tooltip when the file is saved (#5)",
-      "extractionState": "manual"
+    "Incantations" : {
+      "comment" : "voice: command palette (⌘K) title (#14)",
+      "extractionState" : "manual"
     },
-    "Ink still wet": {
-      "comment": "voice: tooltip on the unsaved dot (#5)",
-      "extractionState": "manual"
+    "Ink dry" : {
+      "comment" : "voice: tooltip when the file is saved (#5)",
+      "extractionState" : "manual"
     },
-    "It goes to the Trash.": {
-      "comment": "plain: delete confirmation body; the literal part stays plain (#5)",
-      "extractionState": "manual"
+    "Ink still wet" : {
+      "comment" : "voice: tooltip on the unsaved dot (#5)",
+      "extractionState" : "manual"
     },
-    "Preview": {
-      "comment": "plain: title bar mode toggle (#10)",
-      "extractionState": "manual"
+    "It goes to the Trash." : {
+      "comment" : "plain: delete confirmation body; the literal part stays plain (#5)",
+      "extractionState" : "manual"
     },
-    "Raw": {
-      "comment": "plain: title bar mode toggle (#10)",
-      "extractionState": "manual"
+    "Preview" : {
+      "comment" : "plain: title bar mode toggle (#10)",
+      "extractionState" : "manual"
     },
-    "Spells": {
-      "comment": "voice: slash menu header (#8)",
-      "extractionState": "manual"
+    "Raw" : {
+      "comment" : "plain: title bar mode toggle (#10)",
+      "extractionState" : "manual"
     },
-    "Summon a page": {
-      "comment": "voice: quick open (⌘P) prompt (#14)",
-      "extractionState": "manual"
+    "Spells" : {
+      "comment" : "voice: slash menu header (#8)",
+      "extractionState" : "manual"
     },
-    "This grimoire is empty. Bind a folder to begin.": {
-      "comment": "voice: sidebar empty state for a project with no folders (#5)",
-      "extractionState": "manual"
+    "Summon a page" : {
+      "comment" : "voice: quick open (⌘P) prompt (#14)",
+      "extractionState" : "manual"
     },
-    "esc to wake": {
-      "comment": "voice: focus mode hint (#10)",
-      "extractionState": "manual"
+    "This grimoire is empty. Bind a folder to begin." : {
+      "comment" : "voice: sidebar empty state for a project with no folders (#5)",
+      "extractionState" : "manual"
     },
-    "↵ cast": {
-      "comment": "voice: slash menu footer hint for Return (#8)",
-      "extractionState": "manual"
+    "esc to wake" : {
+      "comment" : "voice: focus mode hint (#10)",
+      "extractionState" : "manual"
+    },
+    "↵ cast" : {
+      "comment" : "voice: slash menu footer hint for Return (#8)",
+      "extractionState" : "manual"
     }
   },
-  "version": "1.0"
+  "version" : "1.1"
 }
