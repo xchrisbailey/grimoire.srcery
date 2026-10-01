@@ -54,6 +54,11 @@ final class BlockHandle: NSObject {
         block = nil
     }
 
+    /// The block whose text is beside `point`, if any.
+    func block(at point: CGPoint) -> Int? {
+        blockFrame(at: point)?.block
+    }
+
     /// The block whose text is beside `point`, with its first line's frame in view
     /// coordinates. Blank lines between blocks have none.
     private func blockFrame(at point: CGPoint) -> (block: Int, firstLine: CGRect)? {
