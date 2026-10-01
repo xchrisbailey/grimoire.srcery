@@ -15,6 +15,9 @@ struct SettingsView: View {
             Tab("Appearance", systemImage: "paintpalette") {
                 AppearanceSettings()
             }
+            Tab("Spelling", systemImage: "textformat.abc.dottedunderline") {
+                SpellingSettings()
+            }
             Tab("Shortcuts", systemImage: "command") {
                 ShortcutSettings()
             }

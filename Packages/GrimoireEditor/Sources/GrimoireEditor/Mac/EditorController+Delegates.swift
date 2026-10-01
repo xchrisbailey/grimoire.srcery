@@ -38,7 +38,7 @@ extension EditorController: NSTextViewDelegate {
     }
 
     public func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
-        let items = tableMenuItems(at: charIndex)
+        let items = spellingMenuItems(at: charIndex) + tableMenuItems(at: charIndex)
         for (position, item) in items.enumerated() { menu.insertItem(item, at: position) }
         return menu
     }
@@ -77,6 +77,22 @@ extension EditorController: NSTextViewDelegate {
             return false
         }
         return true
+    }
+
+    public func textView(
+        _ view: NSTextView, willCheckTextIn range: NSRange, options: [NSSpellChecker.OptionKey: Any] = [:],
+        types checkingTypes: UnsafeMutablePointer<NSTextCheckingTypes>
+    ) -> [NSSpellChecker.OptionKey: Any] {
+        checkingOptions(options)
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    public func textView(
+        _ view: NSTextView, didCheckTextIn range: NSRange, types checkingTypes: NSTextCheckingTypes,
+        options: [NSSpellChecker.OptionKey: Any] = [:], results: [NSTextCheckingResult], orthography: NSOrthography,
+        wordCount: Int
+    ) -> [NSTextCheckingResult] {
+        filterCheckingResults(results, in: range)
     }
 
     public func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {

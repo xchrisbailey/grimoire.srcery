@@ -15,6 +15,9 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     public var expandedFolders: Set<FileReference>
     /// Settings this project keeps for itself.
     public var overrides: ProjectOverrides
+    /// Words the spell checker accepts in this project's files, besides the system
+    /// dictionary.
+    public var dictionary: [String]
 
     public init(
         id: UUID = UUID(),
@@ -24,7 +27,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         roots: [FolderRoot] = [],
         lastOpenedFile: FileReference? = nil,
         expandedFolders: Set<FileReference> = [],
-        overrides: ProjectOverrides = ProjectOverrides()
+        overrides: ProjectOverrides = ProjectOverrides(),
+        dictionary: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -34,10 +38,11 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         self.lastOpenedFile = lastOpenedFile
         self.expandedFolders = expandedFolders
         self.overrides = overrides
+        self.dictionary = dictionary
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, icon, color, roots, lastOpenedFile, expandedFolders, overrides
+        case id, name, icon, color, roots, lastOpenedFile, expandedFolders, overrides, dictionary
     }
 
     public init(from decoder: Decoder) throws {
@@ -51,6 +56,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         expandedFolders = try container.decode(Set<FileReference>.self, forKey: .expandedFolders)
         // Projects saved before overrides existed have none.
         overrides = try container.decodeIfPresent(ProjectOverrides.self, forKey: .overrides) ?? ProjectOverrides()
+        dictionary = try container.decodeIfPresent([String].self, forKey: .dictionary) ?? []
     }
 
     public func root(_ id: UUID) -> FolderRoot? {

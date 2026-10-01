@@ -15,6 +15,10 @@ public struct MarkdownEditor: NSViewRepresentable {
     var showsAllMarkers = false
     var typewriterScrolling = false
     var imageFolder: URL?
+    var textChecking = TextChecking.spellingOnly
+    var projectWords: [String] = []
+    var onLearnWord: ((String) -> Void)?
+    var onTextCheckingChange: ((TextChecking) -> Void)?
     var onEscape: (() -> Bool)?
     var onOpenFile: (URL) -> Void
 
@@ -61,6 +65,23 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func imageFolder(_ folder: URL?) -> MarkdownEditor {
         var copy = self
         copy.imageFolder = folder
+        return copy
+    }
+
+    /// Spelling, grammar and substitution checks, with a callback for when the Edit menu
+    /// changes one.
+    public func textChecking(_ checking: TextChecking, onChange: @escaping (TextChecking) -> Void) -> MarkdownEditor {
+        var copy = self
+        copy.textChecking = checking
+        copy.onTextCheckingChange = onChange
+        return copy
+    }
+
+    /// Words the spell checker accepts in this project, and what to do when one is learned.
+    public func projectDictionary(_ words: [String], onLearn: @escaping (String) -> Void) -> MarkdownEditor {
+        var copy = self
+        copy.projectWords = words
+        copy.onLearnWord = onLearn
         return copy
     }
 
@@ -118,6 +139,10 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.imageFolder = imageFolder
         controller.revealsAllMarkers = showsAllMarkers
         controller.typewriterScrolling = typewriterScrolling
+        controller.textChecking = textChecking
+        controller.projectWords = projectWords
+        controller.onLearnWord = onLearnWord
+        controller.onTextCheckingChange = onTextCheckingChange
         controller.onEscape = onEscape
         let binding = $text
         controller.onTextChange = { binding.wrappedValue = $0 }

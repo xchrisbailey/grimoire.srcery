@@ -17,6 +17,15 @@ public final class MarkdownTextView: NSTextView {
     /// Follows the mouse over the text, for the block handle.
     var onMouseMoved: ((CGPoint) -> Void)?
     var onMouseExited: (() -> Void)?
+    /// Whether a range is code, a link or other non-prose the spell checker must skip.
+    var isExcludedFromChecking: ((NSRange) -> Bool)?
+    /// Removes checker results that land outside prose before they're applied.
+    var filterCheckingResults: (([NSTextCheckingResult], NSRange) -> [NSTextCheckingResult])?
+    /// True while the text view applies spelling, grammar or substitution results.
+    var isApplyingCheckingResults = false
+    /// Called after a spelling, grammar or substitution toggle in the Edit menu.
+    var onTextCheckingToggle: (() -> Void)?
+
     /// Called when the view switches between light and dark, with whether it's dark now.
     var onAppearanceChange: ((Bool) -> Void)?
     /// Drawn behind the caret's line (Raw mode); nil draws nothing.
@@ -132,6 +141,66 @@ public final class MarkdownTextView: NSTextView {
         return CGRect(
             x: textContainerOrigin.x + padding - 6, y: textContainerOrigin.y + frame.minY,
             width: (textContainer?.size.width ?? bounds.width) - padding * 2 + 12, height: frame.height)
+    }
+
+    // MARK: - Checking
+
+    /// Every check's results pass through here before the text view underlines or
+    /// substitutes anything, typing included, so code never gets smart quotes or
+    /// corrections.
+    public override func handleTextCheckingResults(
+        _ results: [NSTextCheckingResult], forRange range: NSRange, types checkingTypes: NSTextCheckingTypes,
+        options: [NSSpellChecker.OptionKey: Any] = [:], orthography: NSOrthography, wordCount: Int
+    ) {
+        let kept = filterCheckingResults?(results, range) ?? results
+        isApplyingCheckingResults = true
+        defer { isApplyingCheckingResults = false }
+        super.handleTextCheckingResults(
+            kept, forRange: range, types: checkingTypes, options: options, orthography: orthography,
+            wordCount: wordCount)
+    }
+
+    /// A second guard: a substitution or correction the checker makes inside code is
+    /// refused even if it got past the filter.
+    public override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        if isApplyingCheckingResults, isExcludedFromChecking?(affectedCharRange) == true { return false }
+        return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
+    /// Never underlines code, links or frontmatter, whatever the checker reported.
+    public override func setSpellingState(_ value: Int, range charRange: NSRange) {
+        if value != 0, isExcludedFromChecking?(charRange) == true { return }
+        super.setSpellingState(value, range: charRange)
+    }
+
+    public override func toggleContinuousSpellChecking(_ sender: Any?) {
+        super.toggleContinuousSpellChecking(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleGrammarChecking(_ sender: Any?) {
+        super.toggleGrammarChecking(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticSpellingCorrection(_ sender: Any?) {
+        super.toggleAutomaticSpellingCorrection(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticQuoteSubstitution(_ sender: Any?) {
+        super.toggleAutomaticQuoteSubstitution(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticDashSubstitution(_ sender: Any?) {
+        super.toggleAutomaticDashSubstitution(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticTextReplacement(_ sender: Any?) {
+        super.toggleAutomaticTextReplacement(sender)
+        onTextCheckingToggle?()
     }
 
     // MARK: - Clicks
