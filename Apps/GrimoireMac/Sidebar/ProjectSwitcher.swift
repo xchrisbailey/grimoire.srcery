@@ -5,35 +5,29 @@ import SwiftUI
 /// The card at the top of the sidebar: the current project, with a menu to switch,
 /// create, rename or delete projects.
 struct ProjectSwitcher: View {
-    @Environment(ProjectLibrary.self) private var library
-    @Binding var selectedProjectID: Project.ID?
+    let window: WindowState
 
-    @State private var naming: Naming?
     @State private var name = ""
     @State private var confirmingDelete = false
 
-    private enum Naming {
-        case new
-        case rename(Project.ID)
-    }
-
-    private var current: Project? { selectedProjectID.flatMap(library.project) }
+    private var library: ProjectLibrary { window.library }
+    private var current: Project? { window.project }
 
     var body: some View {
         Menu {
             ForEach(library.projects) { project in
                 Toggle(
                     isOn: Binding(
-                        get: { project.id == selectedProjectID },
-                        set: { if $0 { selectedProjectID = project.id } })
+                        get: { project.id == window.projectID },
+                        set: { if $0 { window.selectProject(project.id) } })
                 ) {
                     Label(project.name, systemImage: project.icon)
                 }
             }
             if !library.projects.isEmpty { Divider() }
-            Button("New Project…") { startNaming(.new) }
+            Button("New Project…") { window.projectPrompt = .new }
             if let current {
-                Button("Rename Project…") { startNaming(.rename(current.id)) }
+                Button("Rename Project…") { window.projectPrompt = .rename(current.id) }
                 Button("Delete Project…", role: .destructive) { confirmingDelete = true }
             }
         } label: {
@@ -59,6 +53,9 @@ struct ProjectSwitcher: View {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
+        .onChange(of: window.projectPrompt, initial: true) {
+            if case .rename(let id) = window.projectPrompt { name = library.project(id)?.name ?? "" } else { name = "" }
+        }
         .alert(namingTitle, isPresented: isNaming) {
             TextField("Name", text: $name)
             Button("Cancel", role: .cancel) {}
@@ -75,37 +72,37 @@ struct ProjectSwitcher: View {
     }
 
     private var isNaming: Binding<Bool> {
-        Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })
+        Binding(get: { window.projectPrompt != nil }, set: { if !$0 { window.projectPrompt = nil } })
     }
 
     private var namingTitle: String {
-        if case .rename = naming { String(localized: "Rename Project") } else { String(localized: "New Project") }
+        if case .rename = window.projectPrompt {
+            String(localized: "Rename Project")
+        } else {
+            String(localized: "New Project")
+        }
     }
 
     private var namingConfirm: String {
-        if case .rename = naming { String(localized: "Rename") } else { String(localized: "Create") }
-    }
-
-    private func startNaming(_ mode: Naming) {
-        if case .rename(let id) = mode { name = library.project(id)?.name ?? "" } else { name = "" }
-        naming = mode
+        if case .rename = window.projectPrompt { String(localized: "Rename") } else { String(localized: "Create") }
     }
 
     private func finishNaming() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let naming else { return }
-        switch naming {
+        guard !trimmed.isEmpty, let prompt = window.projectPrompt else { return }
+        switch prompt {
         case .new:
-            selectedProjectID = library.createProject(named: trimmed).id
+            window.selectProject(library.createProject(named: trimmed).id)
         case .rename(let id):
             library.update(id) { $0.name = trimmed }
         }
-        self.naming = nil
+        window.projectPrompt = nil
     }
 
     private func deleteCurrent() {
         guard let current else { return }
+        window.selectProject(nil)
         library.deleteProject(current.id)
-        selectedProjectID = library.projects.first?.id
+        window.selectProject(library.projects.first?.id)
     }
 }

@@ -9,12 +9,25 @@ final class FileActions {
     var banishing: URL?
     var error: Error?
 
-    func createDocument(in folder: URL, workspace: Workspace) {
+    /// Called after a page is conjured, so the window can open it.
+    @ObservationIgnored var didCreate: ((URL) -> Void)?
+    /// Called after an item is renamed or moved, with its old and new URLs.
+    @ObservationIgnored var didMove: ((URL, URL) -> Void)?
+    /// Called after an item goes to the Trash.
+    @ObservationIgnored var didTrash: ((URL) -> Void)?
+
+    /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
+    @discardableResult
+    func createDocument(in folder: URL, workspace: Workspace, rename: Bool = true) -> URL? {
+        var created: URL?
         perform(workspace, near: folder) {
-            let url = try FileOperations.createDocument(in: folder)
-            workspace.setExpanded(folder, true)
-            startRename(url)
+            created = try FileOperations.createDocument(in: folder)
         }
+        guard let created else { return nil }
+        workspace.setExpanded(folder, true)
+        didCreate?(created)
+        if rename { startRename(created) }
+        return created
     }
 
     func createFolder(in folder: URL, workspace: Workspace) {
@@ -31,20 +44,20 @@ final class FileActions {
         renaming = url
     }
 
-    /// Renames the item being renamed, returning its new URL.
-    @discardableResult
-    func finishRename(workspace: Workspace) -> (from: URL, to: URL)? {
-        guard let url = renaming else { return nil }
+    func finishRename(workspace: Workspace) {
+        guard let url = renaming else { return }
         renaming = nil
-        var result: (URL, URL)?
         perform(workspace, near: url) {
-            result = (url, try FileOperations.rename(url, to: newName))
+            let renamed = try FileOperations.rename(url, to: newName)
+            if renamed != url { didMove?(url, renamed) }
         }
-        return result
     }
 
     func banish(_ url: URL, workspace: Workspace) {
-        perform(workspace, near: url) { try FileOperations.moveToTrash(url) }
+        perform(workspace, near: url) {
+            try FileOperations.moveToTrash(url)
+            didTrash?(url)
+        }
     }
 
     /// Moves dropped items into `folder`. Only items inside this workspace are accepted.
@@ -52,7 +65,10 @@ final class FileActions {
         let inside = urls.filter { workspace.reference(for: $0) != nil }
         guard !inside.isEmpty else { return false }
         for url in inside {
-            perform(workspace, near: url) { try FileOperations.move(url, into: folder) }
+            perform(workspace, near: url) {
+                let moved = try FileOperations.move(url, into: folder)
+                if moved != url { didMove?(url, moved) }
+            }
         }
         workspace.refresh(of: folder)
         return true
@@ -80,16 +96,15 @@ extension Workspace {
 }
 
 extension View {
-    /// The rename prompt, banish confirmation and error alert for a sidebar's file actions.
-    func fileActionPrompts(_ actions: FileActions, workspace: Workspace?, selectedFile: Binding<URL?>) -> some View {
-        modifier(FileActionPrompts(actions: actions, workspace: workspace, selectedFile: selectedFile))
+    /// The rename prompt, banish confirmation and error alert for a window's file actions.
+    func fileActionPrompts(_ actions: FileActions, workspace: Workspace?) -> some View {
+        modifier(FileActionPrompts(actions: actions, workspace: workspace))
     }
 }
 
 private struct FileActionPrompts: ViewModifier {
     @Bindable var actions: FileActions
     let workspace: Workspace?
-    @Binding var selectedFile: URL?
 
     func body(content: Content) -> some View {
         content
@@ -100,8 +115,8 @@ private struct FileActionPrompts: ViewModifier {
                 TextField("Name", text: $actions.newName)
                 Button("Cancel", role: .cancel) {}
                 Button("Rename") {
-                    guard let workspace, let moved = actions.finishRename(workspace: workspace) else { return }
-                    if selectedFile == moved.from { selectedFile = moved.to }
+                    guard let workspace else { return }
+                    actions.finishRename(workspace: workspace)
                 }
             }
             .confirmationDialog(
@@ -111,7 +126,6 @@ private struct FileActionPrompts: ViewModifier {
                 Button("Banish", role: .destructive) {
                     guard let workspace, let url = actions.banishing else { return }
                     actions.banish(url, workspace: workspace)
-                    if let selected = selectedFile, selected.path().hasPrefix(url.path()) { selectedFile = nil }
                 }
             } message: {
                 Text("It goes to the Trash.")
