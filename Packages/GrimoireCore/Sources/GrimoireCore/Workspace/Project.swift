@@ -13,6 +13,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     public var lastOpenedFile: FileReference?
     /// Folders the user has expanded in the tree.
     public var expandedFolders: Set<FileReference>
+    /// Settings this project keeps for itself.
+    public var overrides: ProjectOverrides
 
     public init(
         id: UUID = UUID(),
@@ -21,7 +23,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         color: ProjectColor = .magic,
         roots: [FolderRoot] = [],
         lastOpenedFile: FileReference? = nil,
-        expandedFolders: Set<FileReference> = []
+        expandedFolders: Set<FileReference> = [],
+        overrides: ProjectOverrides = ProjectOverrides()
     ) {
         self.id = id
         self.name = name
@@ -30,6 +33,24 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         self.roots = roots
         self.lastOpenedFile = lastOpenedFile
         self.expandedFolders = expandedFolders
+        self.overrides = overrides
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, icon, color, roots, lastOpenedFile, expandedFolders, overrides
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        icon = try container.decode(String.self, forKey: .icon)
+        color = try container.decode(ProjectColor.self, forKey: .color)
+        roots = try container.decode([FolderRoot].self, forKey: .roots)
+        lastOpenedFile = try container.decodeIfPresent(FileReference.self, forKey: .lastOpenedFile)
+        expandedFolders = try container.decode(Set<FileReference>.self, forKey: .expandedFolders)
+        // Projects saved before overrides existed have none.
+        overrides = try container.decodeIfPresent(ProjectOverrides.self, forKey: .overrides) ?? ProjectOverrides()
     }
 
     public func root(_ id: UUID) -> FolderRoot? {

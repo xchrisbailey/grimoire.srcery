@@ -44,16 +44,20 @@ struct EditorArea: View {
 private struct DocumentEditor: View {
     @Bindable var document: OpenDocument
     let window: WindowState
+    private var preferences: Preferences { .shared }
 
     var body: some View {
         MarkdownEditor(
             text: $document.text, fileURL: document.url, mode: window.editorMode,
-            theme: ThemeLibrary.shared.editorTheme,
+            theme: ThemeLibrary.shared.editorTheme(preferences),
             placeholder: String(localized: "A blank page. Type / to cast a block.")
         ) { url in
             window.openLinkedFile(url)
         }
-        .dimmingAroundCaret(window.focusMode && window.editorMode == .preview)
+        .dimmingAroundCaret(window.focusMode && window.editorMode == .preview && preferences.focusDimming)
+        .showingAllMarkers(preferences.showsMarkers)
+        .typewriterScrolling(preferences.typewriterScrolling)
+        .imageFolder(window.imageFolder(for: document.url))
         .onEscape {
             guard window.focusMode else { return false }
             window.setFocusMode(false)

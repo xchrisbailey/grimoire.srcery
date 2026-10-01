@@ -54,6 +54,13 @@ struct SidebarView: View {
             .buttonStyle(.plain)
             .foregroundStyle(Color.brand(\.overlay1))
             Spacer()
+            SettingsLink {
+                Image(systemName: "gearshape")
+                    .accessibilityLabel(Text("Settings"))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.brand(\.overlay1))
+            .help(Text("Settings"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

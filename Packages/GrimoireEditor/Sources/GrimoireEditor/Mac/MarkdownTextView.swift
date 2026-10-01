@@ -46,6 +46,13 @@ public final class MarkdownTextView: NSTextView {
     var verticalInset: CGFloat = 30 {
         didSet { updateInsets() }
     }
+    /// Extra room below the text, so typewriter scrolling can center the last line.
+    var bottomOverscroll: CGFloat = 0 {
+        didSet {
+            guard bottomOverscroll != oldValue else { return }
+            setFrameSize(NSSize(width: frame.width, height: frame.height - oldValue))
+        }
+    }
 
     /// Drawn in the text's place while the view is empty.
     var placeholder: String? {
@@ -88,8 +95,17 @@ public final class MarkdownTextView: NSTextView {
     }
 
     public override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
+        var size = newSize
+        if bottomOverscroll > 0 { size.height = contentHeight(proposed: newSize.height) + bottomOverscroll }
+        super.setFrameSize(size)
         updateInsets()
+    }
+
+    /// The height the text needs, without the overscroll.
+    private func contentHeight(proposed: CGFloat) -> CGFloat {
+        guard let layoutManager = textLayoutManager else { return proposed }
+        let used = layoutManager.usageBoundsForTextContainer.height
+        return max(used + textContainerInset.height * 2, enclosingScrollView?.contentSize.height ?? 0)
     }
 
     private func updateInsets() {

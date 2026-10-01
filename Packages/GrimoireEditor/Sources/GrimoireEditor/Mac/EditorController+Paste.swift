@@ -43,11 +43,10 @@ extension EditorController {
             actionName: actionName)
     }
 
-    /// Saves pasted image data, or image files copied in Finder, into `assets/` beside the
-    /// document, and returns the markdown that shows them.
+    /// Saves pasted image data, or image files copied in Finder, into the assets folder,
+    /// and returns the markdown that shows them.
     private func imageMarkdown(from pasteboard: NSPasteboard) -> String? {
-        guard let folder = fileURL?.deletingLastPathComponent() else { return nil }
-        let assets = folder.appending(path: "assets", directoryHint: .isDirectory)
+        guard let assets = assetsFolder else { return nil }
         var saved: [URL] = []
         let files =
             (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
@@ -59,14 +58,30 @@ extension EditorController {
             if let url = try? write(data, named: name, assets: assets) { saved.append(url) }
         }
         guard !saved.isEmpty else { return nil }
-        return saved.map { url in
-            let name = url.deletingPathExtension().lastPathComponent
-            let path =
-                "assets/"
-                + (url.lastPathComponent.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-                    ?? url.lastPathComponent)
-            return "![\(name)](\(path))"
-        }.joined(separator: "\n\n")
+        return saved.map(imageLink).joined(separator: "\n\n")
+    }
+
+    /// Where images go: `imageFolder` when set, else `assets/` next to the file.
+    var assetsFolder: URL? {
+        imageFolder ?? fileURL?.deletingLastPathComponent().appending(path: "assets", directoryHint: .isDirectory)
+    }
+
+    /// `![name](path)` for an image saved at `url`, with the path relative to the file.
+    func imageLink(_ url: URL) -> String {
+        let name = url.deletingPathExtension().lastPathComponent
+        guard let folder = fileURL?.deletingLastPathComponent() else { return "![\(name)](\(url.lastPathComponent))" }
+        return "![\(name)](\(Self.relativePath(from: folder, to: url)))"
+    }
+
+    /// A percent-encoded path from `folder` to `file`, climbing with `..` where needed.
+    static func relativePath(from folder: URL, to file: URL) -> String {
+        let base = folder.standardizedFileURL.resolvingSymlinksInPath().pathComponents
+        let target = file.standardizedFileURL.resolvingSymlinksInPath().pathComponents
+        var shared = 0
+        while shared < min(base.count, target.count), base[shared] == target[shared] { shared += 1 }
+        let parts = Array(repeating: "..", count: base.count - shared) + target[shared...]
+        return parts.map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? $0 }
+            .joined(separator: "/")
     }
 
     private func pngData(from pasteboard: NSPasteboard) -> Data? {

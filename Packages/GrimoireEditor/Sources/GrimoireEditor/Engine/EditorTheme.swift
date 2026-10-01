@@ -48,6 +48,10 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     /// Raw mode's line height, as a multiple of Geist Mono's natural height (1.9 in the
     /// brand book, measured in font sizes).
     public var rawLineHeightMultiple: CGFloat = 1.45
+    /// The prose font's family; nil for Geist.
+    public var proseFamily: String?
+    /// The code and Raw font's family; nil for Geist Mono.
+    public var codeFamily: String?
 
     public init(light: Theme = .latte, dark: Theme = .mocha) {
         self.light = light
@@ -141,8 +145,16 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     public func font(size: CGFloat? = nil, weight: CGFloat = 400, italic: Bool = false, monospaced: Bool = false)
         -> PlatformFont
     {
-        BrandFont.ctFont(monospaced: monospaced, size: size ?? bodySize, weight: weight, italic: italic)
-            as PlatformFont
+        BrandFont.ctFont(
+            monospaced: monospaced, size: size ?? bodySize, weight: weight, italic: italic,
+            family: monospaced ? codeFamily : proseFamily) as PlatformFont
+    }
+
+    /// Sets the prose line height from a CSS-style multiple of the font size (the brand's
+    /// 1.7). TextKit measures from the font's own line height, which for Geist is about
+    /// 1.3 times its size.
+    public mutating func setLineHeight(_ multiple: CGFloat) {
+        lineHeightMultiple = multiple * 1.3 / 1.7
     }
 
     public var body: PlatformFont { font() }
@@ -150,17 +162,19 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     public var inlineCode: PlatformFont { font(size: bodySize * 0.9, monospaced: true) }
     public var metadata: PlatformFont { font(size: BrandFont.Style.metadata.size, monospaced: true) }
 
+    /// Headings scale with the body size: 34, 20 and 17 points beside the default 15.5.
     public func heading(_ level: Int) -> PlatformFont {
         let style = token(.heading(level), raw: false)
         let italic = style.italic == true
+        let scale = bodySize / BrandFont.Style.body.size
         switch level {
         case 1:
             let weight = style.bold == false ? 500 : BrandFont.Style.title.weight
-            return font(size: BrandFont.Style.title.size, weight: weight, italic: italic)
+            return font(size: (BrandFont.Style.title.size * scale).rounded(), weight: weight, italic: italic)
         case 2:
             let weight = style.bold == false ? 500 : BrandFont.Style.heading.weight
-            return font(size: BrandFont.Style.heading.size, weight: weight, italic: italic)
-        case 3: return font(size: 17, weight: style.bold == false ? 500 : 650, italic: italic)
+            return font(size: (BrandFont.Style.heading.size * scale).rounded(), weight: weight, italic: italic)
+        case 3: return font(size: (17 * scale).rounded(), weight: style.bold == false ? 500 : 650, italic: italic)
         default: return font(weight: style.bold == false ? 500 : 650, italic: italic)
         }
     }
