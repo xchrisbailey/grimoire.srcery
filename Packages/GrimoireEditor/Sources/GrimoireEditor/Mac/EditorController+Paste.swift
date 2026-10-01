@@ -71,7 +71,7 @@ extension EditorController {
         return image.representation(using: .png, properties: [:])
     }
 
-    private func copyIntoAssets(_ file: URL, assets: URL) throws -> URL {
+    func copyIntoAssets(_ file: URL, assets: URL) throws -> URL {
         try FileManager.default.createDirectory(at: assets, withIntermediateDirectories: true)
         let destination = FileOperations.uniqueURL(
             in: assets, baseName: file.deletingPathExtension().lastPathComponent, extension: file.pathExtension)

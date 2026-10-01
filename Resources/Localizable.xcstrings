@@ -8,6 +8,18 @@
       "comment" : "voice: empty editor placeholder (#5)",
       "extractionState" : "manual"
     },
+    "A horizontal rule" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "A list in order" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "A note that stands out" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "A simple list" : {
+      "comment" : "plain: spell subtitle"
+    },
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
     },
@@ -39,14 +51,26 @@
       "comment" : "voice: import a VS Code theme (#12)",
       "extractionState" : "manual"
     },
+    "Bullet list" : {
+      "comment" : "plain: spell title"
+    },
     "Bulleted List" : {
       "comment" : "plain: block kind in the Turn Into menu"
+    },
+    "Callout" : {
+      "comment" : "plain: spell title"
     },
     "Can't move “%@” into itself." : {
       "comment" : "plain: error when a folder is dropped into itself"
     },
     "Cancel" : {
       "comment" : "plain: cancel button"
+    },
+    "Cast %@" : {
+      "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2"
+    },
+    "Checkboxes" : {
+      "comment" : "plain: spell subtitle"
     },
     "Choose a page in the sidebar, or conjure a new one." : {
       "comment" : "voice: editor empty state when no file is selected (#5)"
@@ -60,12 +84,18 @@
     "Code Block" : {
       "comment" : "plain: block kind in the Turn Into menu"
     },
+    "Code block" : {
+      "comment" : "plain: spell title"
+    },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
       "extractionState" : "manual"
     },
     "Copy Link" : {
       "comment" : "plain: block menu item that copies a markdown link to the block"
+    },
+    "Copy a picture into assets" : {
+      "comment" : "plain: spell subtitle"
     },
     "Couldn't create “%@”." : {
       "comment" : "plain: error when making a file fails"
@@ -83,6 +113,9 @@
     "Create" : {
       "comment" : "plain: confirm button for a new project"
     },
+    "Date" : {
+      "comment" : "plain: spell title"
+    },
     "Delete" : {
       "comment" : "plain: block menu item that removes the block"
     },
@@ -98,6 +131,9 @@
     "Delete “%@”?" : {
       "comment" : "plain: delete confirmation title; %@ is the project name"
     },
+    "Divider" : {
+      "comment" : "plain: spell title"
+    },
     "Duplicate" : {
       "comment" : "plain: block menu item"
     },
@@ -109,6 +145,12 @@
     },
     "Exit Focus Mode" : {
       "comment" : "plain: View menu item"
+    },
+    "Fenced code with a language" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "Frontmatter" : {
+      "comment" : "plain: spell title"
     },
     "Grant Access" : {
       "comment" : "plain: confirm button in the re-grant folder picker"
@@ -135,6 +177,9 @@
     "Heading 3" : {
       "comment" : "plain: block kind in the Turn Into menu"
     },
+    "Image" : {
+      "comment" : "plain: spell title"
+    },
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
       "extractionState" : "manual"
@@ -154,8 +199,20 @@
     "Keep Mine" : {
       "comment" : "plain: conflict banner button that writes the editor's text over the file"
     },
+    "Language" : {
+      "comment" : "plain: header of the language list after the Code block spell"
+    },
+    "Large section heading" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "Link" : {
+      "comment" : "plain: spell title"
+    },
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
+    },
+    "Medium section heading" : {
+      "comment" : "plain: spell subtitle"
     },
     "Move Block" : {
       "comment" : "plain: undo action name"
@@ -184,8 +241,14 @@
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
     },
+    "No spells match." : {
+      "comment" : "voice: slash menu when the filter matches nothing"
+    },
     "Numbered List" : {
       "comment" : "plain: block kind in the Turn Into menu"
+    },
+    "Numbered list" : {
+      "comment" : "plain: spell title"
     },
     "OK" : {
       "comment" : "plain: dismiss button on error alerts"
@@ -198,6 +261,9 @@
     },
     "Paste Link" : {
       "comment" : "plain: undo action name"
+    },
+    "Plain paragraph" : {
+      "comment" : "plain: subtitle of the Text spell"
     },
     "Preview" : {
       "comment" : "plain: title bar mode toggle (#10)",
@@ -228,8 +294,17 @@
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
     },
+    "Rows and columns" : {
+      "comment" : "plain: spell subtitle"
+    },
     "Save" : {
       "comment" : "plain: File menu item"
+    },
+    "Set a passage apart" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "Small section heading" : {
+      "comment" : "plain: spell subtitle"
     },
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
@@ -239,8 +314,14 @@
       "comment" : "voice: quick open (⌘P) prompt (#14)",
       "extractionState" : "manual"
     },
+    "Table" : {
+      "comment" : "plain: spell title"
+    },
     "Text" : {
       "comment" : "plain: block kind in the Turn Into menu (a paragraph)"
+    },
+    "Text that goes somewhere" : {
+      "comment" : "plain: spell subtitle"
     },
     "That project no longer exists." : {
       "comment" : "plain: error when acting on a deleted project"
@@ -255,6 +336,9 @@
     "To-do" : {
       "comment" : "plain: block kind in the Turn Into menu (a task list item)"
     },
+    "Today's date" : {
+      "comment" : "plain: spell subtitle"
+    },
     "Toggle Task" : {
       "comment" : "plain: Edit > Undo action name after checking or unchecking a task"
     },
@@ -267,12 +351,21 @@
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
     },
+    "YAML properties" : {
+      "comment" : "plain: spell subtitle"
+    },
+    "esc close" : {
+      "comment" : "plain: slash menu footer hint"
+    },
     "esc to wake" : {
       "comment" : "voice: focus mode hint (#10)",
       "extractionState" : "manual"
     },
     "“%@” can't be used as a name." : {
       "comment" : "plain: error when a rename uses an empty name, a slash or a leading dot"
+    },
+    "↑↓ choose" : {
+      "comment" : "voice: slash menu footer hint (#8)"
     },
     "↵ cast" : {
       "comment" : "voice: slash menu footer hint for Return (#8)",

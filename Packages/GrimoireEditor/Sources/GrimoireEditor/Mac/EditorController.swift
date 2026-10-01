@@ -24,6 +24,13 @@ public final class EditorController: NSObject {
     private var revealed: Int?
     private var isLoading = false
     var pendingShortcut = false
+    /// Where a `/` was just typed, to check whether it opens the Spells menu.
+    var pendingSlash: Int?
+    /// The open Spells menu, if any.
+    var spellSession: SpellSession?
+    private(set) lazy var spellsMenu = SpellsMenu()
+    /// Where recently cast spells are remembered.
+    public var defaults = UserDefaults.standard
     private(set) lazy var blockHandle = BlockHandle(controller: self)
     var isApplying = false
     /// Each editor keeps its own undo history, so it belongs to the open file.
@@ -184,6 +191,12 @@ extension EditorController: NSTextViewDelegate {
             pendingShortcut = false
             if let edit = editing.shortcut() { apply(edit) }
         }
+        if spellSession != nil {
+            updateSpells()
+        } else if let slash = pendingSlash {
+            pendingSlash = nil
+            openSpells(at: slash)
+        }
         let text = textView.string
         lastText = text
         onTextChange?(text)
@@ -194,6 +207,12 @@ extension EditorController: NSTextViewDelegate {
     ) -> Bool {
         // Shortcuts expand right after the character that completes them.
         pendingShortcut = !isApplying && (text == " " || text == "`" || text == "~")
+        pendingSlash = !isApplying && text == "/" ? range.location : nil
+        if text == "/", spellSession?.isFreshSpells(at: range.location) == true {
+            // "//" closes the menu and leaves one literal slash.
+            closeSpells()
+            return false
+        }
         return true
     }
 
@@ -203,6 +222,7 @@ extension EditorController: NSTextViewDelegate {
 
     public func textViewDidChangeSelection(_ notification: Notification) {
         guard !isLoading else { return }
+        if spellSession != nil, !isApplying { closeSpellsIfCaretLeft() }
         let block = caretBlock()
         guard block != revealed else { return }
         let previous = revealed
