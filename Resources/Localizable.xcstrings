@@ -1,6 +1,10 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "“%@” can't be used as a name." : {
+      "comment" : "plain: error when a rename uses an empty name, a slash or a leading dot",
+      "extractionState" : "manual"
+    },
     "%@ changed on disk while you were editing." : {
       "comment" : "plain: conflict banner; %@ is the file name"
     },
@@ -10,21 +14,33 @@
     "%lld words" : {
       "comment" : "plain: focus mode word count"
     },
+    "↑↓ choose" : {
+      "comment" : "voice: slash menu footer hint (#8)",
+      "extractionState" : "manual"
+    },
+    "↵ cast" : {
+      "comment" : "voice: slash menu footer hint for Return (#8)",
+      "extractionState" : "manual"
+    },
     "A blank page. Type / to cast a block." : {
       "comment" : "voice: empty editor placeholder (#5)",
       "extractionState" : "manual"
     },
     "A horizontal rule" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "A list in order" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "A note that stands out" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "A simple list" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
@@ -33,7 +49,8 @@
       "comment" : "plain: File menu item that binds folders to the window's project"
     },
     "An item named “%@” already exists here." : {
-      "comment" : "plain: error when a rename or move collides"
+      "comment" : "plain: error when a rename or move collides",
+      "extractionState" : "manual"
     },
     "Banish" : {
       "comment" : "voice: delete confirmation button (#5)",
@@ -58,53 +75,64 @@
       "extractionState" : "manual"
     },
     "Bullet list" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Bulleted List" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Callout" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Can't move “%@” into itself." : {
-      "comment" : "plain: error when a folder is dropped into itself"
+      "comment" : "plain: error when a folder is dropped into itself",
+      "extractionState" : "manual"
     },
     "Cancel" : {
       "comment" : "plain: cancel button"
     },
     "Cast %@" : {
-      "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2"
+      "comment" : "voice: undo action name after casting a spell; %@ is the spell, e.g. Heading 2",
+      "extractionState" : "manual"
     },
     "Checkboxes" : {
-      "comment" : "plain: spell subtitle"
-    },
-    "Choose a page in the sidebar, or conjure a new one." : {
-      "comment" : "voice: editor empty state when no file is selected (#5)"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Choose “%@” to keep using it in this project." : {
       "comment" : "plain: message in the re-grant folder picker; %@ is the folder name"
     },
+    "Choose a page in the sidebar, or conjure a new one." : {
+      "comment" : "voice: editor empty state when no file is selected (#5)"
+    },
     "Close" : {
       "comment" : "plain: File menu item"
     },
-    "Code Block" : {
-      "comment" : "plain: block kind in the Turn Into menu"
-    },
     "Code block" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
+    },
+    "Code Block" : {
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
       "extractionState" : "manual"
     },
-    "Copy Link" : {
-      "comment" : "plain: block menu item that copies a markdown link to the block"
-    },
     "Copy a picture into assets" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
+    },
+    "Copy Link" : {
+      "comment" : "plain: block menu item that copies a markdown link to the block",
+      "extractionState" : "manual"
     },
     "Couldn't create “%@”." : {
-      "comment" : "plain: error when making a file fails"
+      "comment" : "plain: error when making a file fails",
+      "extractionState" : "manual"
     },
     "Couldn't open %@. %@" : {
       "comment" : "plain: error when the selected file can't be read; first %@ is the file name, second is the system's reason"
@@ -120,13 +148,19 @@
       "comment" : "plain: confirm button for a new project"
     },
     "Date" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Delete" : {
-      "comment" : "plain: block menu item that removes the block"
+      "comment" : "plain: block menu item that removes the block",
+      "extractionState" : "manual"
+    },
+    "Delete “%@”?" : {
+      "comment" : "plain: delete confirmation title; %@ is the project name"
     },
     "Delete Block" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
     },
     "Delete Project" : {
       "comment" : "plain: delete confirmation button for a project"
@@ -134,26 +168,36 @@
     "Delete Project…" : {
       "comment" : "plain: project switcher menu item"
     },
-    "Delete “%@”?" : {
-      "comment" : "plain: delete confirmation title; %@ is the project name"
-    },
     "Divider" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Duplicate" : {
-      "comment" : "plain: block menu item"
+      "comment" : "plain: block menu item",
+      "extractionState" : "manual"
     },
     "Duplicate Block" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
+    },
+    "esc close" : {
+      "comment" : "plain: slash menu footer hint",
+      "extractionState" : "manual"
+    },
+    "esc to wake" : {
+      "comment" : "voice: focus mode hint (#10)",
+      "extractionState" : "manual"
     },
     "Fenced code with a language" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Focus Mode" : {
       "comment" : "plain: View menu toggle"
     },
     "Frontmatter" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Grant Access" : {
       "comment" : "plain: confirm button in the re-grant folder picker"
@@ -172,16 +216,20 @@
       "comment" : "plain: shown in place of a bound folder's files when its bookmark no longer resolves"
     },
     "Heading 1" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Heading 2" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Heading 3" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Image" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Incantations" : {
       "comment" : "voice: command palette (⌘K) title (#14)",
@@ -203,25 +251,30 @@
       "comment" : "plain: conflict banner button that writes the editor's text over the file"
     },
     "Language" : {
-      "comment" : "plain: header of the language list after the Code block spell"
+      "comment" : "plain: header of the language list after the Code block spell",
+      "extractionState" : "manual"
     },
     "Large section heading" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Link" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
     },
     "Medium section heading" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Mode" : {
       "comment" : "plain: accessibility label of the Preview | Raw control"
     },
     "Move Block" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
     },
     "Name" : {
       "comment" : "plain: text field placeholder in name prompts"
@@ -248,35 +301,43 @@
       "comment" : "plain: project switcher label when no project is selected"
     },
     "No spells match." : {
-      "comment" : "voice: slash menu when the filter matches nothing"
-    },
-    "Numbered List" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "voice: slash menu when the filter matches nothing",
+      "extractionState" : "manual"
     },
     "Numbered list" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
+    },
+    "Numbered List" : {
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "OK" : {
       "comment" : "plain: dismiss button on error alerts"
     },
     "Paste" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
     },
     "Paste Image" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
     },
     "Paste Link" : {
-      "comment" : "plain: undo action name"
+      "comment" : "plain: undo action name",
+      "extractionState" : "manual"
     },
     "Plain paragraph" : {
-      "comment" : "plain: subtitle of the Text spell"
+      "comment" : "plain: subtitle of the Text spell",
+      "extractionState" : "manual"
     },
     "Preview" : {
       "comment" : "plain: title bar mode toggle (#10)",
       "extractionState" : "manual"
     },
     "Quote" : {
-      "comment" : "plain: block kind in the Turn Into menu"
+      "comment" : "plain: block kind in the Turn Into menu",
+      "extractionState" : "manual"
     },
     "Raw" : {
       "comment" : "plain: title bar mode toggle (#10)",
@@ -288,14 +349,14 @@
     "Rename" : {
       "comment" : "plain: confirm button in rename prompts"
     },
+    "Rename “%@”" : {
+      "comment" : "plain: rename prompt title; %@ is the file or folder name"
+    },
     "Rename Project" : {
       "comment" : "plain: title of the rename project prompt"
     },
     "Rename Project…" : {
       "comment" : "plain: project switcher menu item"
-    },
-    "Rename “%@”" : {
-      "comment" : "plain: rename prompt title; %@ is the file or folder name"
     },
     "Rename…" : {
       "comment" : "plain: context menu item for a file or folder"
@@ -304,16 +365,19 @@
       "comment" : "plain: context menu item"
     },
     "Rows and columns" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Save" : {
       "comment" : "plain: File menu item"
     },
     "Set a passage apart" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Small section heading" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
@@ -327,16 +391,20 @@
       "comment" : "plain: tooltip on the Preview | Raw control"
     },
     "Table" : {
-      "comment" : "plain: spell title"
+      "comment" : "plain: spell title",
+      "extractionState" : "manual"
     },
     "Text" : {
-      "comment" : "plain: block kind in the Turn Into menu (a paragraph)"
+      "comment" : "plain: block kind in the Turn Into menu (a paragraph)",
+      "extractionState" : "manual"
     },
     "Text that goes somewhere" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "That project no longer exists." : {
-      "comment" : "plain: error when acting on a deleted project"
+      "comment" : "plain: error when acting on a deleted project",
+      "extractionState" : "manual"
     },
     "The project is removed from Grimoire. Its folders and files stay on disk." : {
       "comment" : "plain: delete project confirmation message"
@@ -346,41 +414,29 @@
       "extractionState" : "manual"
     },
     "To-do" : {
-      "comment" : "plain: block kind in the Turn Into menu (a task list item)"
+      "comment" : "plain: block kind in the Turn Into menu (a task list item)",
+      "extractionState" : "manual"
     },
     "Today's date" : {
-      "comment" : "plain: spell subtitle"
+      "comment" : "plain: spell subtitle",
+      "extractionState" : "manual"
     },
     "Toggle Task" : {
-      "comment" : "plain: Edit > Undo action name after checking or unchecking a task"
+      "comment" : "plain: Edit > Undo action name after checking or unchecking a task",
+      "extractionState" : "manual"
     },
     "Try Again" : {
       "comment" : "plain: save error banner button"
     },
     "Turn Into" : {
-      "comment" : "plain: block menu item with the kinds a block can become; also an undo action name"
+      "comment" : "plain: block menu item with the kinds a block can become; also an undo action name",
+      "extractionState" : "manual"
     },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
     },
     "YAML properties" : {
-      "comment" : "plain: spell subtitle"
-    },
-    "esc close" : {
-      "comment" : "plain: slash menu footer hint"
-    },
-    "esc to wake" : {
-      "comment" : "voice: focus mode hint (#10)",
-      "extractionState" : "manual"
-    },
-    "“%@” can't be used as a name." : {
-      "comment" : "plain: error when a rename uses an empty name, a slash or a leading dot"
-    },
-    "↑↓ choose" : {
-      "comment" : "voice: slash menu footer hint (#8)"
-    },
-    "↵ cast" : {
-      "comment" : "voice: slash menu footer hint for Return (#8)",
+      "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     }
   },
