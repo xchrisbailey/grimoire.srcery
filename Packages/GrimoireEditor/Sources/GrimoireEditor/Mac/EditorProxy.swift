@@ -122,6 +122,26 @@ public final class EditorProxy {
         controller?.runIntelligenceAction(action)
     }
 
+    /// Runs `describe` or `transcribe` on the image at the caret.
+    public func runImageAction(_ action: String) {
+        controller?.runImageAction(action)
+    }
+
+    /// Whether the caret is on an image.
+    public var caretIsOnImage: Bool { controller?.imageLink() != nil }
+
+    /// Fills in the alt text of the image at `url`. False when it's no longer in the page.
+    @discardableResult
+    public func setAltText(_ alt: String, forImageAt url: URL) -> Bool {
+        controller?.setAltText(alt, forImageAt: url) ?? false
+    }
+
+    /// Puts `markdown` in as its own block after `range`, or at the caret.
+    public func insertBlock(_ markdown: String, after range: NSRange? = nil, actionName: String) {
+        controller?.focus()
+        controller?.insertBlock(markdown, after: range, actionName: actionName)
+    }
+
     /// Puts the keyboard focus in the editor.
     public func focusEditor() {
         controller?.focus()

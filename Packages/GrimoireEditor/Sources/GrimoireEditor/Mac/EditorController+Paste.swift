@@ -7,8 +7,10 @@ import UniformTypeIdentifiers
 /// text makes a link, and rich text from browsers becomes markdown.
 extension EditorController {
     func paste(from pasteboard: NSPasteboard) -> Bool {
-        if let markdown = imageMarkdown(from: pasteboard) {
-            insert(markdown, actionName: String(localized: "Paste Image"))
+        let images = savedImages(from: pasteboard)
+        if !images.isEmpty {
+            insert(images.map(imageLink).joined(separator: "\n\n"), actionName: String(localized: "Paste Image"))
+            imagesAdded(images)
             return true
         }
         if mode == .preview, let table = tableMarkdown(from: pasteboard) {
@@ -43,10 +45,9 @@ extension EditorController {
             actionName: actionName)
     }
 
-    /// Saves pasted image data, or image files copied in Finder, into the assets folder,
-    /// and returns the markdown that shows them.
-    private func imageMarkdown(from pasteboard: NSPasteboard) -> String? {
-        guard let assets = assetsFolder else { return nil }
+    /// Saves pasted image data, or image files copied in Finder, into the assets folder.
+    private func savedImages(from pasteboard: NSPasteboard) -> [URL] {
+        guard let assets = assetsFolder else { return [] }
         var saved: [URL] = []
         let files =
             (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
@@ -57,8 +58,7 @@ extension EditorController {
             let name = "pasted-\(Self.timestamp()).png"
             if let url = try? write(data, named: name, assets: assets) { saved.append(url) }
         }
-        guard !saved.isEmpty else { return nil }
-        return saved.map(imageLink).joined(separator: "\n\n")
+        return saved
     }
 
     /// Where images go: `imageFolder` when set, else `assets/` next to the file.
@@ -84,7 +84,7 @@ extension EditorController {
             .joined(separator: "/")
     }
 
-    private func pngData(from pasteboard: NSPasteboard) -> Data? {
+    func pngData(from pasteboard: NSPasteboard) -> Data? {
         if let png = pasteboard.data(forType: .png) { return png }
         guard let tiff = pasteboard.data(forType: .tiff), let image = NSBitmapImageRep(data: tiff) else { return nil }
         return image.representation(using: .png, properties: [:])

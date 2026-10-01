@@ -21,6 +21,18 @@ extension Incantations {
                 window.editor.runIntelligenceAction(id)
             }
         }
+        items += [
+            item("ai.describe", String(localized: "Describe Image"), "", icon: "photo", keywords: "alt text ai") {
+                window.editor.runImageAction("describe")
+            },
+            item("ai.transcribe", String(localized: "Image to Markdown…"), "", icon: "photo", keywords: "ocr text ai") {
+                window.editor.runImageAction("transcribe")
+            },
+            item(
+                "ai.pasteImage", String(localized: "Paste Image as Markdown…"), "", icon: "doc.on.clipboard",
+                keywords: "ocr screenshot table ai"
+            ) { window.pasteImageAsMarkdown() },
+        ]
         #if DEBUG
         items.append(
             item("ai.test", String(localized: "Stream a Test Response"), "", icon: "sparkles", keywords: "debug ai") {

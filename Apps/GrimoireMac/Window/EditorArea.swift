@@ -12,6 +12,7 @@ struct EditorArea: View {
                 DocumentBanners(document: document)
                 if window.editor.isFindVisible { FindBar(proxy: window.editor) }
                 FrontmatterSuggestionBar(document: document, window: window)
+                if let offer = window.altTextOffer { AltTextBar(offer: offer, window: window) }
                 DocumentEditor(document: document, window: window)
                     // The title bar proxy icon, so the file can be dragged or ⌘-clicked like any document.
                     .navigationDocument(document.url)
@@ -25,6 +26,7 @@ struct EditorArea: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.brand(\.page))
+        .sheet(item: Bindable(window).imageMarkdown) { draft in ImageMarkdownSheet(draft: draft, window: window) }
         .sheet(isPresented: Bindable(window).showsVersions) {
             if let document = window.document { VersionBrowser(document: document, editor: window.editor) }
         }

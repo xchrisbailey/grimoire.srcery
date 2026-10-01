@@ -26,6 +26,12 @@ struct IntelligenceSettings: View {
                 Toggle("Use Apple Intelligence in Grimoire", isOn: $preferences.intelligenceEnabled)
                 Toggle("Allow Private Cloud Compute for long pages", isOn: $preferences.allowsPrivateCloud)
                     .disabled(!preferences.intelligenceEnabled)
+                Picker("Alt text for new images", selection: $preferences.altText) {
+                    Text("Always add").tag(AltTextMode.always)
+                    Text("Ask first").tag(AltTextMode.ask)
+                    Text("Never").tag(AltTextMode.never)
+                }
+                .disabled(!preferences.intelligenceEnabled)
             } footer: {
                 Text(
                     // swiftlint:disable:next line_length

@@ -6,7 +6,9 @@ import GrimoireCore
 /// `suffix` so it sits on its own lines.
 public struct IntelligenceCast: Equatable, Sendable {
     /// The spell or action: `continue`, `summarize`, `outline`, `tabulate`, `actions`,
-    /// `translate`, `rewrite`, `shorten`, `expand` or `explain`.
+    /// `translate`, `rewrite`, `shorten`, `expand` or `explain`. For images (#20), `source`
+    /// is the image file's path: `alt` for one just added, `describe` and `transcribe` for
+    /// the Describe Image and Image to Markdown actions, with `range` the image's link.
     public var command: String
     /// The text the command reads.
     public var source: String

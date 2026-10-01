@@ -23,6 +23,10 @@ final class WindowState {
     var palette: Palette?
     /// Whether the version browser sheet is showing.
     var showsVersions = false
+    /// Alt text offered for an image (#20), shown above the page.
+    var altTextOffer: AltTextOffer?
+    /// An image read as markdown, shown in a sheet before it goes in.
+    var imageMarkdown: ImageMarkdownDraft?
     private var preferences: Preferences { .shared }
 
     private(set) var projectID: Project.ID?

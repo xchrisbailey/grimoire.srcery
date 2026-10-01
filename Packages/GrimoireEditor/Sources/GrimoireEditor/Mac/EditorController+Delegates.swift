@@ -39,7 +39,7 @@ extension EditorController: NSTextViewDelegate {
 
     public func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
         var items = spellingMenuItems(at: charIndex) + tableMenuItems(at: charIndex)
-        let intelligence = intelligenceMenuItems()
+        let intelligence = intelligenceMenuItems() + imageMenuItems(at: charIndex)
         if !intelligence.isEmpty { items += intelligence + [.separator()] }
         for (position, item) in items.enumerated() { menu.insertItem(item, at: position) }
         return menu

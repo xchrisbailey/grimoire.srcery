@@ -54,6 +54,8 @@ struct GrimoireCommands: Commands {
             Button("Copy as Rich Text") { window?.copyAsRichText() }
                 .keyboardShortcut("c", modifiers: [.command, .option, .shift])
                 .disabled(window?.document == nil)
+            Button("Paste Image as Markdown…") { window?.pasteImageAsMarkdown() }
+                .disabled(window?.intelligenceReady != true)
         }
         SidebarCommands()
         CommandGroup(after: .sidebar) {

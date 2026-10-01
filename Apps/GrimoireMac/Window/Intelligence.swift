@@ -29,6 +29,7 @@ extension WindowState {
 
     /// Runs an AI spell or selection action the editor planned, streaming the result in.
     func runIntelligence(_ cast: IntelligenceCast) {
+        if runImageCommand(cast) { return }
         guard let command = Self.writingCommand(for: cast) else { return }
         let context = WritingContext(source: cast.source, language: cast.codeLanguage)
         let raw = IntelligenceService.shared.stream(command, context: context)
