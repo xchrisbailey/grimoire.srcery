@@ -37,6 +37,8 @@ struct GrimoireCommands: Commands {
             Button("Save") { window?.save() }
                 .keyboardShortcut("s")
                 .disabled(window?.document == nil)
+            Button("Browse Versions…") { window?.showsVersions = true }
+                .disabled(window?.document == nil)
         }
         SidebarCommands()
         CommandGroup(after: .sidebar) {

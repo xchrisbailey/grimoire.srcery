@@ -26,6 +26,8 @@ public final class OpenDocument {
 
     public var isDirty: Bool { text != savedText }
     public var autosaveDelay: Duration
+    /// Where earlier versions are kept; nil keeps none.
+    public var versions: VersionStore?
 
     private var autosave: Task<Void, Never>?
     private var watcher: FolderWatcher?
@@ -65,6 +67,7 @@ public final class OpenDocument {
 
     /// The file was renamed or moved (from the tree); follow it.
     public func moved(to newURL: URL) {
+        versions?.move(from: url, to: newURL)
         url = newURL
         watch()
     }
@@ -77,6 +80,7 @@ public final class OpenDocument {
             if disk == text { savedText = disk }
         case .reload(let disk):
             autosave?.cancel()
+            versions?.keep(savedText, of: url, reason: .externalChange)
             savedText = disk
             text = disk
         case .conflict(let disk):
@@ -87,8 +91,9 @@ public final class OpenDocument {
 
     /// Resolves a conflict by writing the editor's text over the disk.
     public func keepMine() {
-        guard conflict != nil else { return }
+        guard let disk = conflict else { return }
         conflict = nil
+        versions?.keep(disk, of: url, reason: .conflict)
         write()
     }
 
@@ -96,13 +101,20 @@ public final class OpenDocument {
     public func loadTheirs() {
         guard let disk = conflict else { return }
         conflict = nil
+        versions?.keep(text, of: url, reason: .conflict)
         savedText = disk
         text = disk
     }
 
     // MARK: - Private
 
+    /// Keeps the editor's current text as a version, before a large change.
+    public func keepVersion(_ reason: Version.Reason) {
+        versions?.keep(text, of: url, reason: reason)
+    }
+
     private func write() {
+        if savedText != text { versions?.willSave(url, previous: savedText) }
         do {
             try Data(text.utf8).write(to: url, options: .atomic)
             savedText = text

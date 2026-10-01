@@ -83,6 +83,14 @@ public final class EditorProxy {
 
     public var hasEditor: Bool { controller != nil }
 
+    /// Replaces the whole text as one undoable edit, keeping the caret near where it was.
+    public func replaceText(_ text: String, actionName: String) {
+        guard let controller else { return }
+        let caret = min(controller.textView.selectedRange().location, (text as NSString).length)
+        controller.apply(
+            TextEdit.difference(from: controller.text, to: text, selection: caret..<caret), actionName: actionName)
+    }
+
     /// Puts the keyboard focus in the editor.
     public func focusEditor() {
         controller?.focus()

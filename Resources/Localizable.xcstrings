@@ -42,6 +42,9 @@
     "↵ summon" : {
       "comment" : "voice: Summon a page footer hint for Return"
     },
+    "⋯ %lld unchanged lines" : {
+      "comment" : "plain: unchanged lines left out of a diff"
+    },
     "1 second" : {
       "comment" : "plain: autosave delay option"
     },
@@ -126,6 +129,24 @@
     "Banish…" : {
       "comment" : "voice: context menu item that moves a file or folder to the Trash"
     },
+    "Before a conflict was resolved" : {
+      "comment" : "plain: why a version was kept"
+    },
+    "Before an AI edit" : {
+      "comment" : "plain: why a version was kept"
+    },
+    "Before another app changed it" : {
+      "comment" : "plain: why a version was kept"
+    },
+    "Before editing" : {
+      "comment" : "plain: why a version was kept"
+    },
+    "Before Replace All" : {
+      "comment" : "plain: why a version was kept"
+    },
+    "Before restoring a version" : {
+      "comment" : "plain: why a version was kept"
+    },
     "Bind" : {
       "comment" : "voice: confirm button in the folder picker that binds folders to the project (#4)"
     },
@@ -145,6 +166,9 @@
     },
     "Bring All to Front" : {
       "comment" : "plain: Window menu item"
+    },
+    "Browse Versions…" : {
+      "comment" : "plain: File menu item that opens the version history (#23)"
     },
     "Built in" : {
       "comment" : "plain: a theme that ships with Grimoire"
@@ -207,6 +231,9 @@
     },
     "Choose a page in the sidebar, or conjure a new one." : {
       "comment" : "voice: editor empty state when no file is selected (#5)"
+    },
+    "Choose a version to see what's changed since." : {
+      "comment" : "plain: version browser with nothing selected"
     },
     "Choose a VS Code theme (.json) or extension (.vsix)." : {
       "comment" : "plain: open panel message for importing a theme"
@@ -397,6 +424,9 @@
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
     },
+    "From git, read-only" : {
+      "comment" : "plain: detail for the last committed version"
+    },
     "Frontmatter" : {
       "comment" : "plain: spell title",
       "extractionState" : "manual"
@@ -521,6 +551,9 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Last committed" : {
+      "comment" : "plain: the file as of the last git commit"
+    },
     "Learn Spelling in This Project" : {
       "comment" : "plain: context menu item that adds a misspelled word to the project's dictionary (#11)",
       "extractionState" : "manual"
@@ -623,6 +656,9 @@
     },
     "Next to the page" : {
       "comment" : "plain: images go in an assets folder next to the file"
+    },
+    "No earlier versions yet. They're kept as you write." : {
+      "comment" : "plain: empty version history"
     },
     "No headings match." : {
       "comment" : "plain: empty heading outline"
@@ -784,6 +820,15 @@
     "Restore Defaults" : {
       "comment" : "plain: resets Settings › Editor"
     },
+    "Restore This Version" : {
+      "comment" : "plain: button that restores an earlier version"
+    },
+    "Restore Version" : {
+      "comment" : "plain: undo action name for restoring a version"
+    },
+    "Restoring removes %lld lines and brings back %lld" : {
+      "comment" : "plain: what restoring a version changes; added lines, then removed lines"
+    },
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
     },
@@ -797,6 +842,9 @@
     },
     "Same as above" : {
       "comment" : "plain: a project uses the app-wide image setting"
+    },
+    "Same as now" : {
+      "comment" : "plain: a version matches the current text"
     },
     "Save" : {
       "comment" : "plain: File menu item"
@@ -1007,6 +1055,9 @@
     },
     "Used in %@ mode" : {
       "comment" : "plain: tooltip on a theme's Light or Dark pill when it's in use; %@ is Light or Dark"
+    },
+    "Versions are kept for two weeks in Grimoire's own folder, not next to your files." : {
+      "comment" : "plain: footnote in the version browser"
     },
     "View" : {
       "comment" : "plain: shortcut group, matching the View menu"
