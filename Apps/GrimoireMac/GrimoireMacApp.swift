@@ -12,7 +12,7 @@ struct GrimoireMacApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "project") {
             ContentView()
                 .environment(library)
         }
@@ -20,6 +20,7 @@ struct GrimoireMacApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("About Grimoire") { showAboutPanel() }
             }
+            GrimoireCommands()
         }
     }
 

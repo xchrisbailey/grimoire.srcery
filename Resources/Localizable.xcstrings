@@ -1,12 +1,18 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ changed on disk while you were editing." : {
+      "comment" : "plain: conflict banner; %@ is the file name"
+    },
     "A blank page. Type / to cast a block." : {
       "comment" : "voice: empty editor placeholder (#5)",
       "extractionState" : "manual"
     },
     "About Grimoire" : {
       "comment" : "plain: macOS menu bar item that opens the About box"
+    },
+    "Add Folder…" : {
+      "comment" : "plain: File menu item that binds folders to the window's project"
     },
     "An item named “%@” already exists here." : {
       "comment" : "plain: error when a rename or move collides"
@@ -39,8 +45,14 @@
     "Cancel" : {
       "comment" : "plain: cancel button"
     },
+    "Choose a page in the sidebar, or conjure a new one." : {
+      "comment" : "voice: editor empty state when no file is selected (#5)"
+    },
     "Choose “%@” to keep using it in this project." : {
       "comment" : "plain: message in the re-grant folder picker; %@ is the folder name"
+    },
+    "Close" : {
+      "comment" : "plain: File menu item"
     },
     "Conjure a page" : {
       "comment" : "voice: new file action (#5)",
@@ -48,6 +60,12 @@
     },
     "Couldn't create “%@”." : {
       "comment" : "plain: error when making a file fails"
+    },
+    "Couldn't open %@. %@" : {
+      "comment" : "plain: error when the selected file can't be read; first %@ is the file name, second is the system's reason"
+    },
+    "Couldn't save %@. %@" : {
+      "comment" : "plain: save error; first %@ is the file name, second is the system's reason"
     },
     "Couldn't save %@. The folder is read-only." : {
       "comment" : "plain: error when saving fails; %@ is the file name. Errors are always plain.",
@@ -64,6 +82,12 @@
     },
     "Delete “%@”?" : {
       "comment" : "plain: delete confirmation title; %@ is the project name"
+    },
+    "Enter Focus Mode" : {
+      "comment" : "plain: View menu item"
+    },
+    "Exit Focus Mode" : {
+      "comment" : "plain: View menu item"
     },
     "Grant Access" : {
       "comment" : "plain: confirm button in the re-grant folder picker"
@@ -97,11 +121,20 @@
       "comment" : "plain: delete confirmation body; the literal part stays plain (#5)",
       "extractionState" : "manual"
     },
+    "Keep Mine" : {
+      "comment" : "plain: conflict banner button that writes the editor's text over the file"
+    },
+    "Load Theirs" : {
+      "comment" : "plain: conflict banner button that takes the file's text from disk"
+    },
     "Name" : {
       "comment" : "plain: text field placeholder in name prompts"
     },
     "Needs access" : {
       "comment" : "plain: tooltip on a bound folder that lost access"
+    },
+    "New File" : {
+      "comment" : "plain: File menu item"
     },
     "New Folder" : {
       "comment" : "plain: context menu item that makes a folder"
@@ -111,6 +144,9 @@
     },
     "New Project…" : {
       "comment" : "plain: project switcher menu item"
+    },
+    "New Window" : {
+      "comment" : "plain: File menu item"
     },
     "No Project" : {
       "comment" : "plain: project switcher label when no project is selected"
@@ -144,6 +180,9 @@
     "Reveal in Finder" : {
       "comment" : "plain: context menu item"
     },
+    "Save" : {
+      "comment" : "plain: File menu item"
+    },
     "Spells" : {
       "comment" : "voice: slash menu header (#8)",
       "extractionState" : "manual"
@@ -161,6 +200,9 @@
     "This grimoire is empty. Bind a folder to begin." : {
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
       "extractionState" : "manual"
+    },
+    "Try Again" : {
+      "comment" : "plain: save error banner button"
     },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"

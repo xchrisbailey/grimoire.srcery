@@ -1,54 +1,81 @@
+import AppKit
 import GrimoireCore
 import GrimoireEditor
 import SwiftUI
 
+/// One window: the project sidebar and the editor.
 struct ContentView: View {
     @Environment(ProjectLibrary.self) private var library
-    @State private var selectedProjectID: Project.ID?
-    @State private var workspace: Workspace?
-    @State private var selectedFile: URL?
+    @State private var window: WindowState?
 
     var body: some View {
-        NavigationSplitView {
-            SidebarView(workspace: workspace, selectedProjectID: $selectedProjectID, selectedFile: $selectedFile)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250)
-        } detail: {
-            Group {
-                if let selectedFile {
-                    Text(selectedFile.lastPathComponent)
-                        .brandFont(.heading)
-                        .foregroundStyle(Color.brand(\.ink))
-                } else {
-                    Text("A blank page. Type / to cast a block.")
-                        .brandFont(.body)
-                        .foregroundStyle(Color.brand(\.overlay1))
-                }
+        Group {
+            if let window {
+                WindowContent(window: window)
+            } else {
+                Color.brand(\.page)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.brand(\.page))
         }
-        .tint(Color.brand(\.magic))
         .frame(minWidth: 640, minHeight: 400)
         .onAppear {
-            if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
-            if selectedProjectID == nil { selectedProjectID = library.projects.first?.id }
-            openWorkspace()
+            if window == nil { window = WindowState(library: library) }
         }
-        .onChange(of: selectedProjectID) { openWorkspace() }
-        .onChange(of: selectedProjectID.flatMap(library.project)?.roots) { workspace?.sync() }
-        .onDisappear { workspace?.deactivate() }
     }
+}
 
-    private func openWorkspace() {
-        guard workspace?.projectID != selectedProjectID else { return }
-        workspace?.deactivate()
-        selectedFile = nil
-        guard let selectedProjectID else {
-            workspace = nil
-            return
+private struct WindowContent: View {
+    @Bindable var window: WindowState
+    @Environment(ProjectLibrary.self) private var library
+    @SceneStorage("grimoire.project") private var storedProject = ""
+    @SceneStorage("grimoire.file") private var storedFile = ""
+    /// The project the most recently used window showed, for windows with nothing restored.
+    @AppStorage("lastProjectID") private var lastProject = ""
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $window.columnVisibility) {
+            SidebarView(window: window)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250)
+        } detail: {
+            EditorArea(window: window)
         }
-        let workspace = Workspace(projectID: selectedProjectID, library: library)
-        workspace.activate()
-        self.workspace = workspace
+        .tint(Color.brand(\.magic))
+        .navigationTitle(window.document?.url.lastPathComponent ?? window.project?.name ?? "Grimoire")
+        .navigationSubtitle(window.document == nil ? "" : window.project?.name ?? "")
+        .toolbar {
+            if let document = window.document {
+                ToolbarItem(placement: .status) { InkDot(isWet: document.isDirty) }
+            }
+        }
+        .toolbar(window.focusMode ? .hidden : .automatic, for: .windowToolbar)
+        .background(DocumentEditedMarker(isEdited: window.document?.isDirty ?? false))
+        .focusedSceneValue(\.windowState, window)
+        .onKeyPress(.escape) {
+            guard window.focusMode else { return .ignored }
+            window.setFocusMode(false)
+            return .handled
+        }
+        .onAppear {
+            if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
+            window.restore(projectID: storedProject, file: storedFile, fallbackProject: lastProject)
+        }
+        .onDisappear { window.close() }
+        .onChange(of: window.projectID) {
+            storedProject = window.projectID?.uuidString ?? ""
+            if !storedProject.isEmpty { lastProject = storedProject }
+        }
+        .onChange(of: window.selectedFile) { storedFile = window.restorationFile }
+        .onChange(of: window.project?.roots) { window.projectRootsChanged() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
+            window.save()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            window.save()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            window.save()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            window.document?.checkDisk()
+        }
     }
 }

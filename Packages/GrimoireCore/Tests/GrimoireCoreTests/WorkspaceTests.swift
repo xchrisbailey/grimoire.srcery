@@ -263,15 +263,4 @@ func firstEvent<T: Sendable>(
         try await until { workspace.folders.first?.status == .available }
         #expect(library.project(project.id)?.roots.first?.name == "found")
     }
-
-    private func until(timeout: Duration = .seconds(5), _ condition: () -> Bool) async throws {
-        let deadline = ContinuousClock.now + timeout
-        while !condition() {
-            guard ContinuousClock.now < deadline else {
-                Issue.record("Timed out waiting for condition")
-                return
-            }
-            try await Task.sleep(for: .milliseconds(20))
-        }
-    }
 }
