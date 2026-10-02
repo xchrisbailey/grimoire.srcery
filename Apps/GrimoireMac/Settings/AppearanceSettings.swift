@@ -3,10 +3,11 @@ import GrimoireEditor
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings › Appearance: light or dark, the theme for each, and themes borrowed from
-/// VS Code.
+/// Settings › Appearance: light or dark, the fonts, the theme for each appearance, and
+/// themes borrowed from VS Code.
 struct AppearanceSettings: View {
     @State private var themes = ThemeLibrary.shared
+    @State private var preferences = Preferences.shared
     @State private var isDropTargeted = false
     @State private var importError: ImportFailure?
     @State private var removing: Theme?
@@ -21,6 +22,8 @@ struct AppearanceSettings: View {
             .pickerStyle(.segmented)
             .fixedSize()
 
+            fonts
+
             HStack(alignment: .firstTextBaseline) {
                 Text("Themes")
                     .font(.title3.weight(.semibold))
@@ -28,8 +31,10 @@ struct AppearanceSettings: View {
                 Button("Borrow a look from VS Code…", action: chooseFile)
             }
             HStack(spacing: 16) {
-                themePicker(String(localized: "Light"), selection: themes.lightThemeID, set: themes.setLightTheme)
-                themePicker(String(localized: "Dark"), selection: themes.darkThemeID, set: themes.setDarkTheme)
+                themePicker(
+                    String(localized: "Light"), dark: false, selection: themes.lightThemeID, set: themes.setLightTheme)
+                themePicker(
+                    String(localized: "Dark"), dark: true, selection: themes.darkThemeID, set: themes.setDarkTheme)
             }
 
             ScrollView {
@@ -44,7 +49,7 @@ struct AppearanceSettings: View {
                     }
                 }
             }
-            .frame(minHeight: 220, maxHeight: 320)
+            .frame(minHeight: 200, maxHeight: 280)
 
             dropZone
 
@@ -77,11 +82,65 @@ struct AppearanceSettings: View {
         }
     }
 
-    private func themePicker(_ title: String, selection: String, set: @escaping @Sendable @MainActor (String) -> Void)
-        -> some View
-    {
+    /// The prose and code families and sizes, applied to open editors as they change.
+    private var fonts: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Fonts")
+                    .font(.title3.weight(.semibold))
+                Spacer()
+                Button("Restore Default Fonts") { preferences.resetFonts() }
+                    .disabled(usesDefaultFonts)
+            }
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                GridRow {
+                    Text("Prose")
+                        .gridColumnAlignment(.trailing)
+                    FontPicker(
+                        title: String(localized: "Prose font"), family: $preferences.proseFont,
+                        brandFamily: Preferences.defaultProseFont, monospacedOnly: false
+                    )
+                    .labelsHidden()
+                    sizeStepper(String(localized: "Prose size"), value: $preferences.proseSize, in: 11...28)
+                }
+                GridRow {
+                    Text("Code")
+                    FontPicker(
+                        title: String(localized: "Code font"), family: $preferences.codeFont,
+                        brandFamily: Preferences.defaultCodeFont, monospacedOnly: true
+                    )
+                    .labelsHidden()
+                    sizeStepper(String(localized: "Code size"), value: $preferences.codeSize, in: 10...24)
+                }
+            }
+        }
+    }
+
+    private var usesDefaultFonts: Bool {
+        preferences.proseFont == Preferences.defaultProseFont && preferences.proseSize == 15.5
+            && preferences.codeFont == Preferences.defaultCodeFont && preferences.codeSize == 14
+    }
+
+    private func sizeStepper(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>) -> some View {
+        Stepper(value: value, in: range, step: 0.5) {
+            Text("\(value.wrappedValue.formatted(.number.precision(.fractionLength(0...1)))) pt")
+                .monospacedDigit()
+                .frame(minWidth: 44, alignment: .trailing)
+        }
+        .accessibilityLabel(title)
+        .fixedSize()
+    }
+
+    /// Themes made for this appearance first, then the rest.
+    private func themePicker(
+        _ title: String, dark: Bool, selection: String, set: @escaping @Sendable @MainActor (String) -> Void
+    ) -> some View {
         Picker(title, selection: Binding(get: { selection }, set: set)) {
-            ForEach(themes.themes) { theme in
+            ForEach(themes.themes.filter { $0.isDark == dark }) { theme in
+                Text(theme.name).tag(theme.id)
+            }
+            Divider()
+            ForEach(themes.themes.filter { $0.isDark != dark }) { theme in
                 Text(theme.name).tag(theme.id)
             }
         }

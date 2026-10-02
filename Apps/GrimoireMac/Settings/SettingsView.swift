@@ -41,7 +41,7 @@ extension ThemeLibrary {
     }
 
     /// The editor's look: the chosen light and dark themes, with the fonts and sizes from
-    /// Settings › Editor.
+    /// Settings › Appearance and the layout from Settings › Editor.
     func editorTheme(_ preferences: Preferences) -> EditorTheme {
         var theme = EditorTheme(light: lightTheme, dark: darkTheme)
         theme.bodySize = preferences.proseSize

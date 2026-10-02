@@ -36,7 +36,7 @@ public final class Preferences {
     public var fileExtensions: [String] { didSet { save(fileExtensions, Key.fileExtensions) } }
     public var imageLocation: ImageLocation { didSet { save(imageLocation.rawValue, Key.imageLocation) } }
 
-    // MARK: Editor
+    // MARK: Fonts
 
     /// The prose font's family, "Geist" by default.
     public var proseFont: String { didSet { save(proseFont, Key.proseFont) } }
@@ -44,6 +44,9 @@ public final class Preferences {
     /// The code and Raw font's family, "Geist Mono" by default.
     public var codeFont: String { didSet { save(codeFont, Key.codeFont) } }
     public var codeSize: Double { didSet { save(codeSize, Key.codeSize) } }
+
+    // MARK: Editor
+
     /// Prose line height as a multiple of the font size, as CSS measures it.
     public var lineHeight: Double { didSet { save(lineHeight, Key.lineHeight) } }
     /// Widest the text column grows, in points.
@@ -146,12 +149,17 @@ public final class Preferences {
         altText = defaults.string(forKey: Key.altText).flatMap(AltTextMode.init) ?? .ask
     }
 
-    /// Puts the Editor settings back to their defaults.
-    public func resetEditor() {
+    /// Puts the fonts and sizes back to Geist and Geist Mono at the brand sizes.
+    public func resetFonts() {
         proseFont = Self.defaultProseFont
         proseSize = 15.5
         codeFont = Self.defaultCodeFont
         codeSize = 14
+    }
+
+    /// Puts the Editor settings back to their defaults. Fonts live in Appearance and
+    /// aren't touched.
+    public func resetEditor() {
         lineHeight = 1.7
         maxLineWidth = 680
         showsMarkers = false

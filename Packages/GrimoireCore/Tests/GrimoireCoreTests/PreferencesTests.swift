@@ -44,8 +44,11 @@ import Testing
         #expect(reopened.typewriterScrolling)
 
         reopened.resetEditor()
-        #expect(reopened.proseFont == "Geist")
         #expect(!reopened.typewriterScrolling)
+        // Fonts are reset on their own, from Appearance.
+        #expect(reopened.proseFont == "New York")
+        reopened.resetFonts()
+        #expect(reopened.proseFont == "Geist")
         // Resetting the editor leaves General alone.
         #expect(reopened.opensInRaw)
     }
