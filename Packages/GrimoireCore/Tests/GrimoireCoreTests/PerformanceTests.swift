@@ -15,11 +15,18 @@ import Testing
     }()
 
     #if DEBUG
-    static let budget = Duration.milliseconds(500)
+    static let budget = Duration.milliseconds(500) * budgetScale
     #else
     /// The target from #3: a 1 MB parse in about 50 ms on Apple silicon.
-    static let budget = Duration.milliseconds(50)
+    static let budget = Duration.milliseconds(50) * budgetScale
     #endif
+
+    /// Slower machines, like CI's virtualized runners, set `GRIMOIRE_PERF_BUDGET_SCALE`
+    /// to stretch the parse budget instead of failing on hardware alone.
+    static let budgetScale: Int = {
+        let value = ProcessInfo.processInfo.environment["GRIMOIRE_PERF_BUDGET_SCALE"]
+        return value.flatMap { Int($0) }.map { max($0, 1) } ?? 1
+    }()
 
     @Test func parseOneMegabyte() {
         let text = Self.megabyte
