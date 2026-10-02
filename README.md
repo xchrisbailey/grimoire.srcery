@@ -38,3 +38,13 @@ Formatting uses `swift-format` (ships with Xcode) and SwiftLint:
 xcrun swift-format format --in-place --recursive Apps Packages
 swiftlint
 ```
+
+## Packaging a release
+
+`scripts/package-mac.sh <label>` builds an ad-hoc signed Release of the Mac app and writes `dist/Grimoire-<label>.dmg` with its SHA-256. The version shown in the app comes from `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`; the label only names the DMG and volume.
+
+```sh
+scripts/package-mac.sh 1.0.0-beta.1
+```
+
+The build isn't notarized (no Developer ID yet, see #16), so Gatekeeper blocks the first launch. The DMG carries a "Read me first" note: right-click the app in Applications and choose Open, or run `xattr -dr com.apple.quarantine /Applications/Grimoire.app`.
