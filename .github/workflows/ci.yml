@@ -12,26 +12,40 @@ concurrency:
 # Everything targets the macOS 27 / iOS 27 SDKs, so jobs run on GitHub's
 # Xcode 27 image (arm64, public preview). Set the MACOS_RUNNER repository
 # variable to use another runner, such as a self-hosted Mac.
+#
+# Build products are cached per job, keyed on the Xcode build and the package
+# manifests, so dependencies like the tree-sitter grammars compile once rather
+# than on every run. Changed sources still rebuild incrementally.
 jobs:
   packages:
     name: Package tests
     runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
     env:
       # Hosted runners run about 2x slower than a local Apple silicon Mac, so the
-      # timing budgets in PerformanceTests stretch to match.
+      # timing budgets in the tests stretch to match.
       GRIMOIRE_PERF_BUDGET_SCALE: "3"
     strategy:
       fail-fast: false
       matrix:
         package: [GrimoireCore, GrimoireEditor, GrimoireIntelligence]
     steps:
-      - uses: actions/checkout@v4
-      - run: xcodebuild -version
+      - uses: actions/checkout@v5
+      - name: Xcode version
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "id=$(xcodebuild -version | shasum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: Packages/${{ matrix.package }}/.build
+          key: spm-${{ matrix.package }}-${{ steps.xcode.outputs.id }}-${{ hashFiles('Packages/*/Package.swift', 'Packages/*/Package.resolved') }}
+          restore-keys: spm-${{ matrix.package }}-${{ steps.xcode.outputs.id }}-
       - name: swift test
         working-directory: Packages/${{ matrix.package }}
         run: swift test
+      # A second, release-mode build of Core, so it runs on main rather than every PR.
       - name: Parse speed (release build)
-        if: matrix.package == 'GrimoireCore'
+        if: matrix.package == 'GrimoireCore' && github.event_name == 'push'
         working-directory: Packages/GrimoireCore
         run: swift test -c release --filter PerformanceTests
 
@@ -44,11 +58,23 @@ jobs:
         include:
           - scheme: GrimoireMac
             destination: platform=macOS
+            archs: arm64
+          # The generic simulator destination builds x86_64 too; one slice is enough to check it compiles.
           - scheme: GrimoireiOS
             destination: generic/platform=iOS Simulator
+            archs: arm64
     steps:
-      - uses: actions/checkout@v4
-      - run: xcodebuild -version
+      - uses: actions/checkout@v5
+      - name: Xcode version
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "id=$(xcodebuild -version | shasum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: build/DerivedData
+          key: dd-${{ matrix.scheme }}-${{ steps.xcode.outputs.id }}-${{ hashFiles('project.yml', 'Packages/*/Package.swift', 'Packages/*/Package.resolved') }}
+          restore-keys: dd-${{ matrix.scheme }}-${{ steps.xcode.outputs.id }}-
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate project
@@ -59,13 +85,15 @@ jobs:
           -project Grimoire.xcodeproj
           -scheme ${{ matrix.scheme }}
           -destination '${{ matrix.destination }}'
+          -derivedDataPath build/DerivedData
+          ARCHS=${{ matrix.archs }}
           CODE_SIGNING_ALLOWED=NO
 
   lint:
     name: Lint
     runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: swift-format
         run: xcrun swift-format lint --strict --recursive Apps Packages
       - name: SwiftLint
