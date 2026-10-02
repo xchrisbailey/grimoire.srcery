@@ -129,9 +129,9 @@ import Testing
         }
         #expect(controller.index.document.markdown == controller.text)
         #if DEBUG
-        #expect(slowest < .milliseconds(50))
+        #expect(slowest < budget(.milliseconds(50)))
         #else
-        #expect(slowest < .milliseconds(16))
+        #expect(slowest < budget(.milliseconds(16)))
         #endif
         print("Slowest keystroke in a \(line)-line document: \(slowest)")
     }
@@ -216,9 +216,9 @@ import Testing
         #expect(controller.textView.selectedRange().location == target)
         #expect(abs((after ?? 0) - (before ?? 0)) < 4)
         #if DEBUG
-        #expect(elapsed < .milliseconds(1500))
+        #expect(elapsed < budget(.milliseconds(1500)))
         #else
-        #expect(elapsed < .milliseconds(250))
+        #expect(elapsed < budget(.milliseconds(250)))
         #endif
         print("Switched a \(text.split(separator: "\n").count)-line document to Raw in \(elapsed)")
     }

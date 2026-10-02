@@ -203,7 +203,7 @@ import Testing
         }
         print("Slowest keystroke in a 500-line code block: \(slowest)")
         // One frame at 60 Hz, with room for a busy test machine.
-        #expect(slowest < .milliseconds(40), "slowest keystroke took \(slowest)")
+        #expect(slowest < budget(.milliseconds(40)), "slowest keystroke took \(slowest)")
     }
 }
 #endif
