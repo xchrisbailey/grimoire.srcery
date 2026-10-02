@@ -1,0 +1,32 @@
+name: Release
+
+# Pushing a tag like v1.0.0-beta.2 builds the Mac DMG with
+# scripts/package-mac.sh and attaches it to that tag's GitHub release,
+# creating a prerelease if none exists. Builds are ad-hoc signed and not
+# notarized until a Developer ID is set up (#16).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    name: Package Mac DMG
+    runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Package
+        run: scripts/package-mac.sh "${TAG#v}"
+      - name: Upload to release
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --prerelease --verify-tag --title "Grimoire ${TAG#v}" --generate-notes
+          gh release upload "$TAG" dist/*.dmg dist/*.sha256 --clobber
