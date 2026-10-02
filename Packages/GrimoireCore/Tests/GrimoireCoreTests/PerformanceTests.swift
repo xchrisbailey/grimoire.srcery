@@ -22,7 +22,7 @@ import Testing
     #endif
 
     /// Slower machines, like CI's virtualized runners, set `GRIMOIRE_PERF_BUDGET_SCALE`
-    /// to stretch the parse budget instead of failing on hardware alone.
+    /// to stretch every budget here instead of failing on hardware alone.
     static let budgetScale: Int = {
         let value = ProcessInfo.processInfo.environment["GRIMOIRE_PERF_BUDGET_SCALE"]
         return value.flatMap { Int($0) }.map { max($0, 1) } ?? 1
@@ -44,7 +44,7 @@ import Testing
         let elapsed = clock.measure {
             document.replaceSource(at: index, with: "An edited paragraph.")
         }
-        #expect(elapsed < .milliseconds(5))
+        #expect(elapsed < Duration.milliseconds(5) * Self.budgetScale)
     }
 
     /// Typing a character in the middle of a 1 MB document re-parses only nearby blocks.
@@ -58,6 +58,6 @@ import Testing
             index.replace(middle..<middle, replacementLength: 1, in: edited)
         }
         #expect(index.document.markdown == edited)
-        #expect(elapsed < .milliseconds(5))
+        #expect(elapsed < Duration.milliseconds(5) * Self.budgetScale)
     }
 }

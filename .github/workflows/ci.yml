@@ -16,6 +16,10 @@ jobs:
   packages:
     name: Package tests
     runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
+    env:
+      # Hosted runners run about 2x slower than a local Apple silicon Mac, so the
+      # timing budgets in PerformanceTests stretch to match.
+      GRIMOIRE_PERF_BUDGET_SCALE: "3"
     strategy:
       fail-fast: false
       matrix:
@@ -29,9 +33,6 @@ jobs:
       - name: Parse speed (release build)
         if: matrix.package == 'GrimoireCore'
         working-directory: Packages/GrimoireCore
-        # Hosted runners parse about 2x slower than a local Apple silicon Mac.
-        env:
-          GRIMOIRE_PERF_BUDGET_SCALE: "3"
         run: swift test -c release --filter PerformanceTests
 
   apps:
