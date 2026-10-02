@@ -73,9 +73,13 @@ public final class MarkdownStyler {
 
     func paragraphStyle(
         firstLineIndent: CGFloat = 0, indent: CGFloat = 0, tailIndent: CGFloat = 0, lineHeight: CGFloat? = nil,
-        spacingBefore: CGFloat = 0, spacingAfter: CGFloat = 0
+        spacingBefore: CGFloat = 0, spacingAfter: CGFloat = 0, codeTabs: Bool = false
     ) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
+        if codeTabs {
+            style.tabStops = []
+            style.defaultTabInterval = theme.tabInterval
+        }
         style.lineHeightMultiple = lineHeight ?? theme.lineHeightMultiple
         style.firstLineHeadIndent = firstLineIndent
         style.headIndent = indent

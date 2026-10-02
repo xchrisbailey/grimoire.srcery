@@ -50,6 +50,7 @@ extension ThemeLibrary {
         theme.codeFamily = preferences.codeFont
         theme.setLineHeight(preferences.lineHeight)
         theme.maxLineWidth = preferences.maxLineWidth
+        theme.tabWidth = preferences.tabWidth
         return theme
     }
 }

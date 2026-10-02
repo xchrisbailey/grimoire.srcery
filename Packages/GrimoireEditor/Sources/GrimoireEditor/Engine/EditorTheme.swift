@@ -52,6 +52,8 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     public var proseFamily: String?
     /// The code and Raw font's family; nil for Geist Mono.
     public var codeFamily: String?
+    /// Columns between tab stops in Raw and code blocks.
+    public var tabWidth = 4
 
     public init(light: Theme = .latte, dark: Theme = .mocha) {
         self.light = light
@@ -159,6 +161,12 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
 
     public var body: PlatformFont { font() }
     public var code: PlatformFont { font(size: codeSize, monospaced: true) }
+
+    /// The distance between tab stops: `tabWidth` spaces of the code font.
+    public var tabInterval: CGFloat {
+        let space = (" " as NSString).size(withAttributes: [.font: code]).width
+        return space * CGFloat(max(1, tabWidth))
+    }
     public var inlineCode: PlatformFont { font(size: bodySize * 0.9, monospaced: true) }
     public var metadata: PlatformFont { font(size: BrandFont.Style.metadata.size, monospaced: true) }
 

@@ -67,6 +67,16 @@ public final class EditorController: NSObject {
     }
 
     /// Keeps the caret's line in the middle of the view while typing.
+    /// Whether Tab types a tab character rather than spaces to the next tab stop, in Raw
+    /// and outside lists.
+    public var indentsWithTabs = false
+    /// Shortcuts the editor handles itself.
+    public var keyBindings = EditorKeyBindings()
+    /// Whether Raw mode numbers its lines in the margin.
+    public var showsLineNumbers = false {
+        didSet { textView.showsLineNumbers = showsLineNumbers && mode == .raw }
+    }
+
     public var typewriterScrolling = false {
         didSet {
             guard typewriterScrolling != oldValue else { return }
@@ -179,6 +189,10 @@ public final class EditorController: NSObject {
         textView.maxLineWidth = theme.maxLineWidth
         textView.placeholderAttributes = [.font: theme.body, .foregroundColor: theme.faint]
         textView.caretLineColor = mode == .raw ? theme.lineHighlight : nil
+        textView.lineNumberAttributes = [
+            .font: theme.font(size: theme.codeSize * 0.8, monospaced: true),
+            .foregroundColor: theme.editorColor(\.gutter),
+        ]
     }
 
     /// Light and dark themes can set different font styles, so the text is restyled when
@@ -198,6 +212,7 @@ public final class EditorController: NSObject {
             let anchor = caretScreenOffset()
             styler.mode = newValue
             textView.caretLineColor = newValue == .raw ? styler.theme.lineHighlight : nil
+            textView.showsLineNumbers = showsLineNumbers && newValue == .raw
             closeSpells()
             blockHandle.hide()
             codeChrome.update()

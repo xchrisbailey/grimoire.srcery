@@ -272,11 +272,25 @@ enum Incantations {
             (self.id, self.title, self.shortcut, self.action) = (id, title, shortcut, action)
         }
     }
+}
 
+extension Incantations {
+    /// A palette row. `shortcut` is the default; a command whose shortcut Settings can
+    /// change shows the current one instead.
     static func item(
         _ id: String, _ title: String, _ shortcut: String, icon: String?, keywords: String = "",
         perform: @escaping () -> Void
     ) -> PaletteItem {
-        PaletteItem(id: id, title: title, shortcut: shortcut, icon: icon, keywords: keywords, perform: perform)
+        let keys = shortcutActions[id].map { Preferences.shared.shortcut(for: $0)?.display ?? "" } ?? shortcut
+        return PaletteItem(id: id, title: title, shortcut: keys, icon: icon, keywords: keywords, perform: perform)
     }
+
+    /// Rows whose shortcut comes from Settings › Shortcuts.
+    private static let shortcutActions: [String: ShortcutAction] = [
+        "file.new": .newFile, "file.window": .newWindow, "file.project": .newProject, "file.bind": .addFolder,
+        "file.summon": .openQuickly, "file.save": .save, "file.print": .print, "edit.richText": .copyRichText,
+        "file.close": .close, "view.focus": .focusMode, "view.search": .findInProject, "view.raw": .rawSource,
+        "view.headings": .jumpToHeading, "ai.ask": .askProject, "ai.rewrite": .writingTools,
+        "ai.shorten": .writingTools, "ai.expand": .writingTools,
+    ]
 }

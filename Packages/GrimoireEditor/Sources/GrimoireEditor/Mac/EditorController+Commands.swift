@@ -48,8 +48,26 @@ extension EditorController {
         default:
             return handleBlockCommand(selector)
         }
-        guard let edit else { return false }
+        guard let edit else {
+            return selector == #selector(NSResponder.insertTab(_:)) && insertSoftTab()
+        }
         apply(edit)
+        return true
+    }
+
+    /// Tab outside a list: spaces up to the next tab stop, unless tabs are preferred.
+    /// Returns false to let the text view type a tab.
+    func insertSoftTab() -> Bool {
+        guard !indentsWithTabs else { return false }
+        let selection = textView.selectedRange()
+        let text = textView.string as NSString
+        let lineStart = text.lineRange(for: NSRange(location: selection.location, length: 0)).location
+        let width = max(1, styler.theme.tabWidth)
+        var column = 0
+        for offset in lineStart..<selection.location {
+            column = text.character(at: offset) == 9 ? (column / width + 1) * width : column + 1
+        }
+        textView.insertText(String(repeating: " ", count: width - column % width), replacementRange: selection)
         return true
     }
 
@@ -63,8 +81,10 @@ extension EditorController {
         return nil
     }
 
-    /// Raw mode keeps one block behavior: Enter continues a list.
+    /// Raw mode keeps one block behavior: Enter continues a list. Tab follows the
+    /// indentation setting.
     private func handleRawCommand(_ selector: Selector) -> Bool {
+        if selector == #selector(NSResponder.insertTab(_:)) { return insertSoftTab() }
         let shift = NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false
         guard selector == #selector(NSResponder.insertNewline(_:)), !shift,
             let block = editing.currentBlock, index.blocks[block].kind.isListItem,
@@ -90,20 +110,17 @@ extension EditorController {
         }
     }
 
-    /// Key equivalents the text view doesn't map to commands: ⌘↩ toggles a task and ⇧⌘D
-    /// duplicates the block.
+    /// Key equivalents the text view doesn't map to commands: Toggle Task (⌘↩),
+    /// Duplicate Block (⇧⌘D) and the writing tools (⌥⌘J), or whatever Settings set them to.
     func handleKey(_ event: NSEvent) -> Bool {
         if handleStreamingKey(event) { return true }
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if modifiers == [.command, .option], event.charactersIgnoringModifiers?.lowercased() == "j" {
-            return showIntelligenceMenu()
-        }
+        guard let combo = KeyCombo(event: event) else { return false }
+        if combo == keyBindings.writingTools { return showIntelligenceMenu() }
         guard mode == .preview else { return false }
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if flags == .command, event.keyCode == 36 || event.keyCode == 76 {
+        if combo == keyBindings.toggleTask {
             return perform(editing.toggleTask(), actionName: String(localized: "Toggle Task"))
         }
-        if flags == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "d" {
+        if combo == keyBindings.duplicateBlock {
             return perform(editing.duplicateBlock(), actionName: String(localized: "Duplicate Block"))
         }
         return false

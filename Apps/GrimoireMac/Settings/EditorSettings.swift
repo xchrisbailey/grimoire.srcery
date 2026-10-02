@@ -2,8 +2,8 @@ import GrimoireCore
 import GrimoireEditor
 import SwiftUI
 
-/// Settings › Editor: line height and width, and how the page behaves. Fonts are in
-/// Settings › Appearance.
+/// Settings › Editor: line height and width, how the page behaves, Raw mode and the word
+/// count. Fonts are in Settings › Appearance.
 struct EditorSettings: View {
     @State private var preferences = Preferences.shared
 
@@ -28,6 +28,37 @@ struct EditorSettings: View {
                     "Markers like # and ** normally show only on the block you're writing in. Typewriter scrolling keeps that line in the middle of the window."
                 )
                 .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Show line numbers", isOn: $preferences.showsLineNumbers)
+                Stepper(value: $preferences.tabWidth, in: 1...8) {
+                    LabeledContent("Tab width", value: String(localized: "\(preferences.tabWidth) spaces"))
+                }
+                Picker("Indent with", selection: $preferences.indentsWithTabs) {
+                    Text("Spaces").tag(false)
+                    Text("Tabs").tag(true)
+                }
+            } header: {
+                Text("Raw mode")
+            } footer: {
+                Text(
+                    // swiftlint:disable:next line_length
+                    "Tab width and indenting also apply to code blocks in Preview. List items always indent with spaces."
+                )
+                .foregroundStyle(.secondary)
+            }
+            Section("Word count") {
+                Picker("Show word count", selection: $preferences.wordCount) {
+                    Text("Always").tag(WordCountDisplay.always)
+                    Text("In Focus Mode").tag(WordCountDisplay.focusMode)
+                    Text("Never").tag(WordCountDisplay.never)
+                }
+                Stepper(value: $preferences.readingSpeed, in: 100...500, step: 10) {
+                    LabeledContent(
+                        "Reading speed",
+                        value: String(localized: "\(Int(preferences.readingSpeed)) words a minute"))
+                }
+                .disabled(preferences.wordCount == .never)
             }
             Section {
                 Button("Restore Defaults") { preferences.resetEditor() }

@@ -31,9 +31,18 @@ struct EditorArea: View {
             if let document = window.document { VersionBrowser(document: document, editor: window.editor) }
         }
         .overlay(alignment: .bottom) {
-            if window.focusMode {
-                FocusStatus(text: window.document?.text ?? "")
+            if let text = window.document?.text, showsWordCount {
+                WordCountStatus(
+                    text: text, wordsPerMinute: Preferences.shared.readingSpeed, inFocusMode: window.focusMode)
             }
+        }
+    }
+
+    private var showsWordCount: Bool {
+        switch Preferences.shared.wordCount {
+        case .always: true
+        case .focusMode: window.focusMode
+        case .never: false
         }
     }
 
@@ -64,6 +73,13 @@ private struct DocumentEditor: View {
         .dimmingAroundCaret(window.focusMode && window.editorMode == .preview && preferences.focusDimming)
         .showingAllMarkers(preferences.showsMarkers)
         .typewriterScrolling(preferences.typewriterScrolling)
+        .lineNumbers(preferences.showsLineNumbers)
+        .indentsWithTabs(preferences.indentsWithTabs)
+        .keyBindings(
+            EditorKeyBindings(
+                toggleTask: preferences.shortcut(for: .toggleTask),
+                duplicateBlock: preferences.shortcut(for: .duplicateBlock),
+                writingTools: preferences.shortcut(for: .writingTools)))
         .imageFolder(window.imageFolder(for: document.url))
         .proxy(window.editor)
         .onBeforeLargeEdit { reason in document.keepVersion(reason) }
@@ -81,9 +97,12 @@ private struct DocumentEditor: View {
     }
 }
 
-/// The quiet line at the bottom of focus mode: word count, reading time, how to leave.
-private struct FocusStatus: View {
+/// The quiet line at the foot of the page: word count and reading time, and in focus
+/// mode, how to leave.
+private struct WordCountStatus: View {
     let text: String
+    let wordsPerMinute: Double
+    let inFocusMode: Bool
 
     private var words: Int {
         text.split { $0.isWhitespace || $0.isNewline }.count { $0.contains { $0.isLetter || $0.isNumber } }
@@ -92,12 +111,15 @@ private struct FocusStatus: View {
     var body: some View {
         HStack(spacing: 18) {
             Text("\(words) words")
-            Text("\(max(1, Int((Double(words) / 230).rounded()))) min read")
-            Text("esc to wake")
+            Text("\(max(1, Int((Double(words) / max(wordsPerMinute, 1)).rounded()))) min read")
+            if inFocusMode { Text("esc to wake") }
         }
         .font(.brand(.metadata))
         .foregroundStyle(Color.brand(\.overlay0))
-        .padding(.bottom, 18)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(inFocusMode ? .clear : Color.brand(\.page).opacity(0.9), in: .capsule)
+        .padding(.bottom, inFocusMode ? 18 : 10)
         .allowsHitTesting(false)
     }
 }

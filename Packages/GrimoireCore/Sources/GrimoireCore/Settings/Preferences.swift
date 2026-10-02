@@ -18,6 +18,15 @@ public enum AltTextMode: String, Codable, CaseIterable, Sendable {
     case never
 }
 
+/// Where the word count and reading time show.
+public enum WordCountDisplay: String, Codable, CaseIterable, Sendable {
+    /// At the foot of every page.
+    case always
+    /// Only in focus mode.
+    case focusMode
+    case never
+}
+
 /// The user's settings, saved in `UserDefaults`. Views and windows read them from the
 /// shared instance, so a change applies everywhere at once.
 @MainActor @Observable
@@ -57,6 +66,26 @@ public final class Preferences {
     public var typewriterScrolling: Bool { didSet { save(typewriterScrolling, Key.typewriterScrolling) } }
     /// Whether focus mode fades every block but the caret's.
     public var focusDimming: Bool { didSet { save(focusDimming, Key.focusDimming) } }
+    public var wordCount: WordCountDisplay { didSet { save(wordCount.rawValue, Key.wordCount) } }
+    /// Words a minute, for the reading time.
+    public var readingSpeed: Double { didSet { save(readingSpeed, Key.readingSpeed) } }
+
+    // MARK: Raw
+
+    /// Whether Raw mode numbers its lines.
+    public var showsLineNumbers: Bool { didSet { save(showsLineNumbers, Key.showsLineNumbers) } }
+    /// Columns between tab stops in Raw and code blocks.
+    public var tabWidth: Int { didSet { save(tabWidth, Key.tabWidth) } }
+    /// Whether Tab types a tab character instead of spaces.
+    public var indentsWithTabs: Bool { didSet { save(indentsWithTabs, Key.indentsWithTabs) } }
+
+    // MARK: Shortcuts
+
+    /// Shortcuts changed from their defaults. A combo with no key means none; read them
+    /// through `shortcut(for:)`.
+    public internal(set) var shortcutOverrides: [ShortcutAction: KeyCombo] {
+        didSet { save((try? JSONEncoder().encode(shortcutOverrides)) ?? Data(), Key.shortcuts) }
+    }
 
     // MARK: Spelling
 
@@ -102,6 +131,12 @@ public final class Preferences {
         static let showsMarkers = "settings.showsMarkers"
         static let typewriterScrolling = "settings.typewriterScrolling"
         static let focusDimming = "settings.focusDimming"
+        static let wordCount = "settings.wordCount"
+        static let readingSpeed = "settings.readingSpeed"
+        static let showsLineNumbers = "settings.showsLineNumbers"
+        static let tabWidth = "settings.tabWidth"
+        static let indentsWithTabs = "settings.indentsWithTabs"
+        static let shortcuts = "settings.shortcuts"
         static let checksSpelling = "settings.checksSpelling"
         static let checksGrammar = "settings.checksGrammar"
         static let correctsSpelling = "settings.correctsSpelling"
@@ -137,6 +172,15 @@ public final class Preferences {
         showsMarkers = defaults.object(forKey: Key.showsMarkers) as? Bool ?? false
         typewriterScrolling = defaults.object(forKey: Key.typewriterScrolling) as? Bool ?? false
         focusDimming = defaults.object(forKey: Key.focusDimming) as? Bool ?? true
+        wordCount = defaults.string(forKey: Key.wordCount).flatMap(WordCountDisplay.init) ?? .focusMode
+        readingSpeed = defaults.object(forKey: Key.readingSpeed) as? Double ?? 230
+        showsLineNumbers = defaults.object(forKey: Key.showsLineNumbers) as? Bool ?? false
+        tabWidth = defaults.object(forKey: Key.tabWidth) as? Int ?? 4
+        indentsWithTabs = defaults.object(forKey: Key.indentsWithTabs) as? Bool ?? false
+        shortcutOverrides =
+            defaults.data(forKey: Key.shortcuts).flatMap {
+                try? JSONDecoder().decode([ShortcutAction: KeyCombo].self, from: $0)
+            } ?? [:]
         checksSpelling = defaults.object(forKey: Key.checksSpelling) as? Bool ?? true
         checksGrammar = defaults.object(forKey: Key.checksGrammar) as? Bool ?? true
         func system(_ key: String) -> Bool { defaults.object(forKey: key) as? Bool ?? true }
@@ -165,6 +209,11 @@ public final class Preferences {
         showsMarkers = false
         typewriterScrolling = false
         focusDimming = true
+        wordCount = .focusMode
+        readingSpeed = 230
+        showsLineNumbers = false
+        tabWidth = 4
+        indentsWithTabs = false
     }
 
     // MARK: Per project

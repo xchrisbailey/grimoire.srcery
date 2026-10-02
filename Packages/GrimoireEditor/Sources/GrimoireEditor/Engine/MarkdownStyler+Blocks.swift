@@ -118,7 +118,8 @@ extension MarkdownStyler {
         storage.addAttributes(
             [
                 .font: theme.code, .foregroundColor: theme.token(.codeBlock, raw: false).color ?? theme.ink,
-                .paragraphStyle: paragraphStyle(firstLineIndent: 14, indent: 14, tailIndent: -14, lineHeight: 1.15),
+                .paragraphStyle: paragraphStyle(
+                    firstLineIndent: 14, indent: 14, tailIndent: -14, lineHeight: 1.15, codeTabs: true),
             ],
             range: range)
         var lines: [NSRange] = []

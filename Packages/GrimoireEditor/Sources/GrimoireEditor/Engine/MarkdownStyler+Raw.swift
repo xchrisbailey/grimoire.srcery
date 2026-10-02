@@ -17,7 +17,7 @@ extension MarkdownStyler {
     var rawAttributes: [NSAttributedString.Key: Any] {
         [
             .font: rawFont, .foregroundColor: theme.ink,
-            .paragraphStyle: paragraphStyle(lineHeight: theme.rawLineHeightMultiple),
+            .paragraphStyle: paragraphStyle(lineHeight: theme.rawLineHeightMultiple, codeTabs: true),
         ]
     }
 

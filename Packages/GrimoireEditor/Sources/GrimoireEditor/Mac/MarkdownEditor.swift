@@ -14,6 +14,9 @@ public struct MarkdownEditor: NSViewRepresentable {
     var dimsAroundCaret = false
     var showsAllMarkers = false
     var typewriterScrolling = false
+    var showsLineNumbers = false
+    var indentsWithTabs = false
+    var keyBindings = EditorKeyBindings()
     var imageFolder: URL?
     var textChecking = TextChecking.spellingOnly
     var projectWords: [String] = []
@@ -62,6 +65,28 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func typewriterScrolling(_ isOn: Bool) -> MarkdownEditor {
         var copy = self
         copy.typewriterScrolling = isOn
+        return copy
+    }
+
+    /// Numbers Raw mode's lines in the margin.
+    public func lineNumbers(_ shows: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.showsLineNumbers = shows
+        return copy
+    }
+
+    /// Whether Tab types a tab character or spaces, in Raw and outside lists. The tab
+    /// width is the theme's.
+    public func indentsWithTabs(_ usesTabs: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.indentsWithTabs = usesTabs
+        return copy
+    }
+
+    /// The editor's own shortcuts, such as Toggle Task, when they've been changed.
+    public func keyBindings(_ bindings: EditorKeyBindings) -> MarkdownEditor {
+        var copy = self
+        copy.keyBindings = bindings
         return copy
     }
 
@@ -165,6 +190,9 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.imageFolder = imageFolder
         controller.revealsAllMarkers = showsAllMarkers
         controller.typewriterScrolling = typewriterScrolling
+        controller.showsLineNumbers = showsLineNumbers
+        controller.indentsWithTabs = indentsWithTabs
+        controller.keyBindings = keyBindings
         controller.textChecking = textChecking
         controller.projectWords = projectWords
         controller.onLearnWord = onLearnWord
