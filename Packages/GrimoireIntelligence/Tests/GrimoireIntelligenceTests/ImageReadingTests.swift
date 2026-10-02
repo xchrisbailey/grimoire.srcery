@@ -2,6 +2,7 @@
 import AppKit
 import Foundation
 import Testing
+import Vision
 
 @testable import GrimoireIntelligence
 
@@ -66,8 +67,19 @@ let potionRows = [
     ["Hearth", "Rosemary", "1 hour"],
 ]
 
+/// Whether Vision's document recognizer runs here. Virtual Macs, like CI's hosted runners,
+/// can't compile its on-device models.
+func visionReadsDocuments() async -> Bool {
+    let context = CGContext(
+        data: nil, width: 64, height: 64, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    guard let image = context?.makeImage() else { return false }
+    return (try? await RecognizeDocumentsRequest().perform(on: image)) != nil
+}
+
 @MainActor @Suite struct ImageTextTests {
-    @Test func readsATableScreenshot() async throws {
+    @Test(.enabled("Vision can read documents on this Mac") { await visionReadsDocuments() })
+    func readsATableScreenshot() async throws {
         let draft = try await ImageText.draft(of: renderedTable(title: "Potions", rows: potionRows))
         print("DRAFT:\n\(draft)")
         for word in ["Potions", "Ember", "Moonwater", "Silver leaf", "12 nights", "Rosemary"] {

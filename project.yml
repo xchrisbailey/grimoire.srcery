@@ -70,6 +70,8 @@ targets:
         PRODUCT_NAME: Grimoire
         PRODUCT_BUNDLE_IDENTIFIER: computer.srcery.grimoire
         SDKROOT: macosx
+        # Target-level so it wins over the AppIcon default in XcodeGen's presets.
+        ASSETCATALOG_COMPILER_APPICON_NAME: Grimoire
         COMBINE_HIDPI_IMAGES: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         CODE_SIGN_ENTITLEMENTS: Apps/GrimoireMac/GrimoireMac.entitlements
@@ -97,6 +99,8 @@ targets:
         PRODUCT_NAME: Grimoire
         PRODUCT_BUNDLE_IDENTIFIER: computer.srcery.grimoire
         SDKROOT: iphoneos
+        # Target-level so it wins over the AppIcon default in XcodeGen's presets.
+        ASSETCATALOG_COMPILER_APPICON_NAME: Grimoire
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         TARGETED_DEVICE_FAMILY: "1,2"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"

@@ -62,8 +62,8 @@ extension MarkdownTextView {
         guard let layoutManager = textLayoutManager, let storage = textContentStorage else { return }
         let font = lineNumberAttributes[.font] as? NSFont ?? .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         let right = textContainerOrigin.x - 14
-        let start = layoutManager.textViewportLayoutController.viewportRange?.location
-            ?? storage.documentRange.location
+        let viewport = layoutManager.textViewportLayoutController.viewportRange
+        let start = viewport?.location ?? storage.documentRange.location
         layoutManager.enumerateTextLayoutFragments(from: start, options: [.ensuresLayout]) { fragment in
             let frame = fragment.layoutFragmentFrame.offsetBy(dx: 0, dy: textContainerOrigin.y)
             if frame.minY > dirtyRect.maxY { return false }

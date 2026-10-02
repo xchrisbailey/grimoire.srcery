@@ -81,7 +81,8 @@ private struct DocumentEditor: View {
             EditorKeyBindings(
                 toggleTask: preferences.shortcut(for: .toggleTask),
                 duplicateBlock: preferences.shortcut(for: .duplicateBlock),
-                writingTools: preferences.shortcut(for: .writingTools)))
+                writingTools: preferences.shortcut(for: .writingTools))
+        )
         .imageFolder(window.imageFolder(for: document.url))
         .proxy(window.editor)
         .onBeforeLargeEdit { reason in document.keepVersion(reason) }

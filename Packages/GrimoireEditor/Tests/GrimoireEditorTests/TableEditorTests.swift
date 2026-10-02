@@ -143,7 +143,7 @@ import Testing
                 })
         }
         print("Slowest keystroke in a 10×21 table: \(slowest)")
-        #expect(slowest < .milliseconds(50))
+        #expect(slowest < budget(.milliseconds(50)))
     }
 }
 #endif
