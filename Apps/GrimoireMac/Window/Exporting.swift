@@ -70,7 +70,7 @@ extension WindowState {
         try await printer.load(
             DocumentExport.html(
                 markdown: document.text, fileURL: document.url, title: exportTitle, style: .print, paged: true,
-            keepsLineBreaks: keepsLineBreaks))
+                keepsLineBreaks: keepsLineBreaks))
         return try await printer.pdf()
     }
 

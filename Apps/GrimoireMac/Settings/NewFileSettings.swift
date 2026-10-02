@@ -28,8 +28,10 @@ struct NewFileSettings: View {
         let example = FileNaming.name(from: preferences.newFileName)
         if preferences.newFileLocation == .subfolder {
             return String(
-                // swiftlint:disable:next line_length
-                localized: "The folder is inside the project's first folder and is made if it's missing. {date} and {time} fill in, so a new file now is “\(example).md”."
+                localized: """
+                    The folder is inside the project's first folder and is made if it's missing. \
+                    {date} and {time} fill in, so a new file now is “\(example).md”.
+                    """
             )
         }
         return String(localized: "{date} and {time} fill in, so a new file now is “\(example).md”.")

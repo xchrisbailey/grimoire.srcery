@@ -65,4 +65,5 @@ jobs:
       - name: swift-format
         run: xcrun swift-format lint --strict --recursive Apps Packages
       - name: SwiftLint
+        if: success() || failure()  # report both linters in one run
         run: brew install swiftlint && swiftlint --strict
