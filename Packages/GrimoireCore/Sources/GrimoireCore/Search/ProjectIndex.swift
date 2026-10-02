@@ -64,7 +64,7 @@ public final class ProjectIndex {
             for node in tree.documents {
                 let full = node.url.standardizedFileURL.path(percentEncoded: false)
                 let relative = full.hasPrefix(rootPath) ? String(full.dropFirst(rootPath.count)) : node.name
-                let path = folder.root.name + "/" + relative.trimmingPrefix("/")
+                let path = folder.root.displayName + "/" + relative.trimmingPrefix("/")
                 documents.append(
                     IndexedDocument(url: node.url, name: node.url.deletingPathExtension().lastPathComponent, path: path)
                 )

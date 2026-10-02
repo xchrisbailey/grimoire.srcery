@@ -88,17 +88,23 @@ public struct FolderRoot: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     /// The folder's name when it was bound or last resolved.
     public var name: String
+    /// What the sidebar calls the folder instead of its name, if the user gave it one.
+    public var alias: String?
     public var bookmark: Data
     /// Where the folder was last seen, for the re-grant prompt when the bookmark no
     /// longer resolves.
     public var lastKnownPath: String
 
-    public init(id: UUID = UUID(), name: String, bookmark: Data, lastKnownPath: String) {
+    public init(id: UUID = UUID(), name: String, alias: String? = nil, bookmark: Data, lastKnownPath: String) {
         self.id = id
         self.name = name
+        self.alias = alias
         self.bookmark = bookmark
         self.lastKnownPath = lastKnownPath
     }
+
+    /// The alias, or the folder's name when it has none.
+    public var displayName: String { alias ?? name }
 
     public var lastKnownURL: URL { URL(filePath: lastKnownPath, directoryHint: .isDirectory) }
 }

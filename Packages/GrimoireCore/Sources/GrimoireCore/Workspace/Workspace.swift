@@ -112,6 +112,12 @@ public final class Workspace {
         sync()
     }
 
+    /// Shows the folder under `alias` instead of its name. Empty clears it.
+    public func setAlias(_ alias: String, of rootID: FolderRoot.ID) {
+        library.setAlias(alias, of: rootID, in: projectID)
+        sync()
+    }
+
     // MARK: - Paths
 
     /// The folder containing `url`, if it's inside one of this workspace's roots.

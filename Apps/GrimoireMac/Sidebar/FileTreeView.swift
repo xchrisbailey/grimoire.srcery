@@ -66,7 +66,7 @@ struct FileTreeView: View {
     }
 }
 
-/// A bound folder's section header: its name and where it lives.
+/// A bound folder's section header: its alias or name, and where it lives.
 private struct RootHeader: View {
     let folder: BoundFolder
     let workspace: Workspace
@@ -74,7 +74,7 @@ private struct RootHeader: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(folder.root.name)
+            Text(folder.root.displayName)
                 .brandFont(.chrome)
                 .foregroundStyle(Color.brand(\.subtext))
             if folder.status == .needsAccess {
@@ -83,7 +83,7 @@ private struct RootHeader: View {
                     .help(Text("Needs access"))
             }
             Spacer(minLength: 4)
-            Text(abbreviatedParent)
+            Text(abbreviatedLocation)
                 .brandFont(.metadata)
                 .foregroundStyle(Color.brand(\.overlay0))
                 .lineLimit(1)
@@ -95,6 +95,13 @@ private struct RootHeader: View {
                 FolderMenu(url: url, workspace: workspace, actions: actions)
                 Divider()
             }
+            if folder.root.alias == nil {
+                Button("Set Alias…") { actions.startAlias(folder.root) }
+            } else {
+                Button("Rename Alias…") { actions.startAlias(folder.root) }
+                Button("Remove Alias") { workspace.setAlias("", of: folder.id) }
+            }
+            Divider()
             Button("Unbind Folder") { actions.unbind(folder, from: workspace) }
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -103,10 +110,13 @@ private struct RootHeader: View {
         }
     }
 
-    private var abbreviatedParent: String {
-        let parent = (folder.url ?? folder.root.lastKnownURL).deletingLastPathComponent().path(percentEncoded: false)
+    /// Where the folder lives. An aliased folder's own name is part of it, since the
+    /// alias hides it.
+    private var abbreviatedLocation: String {
+        let url = folder.url ?? folder.root.lastKnownURL
+        let location = (folder.root.alias == nil ? url.deletingLastPathComponent() : url).path(percentEncoded: false)
         let home = Self.userHome
-        let trimmed = parent.hasSuffix("/") && parent.count > 1 ? String(parent.dropLast()) : parent
+        let trimmed = location.hasSuffix("/") && location.count > 1 ? String(location.dropLast()) : location
         if trimmed == home { return "~" }
         if trimmed.hasPrefix(home + "/") { return "~" + trimmed.dropFirst(home.count) }
         return trimmed

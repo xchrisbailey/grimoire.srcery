@@ -101,7 +101,8 @@ final class WindowState {
         workspace?.deactivate()
     }
 
-    /// Lets the user pick folders to bind to this window's project.
+    /// Lets the user pick folders to bind to this window's project, then offers to alias
+    /// each new one.
     func bindFolders() {
         guard let projectID else { return }
         let panel = NSOpenPanel()
@@ -111,13 +112,17 @@ final class WindowState {
         panel.allowsMultipleSelection = true
         panel.prompt = String(localized: "Bind")
         guard panel.runModal() == .OK else { return }
+        let existing = Set(project?.roots.map(\.id) ?? [])
+        var bound: [FolderRoot] = []
         for url in panel.urls {
             do {
-                try library.bindFolder(url, to: projectID)
+                let root = try library.bindFolder(url, to: projectID)
+                if !existing.contains(root.id) { bound.append(root) }
             } catch {
                 actions.error = error
             }
         }
+        actions.offerAliases(for: bound)
     }
 
     /// Focus mode shows only the editor: the sidebar and toolbar step away until esc.

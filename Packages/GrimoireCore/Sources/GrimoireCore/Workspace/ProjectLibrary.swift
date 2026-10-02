@@ -67,6 +67,16 @@ public final class ProjectLibrary {
         }
     }
 
+    /// Gives a root a name of the user's own. An empty alias clears it, so the folder's
+    /// name shows again.
+    public func setAlias(_ alias: String, of rootID: FolderRoot.ID, in projectID: Project.ID) {
+        let trimmed = alias.trimmingCharacters(in: .whitespacesAndNewlines)
+        update(projectID) { project in
+            guard let index = project.roots.firstIndex(where: { $0.id == rootID }) else { return }
+            project.roots[index].alias = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
     /// Stores a fresh bookmark for a root: after the user re-grants access, or when a
     /// stale bookmark was recreated.
     public func replaceBookmark(of rootID: FolderRoot.ID, in projectID: Project.ID, with url: URL) throws {
