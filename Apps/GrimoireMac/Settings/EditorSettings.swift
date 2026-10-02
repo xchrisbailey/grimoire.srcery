@@ -14,14 +14,22 @@ struct EditorSettings: View {
                     LabeledContent(
                         "Line height", value: preferences.lineHeight.formatted(.number.precision(.fractionLength(2))))
                 }
+                Toggle("Limit line length for easier reading", isOn: $preferences.limitsLineWidth)
                 Slider(value: $preferences.maxLineWidth, in: 480...1200, step: 20) {
                     LabeledContent("Line width", value: points(preferences.maxLineWidth))
                 }
+                .disabled(!preferences.limitsLineWidth)
             }
             Section {
                 Toggle("Show markdown markers on every line", isOn: $preferences.showsMarkers)
                 Toggle("Typewriter scrolling", isOn: $preferences.typewriterScrolling)
-                Toggle("Fade other blocks in focus mode", isOn: $preferences.focusDimming)
+                Toggle("Pair brackets, quotes and markdown markers", isOn: $preferences.autoPairs)
+                Toggle("Fade other text in focus mode", isOn: $preferences.focusDimming)
+                Picker("Keep lit in focus mode", selection: $preferences.focusUnit) {
+                    Text("Paragraph").tag(FocusUnit.paragraph)
+                    Text("Sentence").tag(FocusUnit.sentence)
+                }
+                .disabled(!preferences.focusDimming)
             } footer: {
                 Text(
                     // swiftlint:disable:next line_length
@@ -29,6 +37,7 @@ struct EditorSettings: View {
                 )
                 .foregroundStyle(.secondary)
             }
+            SyntaxHighlightSettings(preferences: preferences)
             Section {
                 Toggle("Show line numbers", isOn: $preferences.showsLineNumbers)
                 Stepper(value: $preferences.tabWidth, in: 1...8) {

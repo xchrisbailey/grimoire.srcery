@@ -12,6 +12,8 @@ public final class MarkdownTextView: NSTextView {
     var onSelectBlock: ((Int) -> Void)?
     /// Offered every key press first; returns true when it handled the key.
     var onKeyCommand: ((NSEvent) -> Bool)?
+    /// Offered each typed character first; returns true when it handled it.
+    var onInsertText: ((String) -> Bool)?
     /// Offered every paste first; returns true when it handled the pasteboard.
     var onPaste: ((NSPasteboard) -> Bool)?
     /// Follows the mouse over the text, for the block handle.
@@ -244,6 +246,12 @@ public final class MarkdownTextView: NSTextView {
     public override func keyDown(with event: NSEvent) {
         if onKeyCommand?(event) == true { return }
         super.keyDown(with: event)
+    }
+
+    public override func insertText(_ string: Any, replacementRange: NSRange) {
+        // Only typing, which replaces the selection; edits made in code pass a range.
+        if replacementRange.location == NSNotFound, let text = string as? String, onInsertText?(text) == true { return }
+        super.insertText(string, replacementRange: replacementRange)
     }
 
     public override func paste(_ sender: Any?) {

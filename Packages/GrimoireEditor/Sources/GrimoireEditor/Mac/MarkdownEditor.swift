@@ -15,6 +15,8 @@ public struct MarkdownEditor: NSViewRepresentable {
     var showsAllMarkers = false
     var typewriterScrolling = false
     var showsLineNumbers = false
+    var autoPairs = true
+    var focusUnit: FocusUnit = .paragraph
     var indentsWithTabs = false
     var keyBindings = EditorKeyBindings()
     var imageFolder: URL?
@@ -65,6 +67,20 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func typewriterScrolling(_ isOn: Bool) -> MarkdownEditor {
         var copy = self
         copy.typewriterScrolling = isOn
+        return copy
+    }
+
+    /// Whether brackets, quotes and backticks pair themselves and markers wrap a selection.
+    public func autoPairs(_ isOn: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.autoPairs = isOn
+        return copy
+    }
+
+    /// What focus mode keeps lit: the caret's block or its sentence.
+    public func focus(on unit: FocusUnit) -> MarkdownEditor {
+        var copy = self
+        copy.focusUnit = unit
         return copy
     }
 
@@ -191,6 +207,8 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.revealsAllMarkers = showsAllMarkers
         controller.typewriterScrolling = typewriterScrolling
         controller.showsLineNumbers = showsLineNumbers
+        controller.autoPairs = autoPairs
+        controller.focusUnit = focusUnit
         controller.indentsWithTabs = indentsWithTabs
         controller.keyBindings = keyBindings
         controller.textChecking = textChecking

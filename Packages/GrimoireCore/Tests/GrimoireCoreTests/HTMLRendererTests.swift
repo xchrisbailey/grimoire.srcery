@@ -12,6 +12,13 @@ import Testing
         #expect(html.contains("<pre><code>if a &lt; b {}</code></pre>"))
     }
 
+    @Test func keepsSingleLineBreaksWhenAsked() {
+        #expect(renderer.render("one\ntwo").contains("<p>one\ntwo</p>"))
+        var loose = HTMLRenderer()
+        loose.keepsLineBreaks = true
+        #expect(loose.render("one\ntwo").contains("one<br />\ntwo"))
+    }
+
     @Test func leavesOutFrontmatterAndMDX() {
         let html = renderer.render(
             "---\ntitle: Hidden\n---\n\nimport X from './x'\n\n# Shown\n\n<Figure src=\"a.png\" />\n", flavor: .mdx)

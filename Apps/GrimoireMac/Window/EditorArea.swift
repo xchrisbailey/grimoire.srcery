@@ -73,6 +73,8 @@ private struct DocumentEditor: View {
         .dimmingAroundCaret(window.focusMode && window.editorMode == .preview && preferences.focusDimming)
         .showingAllMarkers(preferences.showsMarkers)
         .typewriterScrolling(preferences.typewriterScrolling)
+        .focus(on: preferences.focusUnit)
+        .autoPairs(preferences.autoPairs)
         .lineNumbers(preferences.showsLineNumbers)
         .indentsWithTabs(preferences.indentsWithTabs)
         .keyBindings(

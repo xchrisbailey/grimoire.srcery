@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import GrimoireCore
+import NaturalLanguage
 
 #if os(macOS)
 import AppKit
@@ -13,6 +14,10 @@ extension MarkdownStyler {
     func styleInline(_ range: NSRange, in storage: NSMutableAttributedString, baseFont: PlatformFont, reveal: Bool) {
         guard range.length > 0 else { return }
         let spans = InlineScanner.scan((storage.string as NSString).substring(with: range))
+        // Body text only: headings and table headers keep their own color.
+        if !theme.partsOfSpeech.isEmpty, baseFont.pointSize == theme.bodySize {
+            colorPartsOfSpeech(in: range, of: storage, skipping: spans)
+        }
         guard !spans.isEmpty else { return }
         applyFonts(for: spans, in: range, of: storage, baseFont: baseFont)
         for span in spans {
@@ -30,6 +35,36 @@ extension MarkdownStyler {
                     NSRange(location: range.location + marker.lowerBound, length: marker.count), in: storage,
                     reveal: reveal, token: markerToken)
             }
+        }
+    }
+
+    /// Colors each word by its part of speech, leaving code, links and images alone.
+    private func colorPartsOfSpeech(
+        in range: NSRange, of storage: NSMutableAttributedString, skipping spans: [InlineSpan]
+    ) {
+        let text = (storage.string as NSString).substring(with: range)
+        let skipped = spans.compactMap { span -> Range<Int>? in
+            switch span.kind {
+            case .strong, .emphasis, .strikethrough: nil
+            default: span.content.lowerBound..<span.content.upperBound
+            }
+        }
+        let parts: [NLTag: PartOfSpeech] = [
+            .adjective: .adjective, .noun: .noun, .adverb: .adverb, .verb: .verb, .conjunction: .conjunction,
+        ]
+        wordTagger.string = text
+        wordTagger.enumerateTags(
+            in: text.startIndex..<text.endIndex, unit: .word, scheme: .lexicalClass,
+            options: [.omitWhitespace, .omitPunctuation, .omitOther]
+        ) { tag, wordRange in
+            guard let tag, let part = parts[tag], theme.partsOfSpeech.contains(part) else { return true }
+            let word = NSRange(wordRange, in: text)
+            let local = word.location..<NSMaxRange(word)
+            guard !skipped.contains(where: { $0.overlaps(local) }) else { return true }
+            storage.addAttribute(
+                .foregroundColor, value: theme.color(for: part),
+                range: NSRange(location: range.location + word.location, length: word.length))
+            return true
         }
     }
 

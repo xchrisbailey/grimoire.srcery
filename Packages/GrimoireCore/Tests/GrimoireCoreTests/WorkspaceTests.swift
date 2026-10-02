@@ -85,6 +85,38 @@ final class Scratch {
         #expect(tree.children?.last?.children == nil)
     }
 
+    @Test func sortsByDateAndShowsHiddenFiles() throws {
+        let scratch = try Scratch()
+        let older = try scratch.file("alpha.md")
+        let newer = try scratch.file("beta.md")
+        try scratch.file(".secret.md")
+        try scratch.folder("zeta")
+        try scratch.file("zeta/inside.md")
+        let now = Date()
+        let files = FileManager.default
+        try files.setAttributes([.modificationDate: now.addingTimeInterval(-600)], ofItemAtPath: older.path)
+        try files.setAttributes([.modificationDate: now], ofItemAtPath: newer.path)
+
+        let byDate = FileScanner(listing: FileListing(sort: .modified)).scan(scratch.url)
+        #expect(byDate.children?.map(\.name) == ["zeta", "beta.md", "alpha.md"])
+        let mixed = FileScanner(listing: FileListing(sort: .name, foldersFirst: false)).scan(scratch.url)
+        #expect(mixed.children?.map(\.name) == ["alpha.md", "beta.md", "zeta"])
+        let hidden = FileScanner(listing: FileListing(showsHiddenFiles: true)).scan(scratch.url)
+        #expect(hidden.children?.map(\.name).contains(".secret.md") == true)
+    }
+
+    @Test func namesNewFilesFromATemplate() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let date = Date(timeIntervalSince1970: 1_790_930_000)
+        #expect(FileNaming.name(from: "{date} Notes", date: date, calendar: calendar) == "2026-10-02 Notes")
+        #expect(FileNaming.name(from: "Log {time}", date: date, calendar: calendar).hasPrefix("Log "))
+        #expect(FileNaming.name(from: "  ", date: date) == "Untitled")
+        #expect(FileNaming.name(from: "a/b", date: date) == "a-b")
+        #expect(FileNaming.name(from: ".hidden", date: date) == "hidden")
+        #expect(FileNaming.folderComponents("notes/../inbox/") == ["notes", "inbox"])
+    }
+
     @Test func extensionsAreConfigurable() throws {
         let scratch = try Scratch()
         try scratch.file("a.md")

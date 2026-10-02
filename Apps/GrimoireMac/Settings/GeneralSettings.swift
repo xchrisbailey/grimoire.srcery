@@ -2,7 +2,8 @@ import GrimoireCore
 import GrimoireEditor
 import SwiftUI
 
-/// Settings › General: how files open and save, which files are listed, and where images go.
+/// Settings › General: how files open and save, where new files go, how the sidebar lists
+/// them, where images go, and how exports treat line breaks.
 struct GeneralSettings: View {
     @State private var preferences = Preferences.shared
     @Environment(ProjectLibrary.self) private var library
@@ -34,6 +35,17 @@ struct GeneralSettings: View {
             } footer: {
                 Text("Separate extensions with commas. Pasted images go in an assets folder.")
                     .foregroundStyle(.secondary)
+            }
+            NewFileSettings(preferences: preferences)
+            SidebarListingSettings(preferences: preferences)
+            Section {
+                Toggle("Strict line breaks", isOn: $preferences.strictLineBreaks)
+            } footer: {
+                Text(
+                    // swiftlint:disable:next line_length
+                    "On, a single line break joins the lines in exports, printing and rich text, as markdown does. Off, it stays a line break. Leave an empty line to start a new paragraph either way."
+                )
+                .foregroundStyle(.secondary)
             }
             projectSection
         }

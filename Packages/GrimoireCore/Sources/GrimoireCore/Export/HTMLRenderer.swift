@@ -8,6 +8,9 @@ public struct HTMLRenderer {
     public var highlightCode: ((_ code: String, _ language: String?) -> String?)?
     /// The `src` to use for an image, such as a data URI for a self-contained page.
     public var imageSource: ((_ source: String) -> String)?
+    /// Whether a single line break inside a paragraph becomes `<br>`, rather than joining
+    /// the lines as strict markdown does.
+    public var keepsLineBreaks = false
 
     public init() {}
 
@@ -224,7 +227,7 @@ public struct HTMLRenderer {
         }
 
         mutating func visitSoftBreak(_ softBreak: SoftBreak) {
-            result += "\n"
+            result += renderer.keepsLineBreaks ? "<br />\n" : "\n"
         }
 
         mutating func visitText(_ text: Text) {

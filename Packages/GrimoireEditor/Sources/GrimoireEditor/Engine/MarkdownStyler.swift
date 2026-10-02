@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import GrimoireCore
+import NaturalLanguage
 
 #if os(macOS)
 import AppKit
@@ -42,6 +43,8 @@ public final class MarkdownStyler {
     /// Called when code finishes highlighting in the background, so blocks holding it can
     /// be restyled.
     public var onCodeHighlighted: ((CodeKey) -> Void)?
+    /// Tags words for parts-of-speech highlighting, reused across blocks.
+    let wordTagger = NLTagger(tagSchemes: [.lexicalClass])
     var codeHighlights: [CodeKey: [CodeHighlight]] = [:]
     var pendingCode: Set<CodeKey> = []
     /// The last few highlighted versions of code in each language, to tide edits over.

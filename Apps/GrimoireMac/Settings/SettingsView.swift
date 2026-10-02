@@ -49,8 +49,10 @@ extension ThemeLibrary {
         theme.proseFamily = preferences.proseFont
         theme.codeFamily = preferences.codeFont
         theme.setLineHeight(preferences.lineHeight)
-        theme.maxLineWidth = preferences.maxLineWidth
+        // Without the limit the column fills the window.
+        theme.maxLineWidth = preferences.limitsLineWidth ? preferences.maxLineWidth : 100_000
         theme.tabWidth = preferences.tabWidth
+        theme.partsOfSpeech = preferences.highlightsSyntax ? preferences.partsOfSpeech : []
         return theme
     }
 }

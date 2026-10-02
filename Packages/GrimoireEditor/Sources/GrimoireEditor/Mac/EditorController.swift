@@ -27,7 +27,8 @@ public final class EditorController: NSObject {
             updateDimming()
         }
     }
-    var litBlock: Int?
+    /// The text focus mode keeps lit: the caret's block, or its sentence.
+    var litRange: NSRange?
 
     /// The file being edited.
     var fileURL: URL?
@@ -70,6 +71,16 @@ public final class EditorController: NSObject {
     /// Whether Tab types a tab character rather than spaces to the next tab stop, in Raw
     /// and outside lists.
     public var indentsWithTabs = false
+    /// Whether brackets, quotes and backticks pair themselves and markers wrap a selection.
+    public var autoPairs = true
+    /// What focus mode keeps lit: the caret's block or just its sentence.
+    public var focusUnit: FocusUnit = .paragraph {
+        didSet {
+            guard focusUnit != oldValue else { return }
+            litRange = nil
+            updateDimming()
+        }
+    }
     /// Shortcuts the editor handles itself.
     public var keyBindings = EditorKeyBindings()
     /// Whether Raw mode numbers its lines in the margin.
@@ -135,6 +146,7 @@ public final class EditorController: NSObject {
         textView.onSelectBlock = { [weak self] offset in self?.selectBlock(at: offset) }
         textView.onKeyCommand = { [weak self] event in self?.handleKey(event) ?? false }
         textView.onPaste = { [weak self] pasteboard in self?.paste(from: pasteboard) ?? false }
+        textView.onInsertText = { [weak self] text in self?.handlePairing(text) ?? false }
         textView.onFindAction = { [weak self] action in self?.performFindAction(action) }
         textView.onMouseMoved = { [weak self] point in
             guard let self, self.mode == .preview else { return }
@@ -175,7 +187,7 @@ public final class EditorController: NSObject {
             codeChrome.applyTheme(theme)
             restyleAll()
             if dimsAroundCaret {
-                litBlock = nil
+                litRange = nil
                 updateDimming()
             }
         }
@@ -283,37 +295,6 @@ public final class EditorController: NSObject {
     private func restyleImages(showing url: URL) {
         for (position, block) in index.blocks.enumerated() where block.kind == .image {
             restyle(position..<(position + 1))
-        }
-    }
-
-    // MARK: - Focus
-
-    /// Fades every block but the caret's with a rendering attribute, which changes how text
-    /// draws without touching the text storage.
-    func updateDimming() {
-        guard let layoutManager = textView.textLayoutManager, let storage = textView.textContentStorage else { return }
-        let block = dimsAroundCaret ? index.blockIndex(at: textView.selectedRange().location) : nil
-        guard block != litBlock || !dimsAroundCaret else { return }
-        litBlock = block
-        let documentRange = storage.documentRange
-        layoutManager.removeRenderingAttribute(.foregroundColor, for: documentRange)
-        guard dimsAroundCaret else { return }
-        let dim = styler.theme.marker
-        let lit = block.map { NSRange(index.sourceRange(of: $0)) }
-        let length = (textView.string as NSString).length
-        var ranges: [NSRange] = []
-        if let lit {
-            ranges.append(NSRange(location: 0, length: lit.location))
-            ranges.append(NSRange(location: NSMaxRange(lit), length: length - NSMaxRange(lit)))
-        } else {
-            ranges.append(NSRange(location: 0, length: length))
-        }
-        for range in ranges where range.length > 0 {
-            guard let start = storage.location(documentRange.location, offsetBy: range.location),
-                let end = storage.location(start, offsetBy: range.length),
-                let textRange = NSTextRange(location: start, end: end)
-            else { continue }
-            layoutManager.addRenderingAttribute(.foregroundColor, value: dim, for: textRange)
         }
     }
 

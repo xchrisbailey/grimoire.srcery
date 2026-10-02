@@ -31,6 +31,7 @@ extension EditorController {
 
     /// Handles the text view's standard commands. Returns false to let it act as usual.
     func handleCommand(_ selector: Selector) -> Bool {
+        if spellSession == nil, selector == #selector(NSResponder.deleteBackward(_:)), deletePair() { return true }
         if let handled = handleModalCommand(selector) { return handled }
         let shift = NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false
         let edit: TextEdit?

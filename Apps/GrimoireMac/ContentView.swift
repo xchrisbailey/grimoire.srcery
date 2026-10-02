@@ -80,6 +80,7 @@ private struct WindowContent: View {
         .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
         .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
         .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
+        .onChange(of: Preferences.shared.fileListing) { window.preferencesChanged() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
             window.save()
         }

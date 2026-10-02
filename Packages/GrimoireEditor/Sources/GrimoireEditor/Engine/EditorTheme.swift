@@ -54,6 +54,8 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     public var codeFamily: String?
     /// Columns between tab stops in Raw and code blocks.
     public var tabWidth = 4
+    /// Word classes Preview colors, iA Writer style; empty colors none.
+    public var partsOfSpeech: Set<PartOfSpeech> = []
 
     public init(light: Theme = .latte, dark: Theme = .mocha) {
         self.light = light
@@ -91,6 +93,17 @@ public struct EditorTheme: Equatable, @unchecked Sendable {
     public var selection: PlatformColor { editorColor(\.selection) }
     public var insertionPoint: PlatformColor { editorColor(\.caret) }
     public var lineHighlight: PlatformColor { editorColor(\.lineHighlight) }
+
+    /// The color syntax highlighting gives a part of speech.
+    public func color(for part: PartOfSpeech) -> PlatformColor {
+        switch part {
+        case .adjective: color(\.caret)
+        case .noun: color(\.sparkle)
+        case .adverb: color(\.magic)
+        case .verb: color(\.link)
+        case .conjunction: color(\.string)
+        }
+    }
 
     // MARK: - Tokens
 

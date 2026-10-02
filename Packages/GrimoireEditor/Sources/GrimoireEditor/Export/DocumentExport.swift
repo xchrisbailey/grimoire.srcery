@@ -15,11 +15,12 @@ public enum ExportStyle: Sendable {
 public enum DocumentExport {
     public static func html(
         markdown: String, fileURL: URL?, title: String, style: ExportStyle, embedFonts: Bool = true,
-        paged: Bool = false
+        paged: Bool = false, keepsLineBreaks: Bool = false
     ) -> String {
         let theme = style.theme
         let folder = fileURL?.deletingLastPathComponent()
         var renderer = HTMLRenderer()
+        renderer.keepsLineBreaks = keepsLineBreaks
         renderer.highlightCode = { code, language in
             guard let language, CodeHighlighter.supports(language) else { return nil }
             return highlightedHTML(

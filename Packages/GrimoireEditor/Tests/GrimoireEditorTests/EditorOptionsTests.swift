@@ -78,5 +78,102 @@ import Testing
         #expect(KeyCombo(event: try key(76, "\u{3}", .command)) == KeyCombo(.return))
         #expect(KeyCombo(event: try key(53, "\u{1b}", [])) == KeyCombo(.escape, []))
     }
+
+    /// Types as the keyboard does, so auto-pairing sees it.
+    func typeKeys(_ string: String, into controller: EditorController) {
+        for character in string {
+            controller.textView.insertText(
+                String(character), replacementRange: NSRange(location: NSNotFound, length: 0))
+        }
+    }
+
+    @Test func bracketsAndBackticksPair() {
+        let controller = makeController("", mode: .raw)
+        typeKeys("(x", into: controller)
+        #expect(controller.text == "(x)")
+        typeKeys(")", into: controller)
+        #expect(controller.text == "(x)")
+        #expect(controller.textView.selectedRange().location == 3)
+        typeKeys(" `code`", into: controller)
+        #expect(controller.text == "(x) `code`")
+    }
+
+    @Test func threeBackticksStillMakeAFence() {
+        let controller = makeController("", mode: .preview)
+        typeKeys("```", into: controller)
+        #expect(controller.text.hasPrefix("```"))
+        #expect(!controller.text.hasPrefix("````"))
+    }
+
+    @Test func apostrophesDontPair() {
+        let controller = makeController("", mode: .raw)
+        typeKeys("don't", into: controller)
+        #expect(controller.text == "don't")
+    }
+
+    @Test func markersWrapTheSelection() {
+        let controller = makeController("make it bold", mode: .raw)
+        controller.textView.setSelectedRange(NSRange(location: 8, length: 4))
+        typeKeys("*", into: controller)
+        typeKeys("*", into: controller)
+        #expect(controller.text == "make it **bold**")
+        #expect(controller.textView.selectedRange() == NSRange(location: 10, length: 4))
+    }
+
+    @Test func backspaceRemovesAnEmptyPair() {
+        let controller = makeController("", mode: .raw)
+        typeKeys("[", into: controller)
+        #expect(controller.text == "[]")
+        controller.textView.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
+        #expect(controller.text == "")
+    }
+
+    @Test func pairingCanBeTurnedOff() {
+        let controller = makeController("", mode: .raw)
+        controller.autoPairs = false
+        typeKeys("(", into: controller)
+        #expect(controller.text == "(")
+    }
+
+    @Test func listShortcutsStillWork() {
+        let controller = makeController("", mode: .preview)
+        typeKeys("[] ", into: controller)
+        #expect(controller.text == "- [ ] ")
+    }
+
+    @Test func sentenceFocusFindsTheCaretsSentence() {
+        let text = "First one here. Second one there. Third."
+        let block = NSRange(location: 0, length: (text as NSString).length)
+        let second = Sentences.range(around: 20, in: block, of: text)
+        #expect(second.map { (text as NSString).substring(with: $0).hasPrefix("Second one there.") } == true)
+        let first = Sentences.range(around: 3, in: block, of: text)
+        #expect(first?.location == 0)
+    }
+
+    @Test func partsOfSpeechColorWordsButNotCode() {
+        let controller = makeController("Ravens fly quickly over `dark` hills.", mode: .preview, caret: 0)
+        var theme = controller.theme
+        theme.partsOfSpeech = Set(PartOfSpeech.allCases)
+        controller.theme = theme
+        let storage = controller.textView.textStorage!
+        func color(at offset: Int) -> PaletteColor? {
+            guard let color = storage.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? NSColor
+            else { return nil }
+            var resolved: NSColor?
+            controller.textView.effectiveAppearance.performAsCurrentDrawingAppearance {
+                resolved = color.usingColorSpace(.sRGB)
+            }
+            guard let resolved else { return nil }
+            return PaletteColor(
+                red: UInt8((resolved.redComponent * 255).rounded()),
+                green: UInt8((resolved.greenComponent * 255).rounded()),
+                blue: UInt8((resolved.blueComponent * 255).rounded()))
+        }
+        let palette = controller.styler.theme.current.palette
+        let text = controller.text as NSString
+        #expect(color(at: text.range(of: "fly").location) == palette.link)
+        #expect(color(at: text.range(of: "quickly").location) == palette.magic)
+        #expect(color(at: text.range(of: "dark").location) != palette.caret)
+    }
 }
 #endif
