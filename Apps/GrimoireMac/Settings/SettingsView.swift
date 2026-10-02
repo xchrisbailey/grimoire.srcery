@@ -41,7 +41,7 @@ extension ThemeLibrary {
     }
 
     /// The editor's look: the chosen light and dark themes, with the fonts and sizes from
-    /// Settings › Editor.
+    /// Settings › Appearance and the layout from Settings › Editor.
     func editorTheme(_ preferences: Preferences) -> EditorTheme {
         var theme = EditorTheme(light: lightTheme, dark: darkTheme)
         theme.bodySize = preferences.proseSize
@@ -49,7 +49,10 @@ extension ThemeLibrary {
         theme.proseFamily = preferences.proseFont
         theme.codeFamily = preferences.codeFont
         theme.setLineHeight(preferences.lineHeight)
-        theme.maxLineWidth = preferences.maxLineWidth
+        // Without the limit the column fills the window.
+        theme.maxLineWidth = preferences.limitsLineWidth ? preferences.maxLineWidth : 100_000
+        theme.tabWidth = preferences.tabWidth
+        theme.partsOfSpeech = preferences.highlightsSyntax ? preferences.partsOfSpeech : []
         return theme
     }
 }

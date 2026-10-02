@@ -80,7 +80,9 @@ final class WindowState {
         semantic = nil
         index.onRead = { [weak self] in self?.indexMeanings() }
         let extensions = Set(preferences.fileExtensions(for: library.project(id)))
-        let workspace = Workspace(projectID: id, library: library, scanner: FileScanner(extensions: extensions))
+        let workspace = Workspace(
+            projectID: id, library: library,
+            scanner: FileScanner(extensions: extensions, listing: preferences.fileListing))
         workspace.activate()
         self.workspace = workspace
         if openLastFile, let reference = project?.lastOpenedFile, let url = workspace.url(for: reference) {
@@ -169,12 +171,24 @@ final class WindowState {
         }
     }
 
-    /// The folder new files go in: the selected file's folder, else the first bound folder.
+    /// The folder new files go in, as Settings › General says: beside the open file, at
+    /// the top of the first bound folder, or in a named folder inside it (which may not
+    /// exist yet).
     var folderForNewFiles: URL? {
-        if let selectedFile, workspace?.reference(for: selectedFile) != nil {
-            return selectedFile.deletingLastPathComponent()
+        let first = workspace?.folders.first { $0.status == .available }?.url
+        switch preferences.newFileLocation {
+        case .besideSelection:
+            if let selectedFile, workspace?.reference(for: selectedFile) != nil {
+                return selectedFile.deletingLastPathComponent()
+            }
+            return first
+        case .firstFolder:
+            return first
+        case .subfolder:
+            return FileNaming.folderComponents(preferences.newFileFolder).reduce(first) {
+                $0?.appending(path: $1, directoryHint: .isDirectory)
+            }
         }
-        return workspace?.folders.first { $0.status == .available }?.url
     }
 
     /// Where images pasted into `url` are saved, when Settings puts them at the top of the
@@ -189,6 +203,7 @@ final class WindowState {
     /// Settings changed which files are listed, or how long edits wait to save.
     func preferencesChanged() {
         workspace?.setExtensions(Set(preferences.fileExtensions(for: project)))
+        workspace?.setListing(preferences.fileListing)
         document?.autosaveDelay = .seconds(preferences.autosaveDelay)
     }
 
@@ -234,6 +249,12 @@ final class WindowState {
 
     func newFile() {
         guard let workspace, let folder = folderForNewFiles else { return }
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        } catch {
+            actions.error = error
+            return
+        }
         actions.createDocument(in: folder, workspace: workspace)
     }
 

@@ -49,6 +49,36 @@ import Testing
     }
 }
 
+@Suite struct ClassicThemeTests {
+    @Test func idsAndNamesAreUnique() {
+        #expect(Set(Theme.builtIn.map(\.id)).count == Theme.builtIn.count)
+        #expect(Set(Theme.builtIn.map(\.name)).count == Theme.builtIn.count)
+    }
+
+    @Test func darknessMatchesThePage() {
+        for theme in Theme.builtIn {
+            #expect(theme.isDark == (theme.palette.page.luminance < 0.2), "\(theme.name)")
+        }
+    }
+
+    @Test func textIsReadableOnThePage() {
+        for theme in Theme.builtIn {
+            let palette = theme.palette
+            let (light, dark) = (
+                max(palette.ink.luminance, palette.page.luminance), min(palette.ink.luminance, palette.page.luminance)
+            )
+            #expect((light + 0.05) / (dark + 0.05) >= 4.5, "\(theme.name)")
+        }
+    }
+
+    @Test func fillsRolesFromItsOwnPalette() {
+        #expect(Theme.dracula.palette.magic.description == "#bd93f9")
+        #expect(Theme.nord.palette.page.description == "#2e3440")
+        #expect(Theme.solarizedLight.style(.link, raw: false).color?.description == "#268bd2")
+        #expect(Theme.gruvboxDark.style(.keyword).color == Theme.gruvboxDark.palette.magic)
+    }
+}
+
 @Suite struct LenientJSONTests {
     @Test func acceptsCommentsAndTrailingCommas() throws {
         let text = """
@@ -272,9 +302,10 @@ import Testing
         return (ThemeLibrary(folder: scratch.url.appending(path: "Themes"), defaults: defaults), defaults)
     }
 
-    @Test func startsWithTheBuiltInPair() throws {
+    @Test func startsWithTheBuiltInThemes() throws {
         let (library, _) = makeLibrary(try Scratch())
-        #expect(library.themes.map(\.name) == ["Catppuccin Mocha", "Catppuccin Latte"])
+        #expect(library.themes.prefix(2).map(\.name) == ["Catppuccin Mocha", "Catppuccin Latte"])
+        #expect(library.themes.contains(.dracula) && library.themes.contains(.solarizedLight))
         #expect(library.lightTheme == .latte)
         #expect(library.darkTheme == .mocha)
         #expect(library.appearance == .system)
@@ -308,7 +339,7 @@ import Testing
         #expect(library.imported.isEmpty)
         #expect(library.darkTheme == .mocha)
         library.remove(Theme.mocha.id)
-        #expect(library.themes.count == 2)
+        #expect(library.themes == Theme.builtIn)
     }
 
     @Test func remembersTheChoices() throws {

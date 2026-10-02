@@ -46,8 +46,8 @@ public struct Theme: Codable, Identifiable, Hashable, Sendable {
     public static let latte = Theme(
         id: "catppuccin-latte", name: "Catppuccin Latte", isDark: false, origin: .builtIn, palette: .latte)
 
-    /// The built-in pair, dark first.
-    public static let builtIn = [mocha, latte]
+    /// The brand pair, dark first, then the classics.
+    public static let builtIn = [mocha, latte] + classics
 
     public static func `default`(dark: Bool) -> Theme { dark ? mocha : latte }
 

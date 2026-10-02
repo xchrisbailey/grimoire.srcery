@@ -8,6 +8,9 @@ import UniformTypeIdentifiers
 /// Export as HTML or PDF, Print, Copy as Rich Text, and the PDF the share menu hands out.
 @MainActor
 extension WindowState {
+    /// Settings › General's strict line breaks, off: single line breaks stay breaks.
+    private var keepsLineBreaks: Bool { !Preferences.shared.strictLineBreaks }
+
     private var exportTitle: String {
         document?.url.deletingPathExtension().lastPathComponent ?? String(localized: "Untitled")
     }
@@ -18,7 +21,7 @@ extension WindowState {
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return DocumentExport.html(
             markdown: document.text, fileURL: document.url, title: exportTitle,
-            style: .theme(ThemeLibrary.shared.theme(dark: isDark)))
+            style: .theme(ThemeLibrary.shared.theme(dark: isDark)), keepsLineBreaks: keepsLineBreaks)
     }
 
     func exportHTML() {
@@ -46,7 +49,8 @@ extension WindowState {
         let printer = PagePrinter()
         printer.title = document.url.lastPathComponent
         let html = DocumentExport.html(
-            markdown: document.text, fileURL: document.url, title: exportTitle, style: .print, paged: true)
+            markdown: document.text, fileURL: document.url, title: exportTitle, style: .print, paged: true,
+            keepsLineBreaks: keepsLineBreaks)
         let window = NSApp.keyWindow
         Task {
             do {
@@ -65,7 +69,8 @@ extension WindowState {
         printer.title = document.url.lastPathComponent
         try await printer.load(
             DocumentExport.html(
-                markdown: document.text, fileURL: document.url, title: exportTitle, style: .print, paged: true))
+                markdown: document.text, fileURL: document.url, title: exportTitle, style: .print, paged: true,
+            keepsLineBreaks: keepsLineBreaks))
         return try await printer.pdf()
     }
 
@@ -76,6 +81,7 @@ extension WindowState {
         let selected = editor.selectedText
         let markdown = selected.isEmpty ? document.text : selected
         var renderer = HTMLRenderer()
+        renderer.keepsLineBreaks = keepsLineBreaks
         renderer.imageSource = { source in
             DocumentExport.dataURI(for: source, relativeTo: document.url.deletingLastPathComponent()) ?? source
         }

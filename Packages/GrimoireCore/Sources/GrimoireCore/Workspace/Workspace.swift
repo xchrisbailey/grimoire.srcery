@@ -86,6 +86,13 @@ public final class Workspace {
         refreshAll()
     }
 
+    /// Changes the sort order or whether hidden files show, and rescans.
+    public func setListing(_ listing: FileListing) {
+        guard listing != scanner.listing else { return }
+        scanner.listing = listing
+        refreshAll()
+    }
+
     /// Stores access to a folder the user picked again after its bookmark stopped working.
     public func regrantAccess(to rootID: FolderRoot.ID, with url: URL) {
         do {

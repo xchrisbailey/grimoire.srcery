@@ -14,6 +14,11 @@ public struct MarkdownEditor: NSViewRepresentable {
     var dimsAroundCaret = false
     var showsAllMarkers = false
     var typewriterScrolling = false
+    var showsLineNumbers = false
+    var autoPairs = true
+    var focusUnit: FocusUnit = .paragraph
+    var indentsWithTabs = false
+    var keyBindings = EditorKeyBindings()
     var imageFolder: URL?
     var textChecking = TextChecking.spellingOnly
     var projectWords: [String] = []
@@ -62,6 +67,42 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func typewriterScrolling(_ isOn: Bool) -> MarkdownEditor {
         var copy = self
         copy.typewriterScrolling = isOn
+        return copy
+    }
+
+    /// Whether brackets, quotes and backticks pair themselves and markers wrap a selection.
+    public func autoPairs(_ isOn: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.autoPairs = isOn
+        return copy
+    }
+
+    /// What focus mode keeps lit: the caret's block or its sentence.
+    public func focus(on unit: FocusUnit) -> MarkdownEditor {
+        var copy = self
+        copy.focusUnit = unit
+        return copy
+    }
+
+    /// Numbers Raw mode's lines in the margin.
+    public func lineNumbers(_ shows: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.showsLineNumbers = shows
+        return copy
+    }
+
+    /// Whether Tab types a tab character or spaces, in Raw and outside lists. The tab
+    /// width is the theme's.
+    public func indentsWithTabs(_ usesTabs: Bool) -> MarkdownEditor {
+        var copy = self
+        copy.indentsWithTabs = usesTabs
+        return copy
+    }
+
+    /// The editor's own shortcuts, such as Toggle Task, when they've been changed.
+    public func keyBindings(_ bindings: EditorKeyBindings) -> MarkdownEditor {
+        var copy = self
+        copy.keyBindings = bindings
         return copy
     }
 
@@ -165,6 +206,11 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.imageFolder = imageFolder
         controller.revealsAllMarkers = showsAllMarkers
         controller.typewriterScrolling = typewriterScrolling
+        controller.showsLineNumbers = showsLineNumbers
+        controller.autoPairs = autoPairs
+        controller.focusUnit = focusUnit
+        controller.indentsWithTabs = indentsWithTabs
+        controller.keyBindings = keyBindings
         controller.textChecking = textChecking
         controller.projectWords = projectWords
         controller.onLearnWord = onLearnWord

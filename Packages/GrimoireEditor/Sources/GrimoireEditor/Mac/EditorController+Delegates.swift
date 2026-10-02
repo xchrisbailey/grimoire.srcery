@@ -49,7 +49,7 @@ extension EditorController: NSTextViewDelegate {
         blockHandle.hide()
         codeChrome.update()
         if dimsAroundCaret {
-            litBlock = nil
+            litRange = nil
             updateDimming()
         }
         if pendingShortcut {

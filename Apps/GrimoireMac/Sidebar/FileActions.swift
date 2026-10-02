@@ -21,7 +21,8 @@ final class FileActions {
     func createDocument(in folder: URL, workspace: Workspace, rename: Bool = true) -> URL? {
         var created: URL?
         perform(workspace, near: folder) {
-            created = try FileOperations.createDocument(in: folder)
+            created = try FileOperations.createDocument(
+                in: folder, named: FileNaming.name(from: Preferences.shared.newFileName))
         }
         guard let created else { return nil }
         workspace.setExpanded(folder, true)

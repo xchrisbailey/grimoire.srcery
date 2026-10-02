@@ -12,6 +12,8 @@ public final class MarkdownTextView: NSTextView {
     var onSelectBlock: ((Int) -> Void)?
     /// Offered every key press first; returns true when it handled the key.
     var onKeyCommand: ((NSEvent) -> Bool)?
+    /// Offered each typed character first; returns true when it handled it.
+    var onInsertText: ((String) -> Bool)?
     /// Offered every paste first; returns true when it handled the pasteboard.
     var onPaste: ((NSPasteboard) -> Bool)?
     /// Follows the mouse over the text, for the block handle.
@@ -46,6 +48,30 @@ public final class MarkdownTextView: NSTextView {
     /// Drawn behind the caret's line (Raw mode); nil draws nothing.
     var caretLineColor: NSColor? {
         didSet { needsDisplay = true }
+    }
+
+    /// Whether each line's number is drawn in the margin left of the text (Raw mode).
+    var showsLineNumbers = false {
+        didSet {
+            guard showsLineNumbers != oldValue else { return }
+            updateInsets()
+            updateLineNumberView()
+        }
+    }
+    var lineNumberAttributes: [NSAttributedString.Key: Any] = [:] {
+        didSet { lineNumberView?.needsDisplay = true }
+    }
+    /// Drawn over the text view, since TextKit 2's own views cover anything drawn in it.
+    var lineNumberView: LineNumberView?
+    /// Where each line starts, worked out when line numbers are drawn and dropped when
+    /// the text changes.
+    var lineStarts: [Int]?
+
+    public override var string: String {
+        didSet {
+            lineStarts = nil
+            lineNumberView?.needsDisplay = true
+        }
     }
 
     private var hoverArea: NSTrackingArea?
@@ -114,6 +140,12 @@ public final class MarkdownTextView: NSTextView {
 
     public override func didChangeText() {
         super.didChangeText()
+        lineNumberView?.needsDisplay = true
+        if let lineStarts {
+            self.lineStarts = nil
+            // A new line can need a wider margin.
+            if showsLineNumbers, String(lineStarts.count).count != String(lineCount).count { updateInsets() }
+        }
         // The placeholder comes and goes with the first character.
         if (string as NSString).length <= 1 { needsDisplay = true }
     }
@@ -123,6 +155,10 @@ public final class MarkdownTextView: NSTextView {
         if bottomOverscroll > 0 { size.height = contentHeight(proposed: newSize.height) + bottomOverscroll }
         super.setFrameSize(size)
         updateInsets()
+        if let lineNumberView {
+            lineNumberView.frame = bounds
+            lineNumberView.needsDisplay = true
+        }
     }
 
     /// The height the text needs, without the overscroll.
@@ -132,9 +168,9 @@ public final class MarkdownTextView: NSTextView {
         return max(used + textContainerInset.height * 2, enclosingScrollView?.contentSize.height ?? 0)
     }
 
-    private func updateInsets() {
+    func updateInsets() {
         let padding = textContainer?.lineFragmentPadding ?? 5
-        let horizontal = max(24, (bounds.width - maxLineWidth - padding * 2) / 2)
+        let horizontal = max(24 + lineNumberGutter, (bounds.width - maxLineWidth - padding * 2) / 2)
         let inset = NSSize(width: horizontal.rounded(.down), height: verticalInset)
         if textContainerInset != inset { textContainerInset = inset }
     }
@@ -188,36 +224,6 @@ public final class MarkdownTextView: NSTextView {
         super.setSpellingState(value, range: charRange)
     }
 
-    public override func toggleContinuousSpellChecking(_ sender: Any?) {
-        super.toggleContinuousSpellChecking(sender)
-        onTextCheckingToggle?()
-    }
-
-    public override func toggleGrammarChecking(_ sender: Any?) {
-        super.toggleGrammarChecking(sender)
-        onTextCheckingToggle?()
-    }
-
-    public override func toggleAutomaticSpellingCorrection(_ sender: Any?) {
-        super.toggleAutomaticSpellingCorrection(sender)
-        onTextCheckingToggle?()
-    }
-
-    public override func toggleAutomaticQuoteSubstitution(_ sender: Any?) {
-        super.toggleAutomaticQuoteSubstitution(sender)
-        onTextCheckingToggle?()
-    }
-
-    public override func toggleAutomaticDashSubstitution(_ sender: Any?) {
-        super.toggleAutomaticDashSubstitution(sender)
-        onTextCheckingToggle?()
-    }
-
-    public override func toggleAutomaticTextReplacement(_ sender: Any?) {
-        super.toggleAutomaticTextReplacement(sender)
-        onTextCheckingToggle?()
-    }
-
     // MARK: - Clicks
 
     public override func mouseDown(with event: NSEvent) {
@@ -240,6 +246,12 @@ public final class MarkdownTextView: NSTextView {
     public override func keyDown(with event: NSEvent) {
         if onKeyCommand?(event) == true { return }
         super.keyDown(with: event)
+    }
+
+    public override func insertText(_ string: Any, replacementRange: NSRange) {
+        // Only typing, which replaces the selection; edits made in code pass a range.
+        if replacementRange.location == NSNotFound, let text = string as? String, onInsertText?(text) == true { return }
+        super.insertText(string, replacementRange: replacementRange)
     }
 
     public override func paste(_ sender: Any?) {
@@ -292,6 +304,39 @@ public final class MarkdownTextView: NSTextView {
             }
         }
         return nil
+    }
+}
+
+/// The Edit menu's spelling and substitution toggles, reported so Settings follows them.
+extension MarkdownTextView {
+    public override func toggleContinuousSpellChecking(_ sender: Any?) {
+        super.toggleContinuousSpellChecking(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleGrammarChecking(_ sender: Any?) {
+        super.toggleGrammarChecking(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticSpellingCorrection(_ sender: Any?) {
+        super.toggleAutomaticSpellingCorrection(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticQuoteSubstitution(_ sender: Any?) {
+        super.toggleAutomaticQuoteSubstitution(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticDashSubstitution(_ sender: Any?) {
+        super.toggleAutomaticDashSubstitution(sender)
+        onTextCheckingToggle?()
+    }
+
+    public override func toggleAutomaticTextReplacement(_ sender: Any?) {
+        super.toggleAutomaticTextReplacement(sender)
+        onTextCheckingToggle?()
     }
 }
 #endif

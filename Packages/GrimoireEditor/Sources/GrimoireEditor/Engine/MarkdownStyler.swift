@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import GrimoireCore
+import NaturalLanguage
 
 #if os(macOS)
 import AppKit
@@ -42,6 +43,8 @@ public final class MarkdownStyler {
     /// Called when code finishes highlighting in the background, so blocks holding it can
     /// be restyled.
     public var onCodeHighlighted: ((CodeKey) -> Void)?
+    /// Tags words for parts-of-speech highlighting, reused across blocks.
+    let wordTagger = NLTagger(tagSchemes: [.lexicalClass])
     var codeHighlights: [CodeKey: [CodeHighlight]] = [:]
     var pendingCode: Set<CodeKey> = []
     /// The last few highlighted versions of code in each language, to tide edits over.
@@ -73,9 +76,13 @@ public final class MarkdownStyler {
 
     func paragraphStyle(
         firstLineIndent: CGFloat = 0, indent: CGFloat = 0, tailIndent: CGFloat = 0, lineHeight: CGFloat? = nil,
-        spacingBefore: CGFloat = 0, spacingAfter: CGFloat = 0
+        spacingBefore: CGFloat = 0, spacingAfter: CGFloat = 0, codeTabs: Bool = false
     ) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
+        if codeTabs {
+            style.tabStops = []
+            style.defaultTabInterval = theme.tabInterval
+        }
         style.lineHeightMultiple = lineHeight ?? theme.lineHeightMultiple
         style.firstLineHeadIndent = firstLineIndent
         style.headIndent = indent

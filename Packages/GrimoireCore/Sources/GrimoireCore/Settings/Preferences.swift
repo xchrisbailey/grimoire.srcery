@@ -18,6 +18,25 @@ public enum AltTextMode: String, Codable, CaseIterable, Sendable {
     case never
 }
 
+/// Where the word count and reading time show.
+public enum WordCountDisplay: String, Codable, CaseIterable, Sendable {
+    /// At the foot of every page.
+    case always
+    /// Only in focus mode.
+    case focusMode
+    case never
+}
+
+/// What focus mode keeps lit around the caret.
+public enum FocusUnit: String, Codable, CaseIterable, Sendable {
+    case paragraph, sentence
+}
+
+/// The word classes syntax highlighting can color, as iA Writer offers them.
+public enum PartOfSpeech: String, Codable, CaseIterable, Sendable {
+    case adjective, noun, adverb, verb, conjunction
+}
+
 /// The user's settings, saved in `UserDefaults`. Views and windows read them from the
 /// shared instance, so a change applies everywhere at once.
 @MainActor @Observable
@@ -35,8 +54,24 @@ public final class Preferences {
     /// File extensions listed in the sidebar, lowercased and without dots.
     public var fileExtensions: [String] { didSet { save(fileExtensions, Key.fileExtensions) } }
     public var imageLocation: ImageLocation { didSet { save(imageLocation.rawValue, Key.imageLocation) } }
+    public var newFileLocation: NewFileLocation { didSet { save(newFileLocation.rawValue, Key.newFileLocation) } }
+    /// The folder `newFileLocation.subfolder` means, relative to the first bound folder.
+    public var newFileFolder: String { didSet { save(newFileFolder, Key.newFileFolder) } }
+    /// The name new files get, with `{date}` and `{time}` filled in.
+    public var newFileName: String { didSet { save(newFileName, Key.newFileName) } }
+    public var fileSort: FileSort { didSet { save(fileSort.rawValue, Key.fileSort) } }
+    public var foldersFirst: Bool { didSet { save(foldersFirst, Key.foldersFirst) } }
+    public var showsHiddenFiles: Bool { didSet { save(showsHiddenFiles, Key.showsHiddenFiles) } }
+    /// Whether a single line break stays a line break in exports, printing and rich
+    /// text, rather than joining the lines as markdown strictly does.
+    public var strictLineBreaks: Bool { didSet { save(strictLineBreaks, Key.strictLineBreaks) } }
 
-    // MARK: Editor
+    /// The sidebar's sort order and hidden-file setting.
+    public var fileListing: FileListing {
+        FileListing(sort: fileSort, foldersFirst: foldersFirst, showsHiddenFiles: showsHiddenFiles)
+    }
+
+    // MARK: Fonts
 
     /// The prose font's family, "Geist" by default.
     public var proseFont: String { didSet { save(proseFont, Key.proseFont) } }
@@ -44,16 +79,51 @@ public final class Preferences {
     /// The code and Raw font's family, "Geist Mono" by default.
     public var codeFont: String { didSet { save(codeFont, Key.codeFont) } }
     public var codeSize: Double { didSet { save(codeSize, Key.codeSize) } }
+
+    // MARK: Editor
+
     /// Prose line height as a multiple of the font size, as CSS measures it.
     public var lineHeight: Double { didSet { save(lineHeight, Key.lineHeight) } }
     /// Widest the text column grows, in points.
     public var maxLineWidth: Double { didSet { save(maxLineWidth, Key.maxLineWidth) } }
+    /// Whether the text column stops at `maxLineWidth` or fills the window.
+    public var limitsLineWidth: Bool { didSet { save(limitsLineWidth, Key.limitsLineWidth) } }
+    /// Whether typing an opening bracket, quote or backtick adds its closing one, and
+    /// markers wrap a selection.
+    public var autoPairs: Bool { didSet { save(autoPairs, Key.autoPairs) } }
+    public var focusUnit: FocusUnit { didSet { save(focusUnit.rawValue, Key.focusUnit) } }
+    /// Whether Preview colors words by their part of speech.
+    public var highlightsSyntax: Bool { didSet { save(highlightsSyntax, Key.highlightsSyntax) } }
+    /// Which parts of speech syntax highlighting colors.
+    public var partsOfSpeech: Set<PartOfSpeech> {
+        didSet { save(partsOfSpeech.map(\.rawValue).sorted(), Key.partsOfSpeech) }
+    }
     /// Whether markdown markers show on every line, not just the caret's block.
     public var showsMarkers: Bool { didSet { save(showsMarkers, Key.showsMarkers) } }
     /// Whether the caret's line stays in the middle of the window while typing.
     public var typewriterScrolling: Bool { didSet { save(typewriterScrolling, Key.typewriterScrolling) } }
     /// Whether focus mode fades every block but the caret's.
     public var focusDimming: Bool { didSet { save(focusDimming, Key.focusDimming) } }
+    public var wordCount: WordCountDisplay { didSet { save(wordCount.rawValue, Key.wordCount) } }
+    /// Words a minute, for the reading time.
+    public var readingSpeed: Double { didSet { save(readingSpeed, Key.readingSpeed) } }
+
+    // MARK: Raw
+
+    /// Whether Raw mode numbers its lines.
+    public var showsLineNumbers: Bool { didSet { save(showsLineNumbers, Key.showsLineNumbers) } }
+    /// Columns between tab stops in Raw and code blocks.
+    public var tabWidth: Int { didSet { save(tabWidth, Key.tabWidth) } }
+    /// Whether Tab types a tab character instead of spaces.
+    public var indentsWithTabs: Bool { didSet { save(indentsWithTabs, Key.indentsWithTabs) } }
+
+    // MARK: Shortcuts
+
+    /// Shortcuts changed from their defaults. A combo with no key means none; read them
+    /// through `shortcut(for:)`.
+    public internal(set) var shortcutOverrides: [ShortcutAction: KeyCombo] {
+        didSet { save((try? JSONEncoder().encode(shortcutOverrides)) ?? Data(), Key.shortcuts) }
+    }
 
     // MARK: Spelling
 
@@ -90,6 +160,18 @@ public final class Preferences {
         static let autosaveDelay = "settings.autosaveDelay"
         static let fileExtensions = "settings.fileExtensions"
         static let imageLocation = "settings.imageLocation"
+        static let newFileLocation = "settings.newFileLocation"
+        static let newFileFolder = "settings.newFileFolder"
+        static let newFileName = "settings.newFileName"
+        static let fileSort = "settings.fileSort"
+        static let foldersFirst = "settings.foldersFirst"
+        static let showsHiddenFiles = "settings.showsHiddenFiles"
+        static let strictLineBreaks = "settings.strictLineBreaks"
+        static let limitsLineWidth = "settings.limitsLineWidth"
+        static let autoPairs = "settings.autoPairs"
+        static let focusUnit = "settings.focusUnit"
+        static let highlightsSyntax = "settings.highlightsSyntax"
+        static let partsOfSpeech = "settings.partsOfSpeech"
         static let proseFont = "settings.proseFont"
         static let proseSize = "settings.proseSize"
         static let codeFont = "settings.codeFont"
@@ -99,6 +181,12 @@ public final class Preferences {
         static let showsMarkers = "settings.showsMarkers"
         static let typewriterScrolling = "settings.typewriterScrolling"
         static let focusDimming = "settings.focusDimming"
+        static let wordCount = "settings.wordCount"
+        static let readingSpeed = "settings.readingSpeed"
+        static let showsLineNumbers = "settings.showsLineNumbers"
+        static let tabWidth = "settings.tabWidth"
+        static let indentsWithTabs = "settings.indentsWithTabs"
+        static let shortcuts = "settings.shortcuts"
         static let checksSpelling = "settings.checksSpelling"
         static let checksGrammar = "settings.checksGrammar"
         static let correctsSpelling = "settings.correctsSpelling"
@@ -125,15 +213,39 @@ public final class Preferences {
         autosaveDelay = defaults.object(forKey: Key.autosaveDelay) as? Double ?? 1
         fileExtensions = defaults.stringArray(forKey: Key.fileExtensions) ?? Self.defaultExtensions
         imageLocation = defaults.string(forKey: Key.imageLocation).flatMap(ImageLocation.init) ?? .besideFile
+        newFileLocation =
+            defaults.string(forKey: Key.newFileLocation).flatMap(NewFileLocation.init) ?? .besideSelection
+        newFileFolder = defaults.string(forKey: Key.newFileFolder) ?? "Inbox"
+        newFileName = defaults.string(forKey: Key.newFileName) ?? FileNaming.defaultTemplate
+        fileSort = defaults.string(forKey: Key.fileSort).flatMap(FileSort.init) ?? .name
+        foldersFirst = defaults.object(forKey: Key.foldersFirst) as? Bool ?? true
+        showsHiddenFiles = defaults.object(forKey: Key.showsHiddenFiles) as? Bool ?? false
+        strictLineBreaks = defaults.object(forKey: Key.strictLineBreaks) as? Bool ?? true
         proseFont = defaults.string(forKey: Key.proseFont) ?? Self.defaultProseFont
         proseSize = defaults.object(forKey: Key.proseSize) as? Double ?? 15.5
         codeFont = defaults.string(forKey: Key.codeFont) ?? Self.defaultCodeFont
         codeSize = defaults.object(forKey: Key.codeSize) as? Double ?? 14
         lineHeight = defaults.object(forKey: Key.lineHeight) as? Double ?? 1.7
         maxLineWidth = defaults.object(forKey: Key.maxLineWidth) as? Double ?? 680
+        limitsLineWidth = defaults.object(forKey: Key.limitsLineWidth) as? Bool ?? true
+        autoPairs = defaults.object(forKey: Key.autoPairs) as? Bool ?? true
+        focusUnit = defaults.string(forKey: Key.focusUnit).flatMap(FocusUnit.init) ?? .paragraph
+        highlightsSyntax = defaults.object(forKey: Key.highlightsSyntax) as? Bool ?? false
+        partsOfSpeech =
+            defaults.stringArray(forKey: Key.partsOfSpeech).map { Set($0.compactMap(PartOfSpeech.init)) }
+            ?? Set(PartOfSpeech.allCases)
         showsMarkers = defaults.object(forKey: Key.showsMarkers) as? Bool ?? false
         typewriterScrolling = defaults.object(forKey: Key.typewriterScrolling) as? Bool ?? false
         focusDimming = defaults.object(forKey: Key.focusDimming) as? Bool ?? true
+        wordCount = defaults.string(forKey: Key.wordCount).flatMap(WordCountDisplay.init) ?? .focusMode
+        readingSpeed = defaults.object(forKey: Key.readingSpeed) as? Double ?? 230
+        showsLineNumbers = defaults.object(forKey: Key.showsLineNumbers) as? Bool ?? false
+        tabWidth = defaults.object(forKey: Key.tabWidth) as? Int ?? 4
+        indentsWithTabs = defaults.object(forKey: Key.indentsWithTabs) as? Bool ?? false
+        shortcutOverrides =
+            defaults.data(forKey: Key.shortcuts).flatMap {
+                try? JSONDecoder().decode([ShortcutAction: KeyCombo].self, from: $0)
+            } ?? [:]
         checksSpelling = defaults.object(forKey: Key.checksSpelling) as? Bool ?? true
         checksGrammar = defaults.object(forKey: Key.checksGrammar) as? Bool ?? true
         func system(_ key: String) -> Bool { defaults.object(forKey: key) as? Bool ?? true }
@@ -146,17 +258,32 @@ public final class Preferences {
         altText = defaults.string(forKey: Key.altText).flatMap(AltTextMode.init) ?? .ask
     }
 
-    /// Puts the Editor settings back to their defaults.
-    public func resetEditor() {
+    /// Puts the fonts and sizes back to Geist and Geist Mono at the brand sizes.
+    public func resetFonts() {
         proseFont = Self.defaultProseFont
         proseSize = 15.5
         codeFont = Self.defaultCodeFont
         codeSize = 14
+    }
+
+    /// Puts the Editor settings back to their defaults. Fonts live in Appearance and
+    /// aren't touched.
+    public func resetEditor() {
         lineHeight = 1.7
         maxLineWidth = 680
+        limitsLineWidth = true
+        autoPairs = true
+        focusUnit = .paragraph
+        highlightsSyntax = false
+        partsOfSpeech = Set(PartOfSpeech.allCases)
         showsMarkers = false
         typewriterScrolling = false
         focusDimming = true
+        wordCount = .focusMode
+        readingSpeed = 230
+        showsLineNumbers = false
+        tabWidth = 4
+        indentsWithTabs = false
     }
 
     // MARK: Per project
