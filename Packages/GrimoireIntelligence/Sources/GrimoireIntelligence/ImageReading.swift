@@ -74,8 +74,25 @@ enum ImageText {
     /// The document as markdown: its title as a heading, then paragraphs, lists and tables
     /// in reading order.
     static func draft(of image: CGImage) async throws -> String {
-        let observations = try await RecognizeDocumentsRequest().perform(on: image)
-        return observations.map { markdown(of: $0.document) }.joined(separator: "\n\n")
+        do {
+            let observations = try await RecognizeDocumentsRequest().perform(on: image)
+            return observations.map { markdown(of: $0.document) }.joined(separator: "\n\n")
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // The document recognizer isn't available on every Mac (virtual machines, for
+            // one), so fall back to plain text recognition: the words, a line at a time.
+            return try await lines(of: image)
+        }
+    }
+
+    private static func lines(of image: CGImage) async throws -> String {
+        var request = RecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        let observations = try await request.perform(on: image)
+        let sorted = observations.sorted { top($0.boundingBox) > top($1.boundingBox) }
+        let texts = sorted.compactMap { $0.topCandidates(1).first?.string }.map { MarkdownText.inline($0) }
+        return texts.filter { !$0.isEmpty }.joined(separator: "\n\n")
     }
 
     static func markdown(of document: DocumentObservation.Container) -> String {
