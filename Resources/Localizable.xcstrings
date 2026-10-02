@@ -119,6 +119,12 @@
     "Add Frontmatter" : {
       "comment" : "plain: button that adds the suggested frontmatter (#19)"
     },
+    "Alias" : {
+      "comment" : "plain: placeholder for the alias field in the folder alias prompt"
+    },
+    "Alias for “%@”" : {
+      "comment" : "plain: folder alias prompt title; %@ is the folder's name on disk"
+    },
     "Align Column" : {
       "comment" : "plain: table editing command (#22)",
       "extractionState" : "manual"
@@ -947,6 +953,9 @@
     "Remove %@" : {
       "comment" : "plain: accessibility label for removing a word from a project dictionary; %@ is the word"
     },
+    "Remove Alias" : {
+      "comment" : "plain: context menu item that clears a folder's alias so the folder's own name shows again"
+    },
     "Remove Theme" : {
       "comment" : "plain: confirm button that removes an imported theme"
     },
@@ -958,6 +967,9 @@
     },
     "Rename “%@”" : {
       "comment" : "plain: rename prompt title; %@ is the file or folder name"
+    },
+    "Rename Alias…" : {
+      "comment" : "plain: context menu item that changes the name the sidebar shows for a bound folder"
     },
     "Rename Project" : {
       "comment" : "plain: title of the rename project prompt"
@@ -1046,6 +1058,9 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Set Alias…" : {
+      "comment" : "plain: context menu item that gives a bound folder a name the sidebar shows instead of the folder's own"
+    },
     "Settings" : {
       "comment" : "plain: sidebar button that opens Settings"
     },
@@ -1091,6 +1106,9 @@
     },
     "Show Substitutions" : {
       "comment" : "plain: Edit › Substitutions item"
+    },
+    "Skip" : {
+      "comment" : "plain: dismisses the folder alias prompt without setting an alias"
     },
     "Small section heading" : {
       "comment" : "plain: spell subtitle",
@@ -1207,6 +1225,9 @@
     },
     "The project is removed from Grimoire. Its folders and files stay on disk." : {
       "comment" : "plain: delete project confirmation message"
+    },
+    "The sidebar shows this name instead of the folder's. Leave it empty to use the folder's name." : {
+      "comment" : "plain: folder alias prompt message"
     },
     "The theme is removed from Grimoire. The file it came from isn't touched." : {
       "comment" : "plain: explains what removing a theme does"

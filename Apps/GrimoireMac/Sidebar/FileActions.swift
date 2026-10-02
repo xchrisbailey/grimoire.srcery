@@ -1,13 +1,19 @@
 import GrimoireCore
 import SwiftUI
 
-/// Runs the tree's file operations and holds the prompts they need (rename, banish, errors).
+/// Runs the tree's file operations and holds the prompts they need (rename, alias,
+/// banish, errors).
 @MainActor @Observable
 final class FileActions {
     var renaming: URL?
     var newName = ""
+    /// The bound folder being given an alias, and the name it had when the prompt opened.
+    var aliasing: (id: FolderRoot.ID, name: String)?
+    var newAlias = ""
     var banishing: URL?
     var error: Error?
+    /// Folders still to be offered an alias after this one, from binding several at once.
+    private var aliasQueue: [(id: FolderRoot.ID, name: String)] = []
 
     /// Called after a page is conjured, so the window can open it.
     @ObservationIgnored var didCreate: ((URL) -> Void)?
@@ -75,6 +81,40 @@ final class FileActions {
         return true
     }
 
+    /// Asks for an alias for each folder in turn, prefilled with what it's called now.
+    func offerAliases(for roots: [FolderRoot]) {
+        aliasQueue += roots.map { ($0.id, $0.name) }
+        if aliasing == nil { showNextAlias() }
+    }
+
+    func startAlias(_ root: FolderRoot) {
+        aliasQueue.removeAll()
+        aliasing = (root.id, root.name)
+        newAlias = root.displayName
+    }
+
+    func finishAlias(workspace: Workspace) {
+        guard let aliasing else { return }
+        workspace.setAlias(newAlias, of: aliasing.id)
+    }
+
+    /// The alias prompt closed: shows the next queued folder once it's gone.
+    func aliasDismissed() {
+        aliasing = nil
+        guard !aliasQueue.isEmpty else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            showNextAlias()
+        }
+    }
+
+    private func showNextAlias() {
+        guard aliasing == nil, !aliasQueue.isEmpty else { return }
+        let next = aliasQueue.removeFirst()
+        aliasing = next
+        newAlias = next.name
+    }
+
     func unbind(_ folder: BoundFolder, from workspace: Workspace) {
         workspace.unbind(folder.id)
     }
@@ -97,7 +137,7 @@ extension Workspace {
 }
 
 extension View {
-    /// The rename prompt, banish confirmation and error alert for a window's file actions.
+    /// The rename and alias prompts, banish confirmation and error alert for a window's file actions.
     func fileActionPrompts(_ actions: FileActions, workspace: Workspace?) -> some View {
         modifier(FileActionPrompts(actions: actions, workspace: workspace))
     }
@@ -119,6 +159,19 @@ private struct FileActionPrompts: ViewModifier {
                     guard let workspace else { return }
                     actions.finishRename(workspace: workspace)
                 }
+            }
+            .alert(
+                String(localized: "Alias for “\(actions.aliasing?.name ?? "")”"),
+                isPresented: Binding(get: { actions.aliasing != nil }, set: { if !$0 { actions.aliasDismissed() } })
+            ) {
+                TextField("Alias", text: $actions.newAlias)
+                Button("Skip", role: .cancel) {}
+                Button("Save") {
+                    guard let workspace else { return }
+                    actions.finishAlias(workspace: workspace)
+                }
+            } message: {
+                Text("The sidebar shows this name instead of the folder's. Leave it empty to use the folder's name.")
             }
             .confirmationDialog(
                 String(localized: "Banish \(actions.banishing?.lastPathComponent ?? "")?"),

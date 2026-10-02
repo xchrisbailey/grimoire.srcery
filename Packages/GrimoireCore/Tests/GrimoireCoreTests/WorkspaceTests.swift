@@ -259,6 +259,23 @@ func firstEvent<T: Sendable>(
         }
     }
 
+    @Test func aliasesFolders() throws {
+        let scratch = try Scratch()
+        let content = try scratch.folder("somewhere/content")
+        let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
+        let library = ProjectLibrary(store: store)
+        let project = library.createProject(named: "Site")
+        let root = try library.bindFolder(content, to: project.id)
+        #expect(root.displayName == "content")
+
+        library.setAlias("  srcery.computer ", of: root.id, in: project.id)
+        #expect(ProjectLibrary(store: store).project(project.id)?.roots.first?.displayName == "srcery.computer")
+
+        library.setAlias(" ", of: root.id, in: project.id)
+        #expect(library.project(project.id)?.roots.first?.alias == nil)
+        #expect(library.project(project.id)?.roots.first?.displayName == "content")
+    }
+
     @Test func remembersExpandedFolders() async throws {
         let scratch = try Scratch()
         let notes = try scratch.folder("notes")
