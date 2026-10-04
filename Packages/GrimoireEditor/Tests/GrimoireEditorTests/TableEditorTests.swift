@@ -6,32 +6,16 @@ import Testing
 @testable import GrimoireEditor
 
 @MainActor @Suite(.serialized) struct TableEditorTests {
-    func makeController(_ text: String = "") -> EditorController {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        controller.defaults = UserDefaults(suiteName: "grimoire-tests-\(UUID())") ?? .standard
-        controller.textView.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
-        controller.load(text, flavor: .markdown)
-        controller.textView.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
-        return controller
-    }
-
-    func type(_ string: String, into controller: EditorController) {
-        for character in string {
-            controller.textView.insertText(String(character), replacementRange: controller.textView.selectedRange())
-        }
-    }
-
-    func press(_ selector: Selector, in controller: EditorController) {
-        controller.textView.doCommand(by: selector)
+    func editorAtEnd(_ text: String = "") -> EditorController {
+        makeEditor(text, caret: (text as NSString).length, freshDefaults: true)
     }
 
     /// The "done when" for #22: a 10×20 table built and filled without typing a pipe, saved as
     /// clean, aligned markdown.
     @Test func buildsATenByTwentyTableWithoutTypingAPipe() throws {
-        let controller = makeController()
-        type("/table", into: controller)
-        press(#selector(NSResponder.insertNewline(_:)), in: controller)
+        let controller = editorAtEnd()
+        controller.type("/table")
+        controller.press(#selector(NSResponder.insertNewline(_:)))
         // Back to the header's first cell, then widen to ten columns.
         controller.textView.setSelectedRange(NSRange(location: 2, length: 0))
         for _ in 0..<8 { controller.changeTable(.insertColumnRight, actionName: "") }
@@ -43,7 +27,7 @@ import Testing
                 // The starting cells hold "Column 1/2"; select them so typing replaces them.
                 selectCellText(controller)
                 controller.textView.insertText(cell, replacementRange: controller.textView.selectedRange())
-                if !(row == 20 && column == 9) { press(#selector(NSResponder.insertTab(_:)), in: controller) }
+                if !(row == 20 && column == 9) { controller.press(#selector(NSResponder.insertTab(_:))) }
             }
         }
         #expect(!controller.text.contains("Column"))
@@ -73,14 +57,14 @@ import Testing
     }
 
     @Test func enterInTheLastRowAddsARow() {
-        let controller = makeController("| a | b |\n| --- | --- |\n| 1 | 2 |")
-        press(#selector(NSResponder.insertNewline(_:)), in: controller)
+        let controller = editorAtEnd("| a | b |\n| --- | --- |\n| 1 | 2 |")
+        controller.press(#selector(NSResponder.insertNewline(_:)))
         #expect(controller.text == "| a   | b   |\n| --- | --- |\n| 1   | 2   |\n|     |     |")
         #expect(controller.editing.tableCell?.row == 2)
     }
 
     @Test func pastingSpreadsheetCellsMakesATable() {
-        let controller = makeController("Intro\n\n")
+        let controller = editorAtEnd("Intro\n\n")
         let board = NSPasteboard(name: NSPasteboard.Name("grimoire-test-\(UUID())"))
         board.clearContents()
         board.setString("Potion\tQty\nInk\t3\n", forType: .string)
@@ -90,7 +74,7 @@ import Testing
     }
 
     @Test func leavingATableTidiesIt() async throws {
-        let controller = makeController("| a | b |\n|-|-|\n| 1 | 2 |\n\nAfter")
+        let controller = editorAtEnd("| a | b |\n|-|-|\n| 1 | 2 |\n\nAfter")
         controller.textView.setSelectedRange(NSRange(location: 2, length: 0))
         controller.textView.setSelectedRange(NSRange(location: (controller.text as NSString).length, length: 0))
         try await Task.sleep(for: .milliseconds(50))
@@ -99,7 +83,7 @@ import Testing
     }
 
     @Test func gridHidesPipesButKeepsThem() {
-        let controller = makeController("| a | b |\n| --- | --- |\n| 1 | 2 |\n\nPara")
+        let controller = editorAtEnd("| a | b |\n| --- | --- |\n| 1 | 2 |\n\nPara")
         let font = controller.textView.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
         #expect(font?.pointSize ?? 99 < 1)
         let kern = controller.textView.textStorage?.attribute(.kern, at: 0, effectiveRange: nil) as? CGFloat
@@ -115,22 +99,10 @@ import Testing
         let rawFont = controller.textView.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
         #expect(rawFont?.pointSize == 14)
     }
-}
-#endif
 
-#if os(macOS)
-@MainActor @Suite struct TableTypingSpeedTests {
     @Test func typingInABigTableIsQuick() {
-        BrandFontTests.registerRepoFonts()
         let table = MarkdownTable(rows: (0...20).map { row in (0..<10).map { "r\(row)c\($0)" } })
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(table.markdown + "\n", flavor: .markdown)
-        window.displayIfNeeded()
+        let controller = makeEditor(table.markdown + "\n", height: 800, width: 1200)
         let offset = (controller.text as NSString).range(of: "r10c5").location + 2
         controller.textView.setSelectedRange(NSRange(location: offset, length: 0))
         let clock = ContinuousClock()

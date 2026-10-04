@@ -83,63 +83,32 @@ import Testing
 
         """
 
-    func makeController(_ text: String = sample, synchronous: Bool = true) -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        controller.styler.highlightsSynchronously = synchronous
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 600), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        window.appearance = NSAppearance(named: .darkAqua)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
-        return (controller, window)
-    }
-
-    func color(_ controller: EditorController, at offset: Int) -> PaletteColor? {
-        guard
-            let color = controller.textView.textStorage?.attribute(.foregroundColor, at: offset, effectiveRange: nil)
-                as? NSColor
-        else { return nil }
-        var resolved: NSColor?
-        controller.textView.effectiveAppearance.performAsCurrentDrawingAppearance {
-            resolved = color.usingColorSpace(.sRGB)
-        }
-        guard let resolved else { return nil }
-        return PaletteColor(
-            red: UInt8((resolved.redComponent * 255).rounded()),
-            green: UInt8((resolved.greenComponent * 255).rounded()),
-            blue: UInt8((resolved.blueComponent * 255).rounded()))
-    }
-
     var keyword: Int { (Self.sample as NSString).range(of: "let brew").location }
     var string: Int { (Self.sample as NSString).range(of: "\"ink\" //").location + 1 }
 
     @Test func codeTakesTheThemesColorsInBothModes() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 600, dark: true)
         let palette = BrandPalette.mocha
-        #expect(color(controller, at: keyword) == palette.magic)
-        #expect(color(controller, at: string) == palette.string)
+        #expect(controller.color(at: keyword) == palette.magic)
+        #expect(controller.color(at: string) == palette.string)
         controller.mode = .raw
-        #expect(color(controller, at: keyword) == palette.magic)
-        #expect(color(controller, at: string) == palette.string)
+        #expect(controller.color(at: keyword) == palette.magic)
+        #expect(controller.color(at: string) == palette.string)
         #expect(controller.text == Self.sample)
     }
 
     @Test func unknownLanguagesStayPlain() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 600, dark: true)
         let unknown = (Self.sample as NSString).range(of: "let brew", options: .backwards).location
-        #expect(color(controller, at: unknown) == BrandPalette.mocha.ink)
+        #expect(controller.color(at: unknown) == BrandPalette.mocha.ink)
     }
 
     @Test func highlightsArriveFromTheBackground() async throws {
-        let (controller, _) = makeController(synchronous: false)
-        for _ in 0..<100 where color(controller, at: keyword) != BrandPalette.mocha.magic {
+        let controller = makeEditor(Self.sample, height: 600, dark: true, synchronousHighlighting: false)
+        for _ in 0..<100 where controller.color(at: keyword) != BrandPalette.mocha.magic {
             try await Task.sleep(for: .milliseconds(20))
         }
-        #expect(color(controller, at: keyword) == BrandPalette.mocha.magic)
+        #expect(controller.color(at: keyword) == BrandPalette.mocha.magic)
     }
 
     @Test func editsKeepColorsWhileHighlightingCatchesUp() {
@@ -156,7 +125,7 @@ import Testing
     }
 
     @Test func chromeShowsTheLanguageAndChangesIt() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 600, dark: true)
         #expect(!controller.codeChrome.isVisible)
         let code = (Self.sample as NSString).range(of: "let brew").location
         controller.textView.setSelectedRange(NSRange(location: code, length: 0))
@@ -176,7 +145,7 @@ import Testing
     }
 
     @Test func copyPutsJustTheCodeOnThePasteboard() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 600, dark: true)
         let pasteboard = NSPasteboard(name: NSPasteboard.Name("grimoire-tests-\(UUID().uuidString)"))
         controller.codeChrome.pasteboard = pasteboard
         controller.textView.setSelectedRange(
@@ -190,7 +159,7 @@ import Testing
     @Test func typingInALongCodeBlockStaysQuick() {
         let lines = (1...500).map { "let potion\($0) = brew(\"ink \\($0)\", strength: \($0)) // stir \($0)" }
         let text = "# Long\n\n```swift\n" + lines.joined(separator: "\n") + "\n```\n"
-        let (controller, _) = makeController(text, synchronous: false)
+        let controller = makeEditor(text, height: 600, dark: true, synchronousHighlighting: false)
         let offset = (text as NSString).range(of: "potion250 ").location
         controller.textView.setSelectedRange(NSRange(location: offset, length: 0))
         let clock = ContinuousClock()

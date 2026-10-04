@@ -74,11 +74,14 @@ import Testing
     }
 
     @Test func keepsFrontmatterRaw() throws {
-        let document = Document(parsing: "---\ntitle: Potions\ntags: [a, b]\n---\n\n# Hi\n")
+        let document = Document(parsing: "---\ntitle: \"Potions\"\nlang: de-DE\nnested:\n  lang: fr\n---\n\n# Hi\n")
         let frontmatter = try #require(document.frontmatter)
-        #expect(frontmatter.source == "---\ntitle: Potions\ntags: [a, b]\n---")
+        #expect(frontmatter.source == "---\ntitle: \"Potions\"\nlang: de-DE\nnested:\n  lang: fr\n---")
         #expect(frontmatter.trailing == "\n\n")
-        #expect(frontmatter.yaml == "title: Potions\ntags: [a, b]")
+        #expect(frontmatter.yaml == "title: \"Potions\"\nlang: de-DE\nnested:\n  lang: fr")
+        #expect(frontmatter.value(forKey: "lang") == "de-DE")
+        #expect(frontmatter.value(forKey: "title") == "Potions")
+        #expect(frontmatter.value(forKey: "missing") == nil)
         #expect(document.blocks.map(\.kind) == [.heading(level: 1)])
     }
 

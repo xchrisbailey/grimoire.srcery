@@ -34,7 +34,39 @@ final class Scratch {
     }
 }
 
+extension Scratch {
+    /// A project bound to one folder of `files` (paths relative to `folder`), with its
+    /// workspace activated and the folder scanned.
+    @MainActor
+    func workspace(
+        folder: String = "notes", files: [String: String] = [:]
+    ) async throws -> (Workspace, ProjectLibrary) {
+        let root = try self.folder(folder)
+        for (path, text) in files { try file(folder + "/" + path, text) }
+        let library = ProjectLibrary(store: ProjectStore(fileURL: url.appending(path: "projects.json")))
+        let project = library.createProject(named: "Notes")
+        try library.bindFolder(root, to: project.id)
+        let workspace = Workspace(projectID: project.id, library: library)
+        workspace.activate()
+        try await until { workspace.folders.first?.status == .available }
+        return (workspace, library)
+    }
+}
+
 @Suite struct ProjectStoreTests {
+    @Test func projectsSavedBeforeOverridesStillLoad() throws {
+        let json = """
+            {"version": 1, "projects": [{"id": "6F9619FF-8B86-D011-B42D-00C04FC964FF", "name": "Old",
+            "icon": "book.closed", "color": "magic", "roots": [], "expandedFolders": []}]}
+            """
+        let scratch = try Scratch()
+        let file = try scratch.file("projects.json", json)
+        let projects = try ProjectStore(fileURL: file).load()
+        #expect(projects.first?.name == "Old")
+        #expect(projects.first?.overrides == ProjectOverrides())
+        #expect(projects.first?.dictionary == [])
+    }
+
     @Test func savesAndLoadsProjects() throws {
         let scratch = try Scratch()
         let store = ProjectStore(fileURL: scratch.url.appending(path: "nested/projects.json"))
@@ -176,17 +208,11 @@ final class Scratch {
 }
 
 @Suite struct ExternalChangeTests {
-    @Test func reloadsWhenThereAreNoLocalChanges() {
+    @Test func resolvesEditsAgainstTheDisk() {
         #expect(ExternalChange.resolve(saved: "a", local: "a", disk: "b") == .reload("b"))
-    }
-
-    @Test func ignoresItsOwnWrites() {
         #expect(ExternalChange.resolve(saved: "a", local: "a", disk: "a") == .none)
         #expect(ExternalChange.resolve(saved: "a", local: "b", disk: "a") == .none)
         #expect(ExternalChange.resolve(saved: "a", local: "b", disk: "b") == .none)
-    }
-
-    @Test func conflictsWhenBothSidesChanged() {
         #expect(ExternalChange.resolve(saved: "a", local: "b", disk: "c") == .conflict(disk: "c"))
     }
 }
@@ -278,19 +304,25 @@ func firstEvent<T: Sendable>(
 
     @Test func remembersExpandedFolders() async throws {
         let scratch = try Scratch()
-        let notes = try scratch.folder("notes")
-        let shelf = try scratch.file("notes/shelf/book.md").deletingLastPathComponent()
-        let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Library")
-        try library.bindFolder(notes, to: project.id)
-        let workspace = Workspace(projectID: project.id, library: library)
-        workspace.activate()
+        let (workspace, library) = try await scratch.workspace(files: ["shelf/book.md": ""])
         defer { workspace.deactivate() }
+        let shelf = scratch.url.appending(path: "notes/shelf", directoryHint: .isDirectory)
 
         #expect(!workspace.isExpanded(shelf))
         workspace.setExpanded(shelf, true)
         #expect(workspace.isExpanded(shelf))
-        #expect(library.project(project.id)?.expandedFolders.map(\.relativePath) == ["shelf"])
+        #expect(library.projects.first?.expandedFolders.map(\.relativePath) == ["shelf"])
+    }
+
+    @Test func changingExtensionsRescansTheTree() async throws {
+        let scratch = try Scratch()
+        let (workspace, _) = try await scratch.workspace(files: ["spells.md": "", "runes.txt": ""])
+        defer { workspace.deactivate() }
+        #expect(workspace.folders.first?.tree?.documents.map(\.name) == ["spells.md"])
+
+        workspace.setExtensions(["md", "txt"])
+        try await until { workspace.folders.first?.tree?.documents.count == 2 }
+        #expect(workspace.folders.first?.tree?.documents.map(\.name) == ["runes.txt", "spells.md"])
     }
 
     @Test func flagsFoldersThatNeedAccessAgain() async throws {

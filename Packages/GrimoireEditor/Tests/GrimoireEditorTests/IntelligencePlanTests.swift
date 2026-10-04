@@ -72,21 +72,8 @@ import Testing
 }
 
 @MainActor @Suite(.serialized) struct IntelligenceSpellTests {
-    func makeController() -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 500), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load("# Ink\n\nSome words.\n\n", flavor: .markdown)
-        return (controller, window)
-    }
-
     @Test func aiSpellsShowOnlyWhenEnabled() {
-        let (controller, window) = makeController()
-        defer { withExtendedLifetime(window) {} }
+        let controller = makeEditor("# Ink\n\nSome words.\n\n", height: 500)
         #expect(!controller.availableSpells.contains { $0.id == "summarize" })
         controller.intelligenceEnabled = true
         #expect(controller.availableSpells.contains { $0.id == "summarize" })
@@ -94,8 +81,7 @@ import Testing
     }
 
     @Test func castingHandsThePlanToTheApp() {
-        let (controller, window) = makeController()
-        defer { withExtendedLifetime(window) {} }
+        let controller = makeEditor("# Ink\n\nSome words.\n\n", height: 500)
         controller.intelligenceEnabled = true
         var received: IntelligenceCast?
         controller.onIntelligence = { received = $0 }
@@ -110,8 +96,7 @@ import Testing
     }
 
     @Test func translateAsksForALanguageFirst() {
-        let (controller, window) = makeController()
-        defer { withExtendedLifetime(window) {} }
+        let controller = makeEditor("# Ink\n\nSome words.\n\n", height: 500)
         controller.intelligenceEnabled = true
         var received: IntelligenceCast?
         controller.onIntelligence = { received = $0 }

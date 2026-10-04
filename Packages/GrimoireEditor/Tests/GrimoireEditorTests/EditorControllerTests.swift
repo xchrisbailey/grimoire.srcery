@@ -22,42 +22,30 @@ import Testing
 
         """
 
-    func makeController(_ text: String = sample) -> EditorController {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        controller.textView.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
-        controller.load(text, flavor: .markdown)
-        return controller
-    }
-
-    func font(_ controller: EditorController, at offset: Int) -> NSFont? {
-        controller.textView.textStorage?.attribute(.font, at: offset, effectiveRange: nil) as? NSFont
-    }
-
     @Test func stylesWithoutChangingTheText() {
-        let controller = makeController()
+        let controller = makeEditor(Self.sample)
         #expect(controller.text == Self.sample)
         // The caret starts in the heading, so its marker is dimmed, not hidden.
-        #expect(font(controller, at: 2)?.pointSize == 34)
+        #expect(controller.font(at: 2)?.pointSize == 34)
         let bold = (Self.sample as NSString).range(of: "autumn").location
-        #expect(font(controller, at: bold)?.pointSize == 15.5)
+        #expect(controller.font(at: bold)?.pointSize == 15.5)
         // Markers outside the caret's block shrink to nothing.
-        #expect(font(controller, at: bold - 1)?.pointSize ?? 99 < 1)
+        #expect(controller.font(at: bold - 1)?.pointSize ?? 99 < 1)
         let code = (Self.sample as NSString).range(of: "let brew").location
         let decoration = controller.textView.textStorage?.attribute(.grimoireDecoration, at: code, effectiveRange: nil)
         #expect((decoration as? LineDecoration)?.kind == .code(.middle))
     }
 
     @Test func movingTheCaretRevealsMarkers() {
-        let controller = makeController()
+        let controller = makeEditor(Self.sample)
         let bold = (Self.sample as NSString).range(of: "autumn").location
         controller.textView.setSelectedRange(NSRange(location: bold, length: 0))
-        #expect(font(controller, at: bold - 1)?.pointSize == 15.5)
-        #expect(font(controller, at: 0)?.pointSize ?? 99 < 1)
+        #expect(controller.font(at: bold - 1)?.pointSize == 15.5)
+        #expect(controller.font(at: 0)?.pointSize ?? 99 < 1)
     }
 
     @Test func typingUpdatesTheBindingAndOnlyTheTouchedLine() {
-        let controller = makeController()
+        let controller = makeEditor(Self.sample)
         var received = ""
         controller.onTextChange = { received = $0 }
         let offset = (Self.sample as NSString).range(of: "batch").location
@@ -72,20 +60,11 @@ import Testing
     }
 
     @Test func typingAHeadingMarkerRestyles() {
-        let controller = makeController("Plain\n")
+        let controller = makeEditor("Plain\n")
         controller.textView.setSelectedRange(NSRange(location: 0, length: 0))
         controller.textView.insertText("## ", replacementRange: controller.textView.selectedRange())
         #expect(controller.index.blocks.first?.kind == .heading(level: 2))
-        #expect(font(controller, at: 4)?.pointSize == 20)
-    }
-
-    @Test func togglesTasksUndoably() {
-        let controller = makeController()
-        let task = (Self.sample as NSString).range(of: "- [ ] Ember").location
-        controller.toggleTask(at: task)
-        #expect(controller.text.contains("- [x] Ember draught"))
-        controller.textView.undoManager?.undo()
-        #expect(controller.text.contains("- [ ] Ember draught"))
+        #expect(controller.font(at: 4)?.pointSize == 20)
     }
 
     @Test func linksToMarkdownOpenInTheEditor() {
@@ -106,16 +85,7 @@ import Testing
                 "## Section \(line)\n\nSome **bold** text with `code` and a [link](x.md).\n\n- item one\n- item two\n\n"
             line += 7
         }
-        // Host the editor in a window, so TextKit lays out only what's visible, as in the app.
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
+        let controller = makeEditor(text)
         let middle = (text as NSString).length / 2
         let paragraph = (text as NSString).range(of: "Some", range: NSRange(location: middle, length: 2000)).location
         controller.textView.setSelectedRange(NSRange(location: paragraph, length: 0))
@@ -142,39 +112,22 @@ import Testing
 @MainActor @Suite(.serialized) struct RawModeTests {
     static let sample = EditorControllerTests.sample
 
-    func makeController(_ text: String = sample) -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 300), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
-        return (controller, window)
-    }
-
-    func font(_ controller: EditorController, at offset: Int) -> NSFont? {
-        controller.textView.textStorage?.attribute(.font, at: offset, effectiveRange: nil) as? NSFont
-    }
-
     @Test func rawShowsEveryMarkerInMono() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 300)
         controller.mode = .raw
         #expect(controller.text == Self.sample)
         let bold = (Self.sample as NSString).range(of: "**autumn").location
-        #expect(font(controller, at: bold)?.pointSize == 14)
-        #expect(font(controller, at: 0)?.familyName == "Geist Mono")
+        #expect(controller.font(at: bold)?.pointSize == 14)
+        #expect(controller.font(at: 0)?.familyName == "Geist Mono")
         let decoration = controller.textView.textStorage?.attribute(
             .grimoireDecoration, at: (Self.sample as NSString).range(of: "let brew").location, effectiveRange: nil)
         #expect(decoration == nil)
         controller.mode = .preview
-        #expect(font(controller, at: bold)?.pointSize ?? 99 < 1)
+        #expect(controller.font(at: bold)?.pointSize ?? 99 < 1)
     }
 
     @Test func switchingKeepsUndoAndTheCaret() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 300)
         let offset = (Self.sample as NSString).range(of: "batch").location
         controller.textView.setSelectedRange(NSRange(location: offset, length: 0))
         controller.textView.insertText("big ", replacementRange: controller.textView.selectedRange())
@@ -186,12 +139,12 @@ import Testing
     }
 
     @Test func rawKeepsListContinuation() {
-        let (controller, _) = makeController("- one")
+        let controller = makeEditor("- one", height: 300)
         controller.mode = .raw
         controller.textView.setSelectedRange(NSRange(location: 5, length: 0))
         controller.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
         #expect(controller.text == "- one\n- ")
-        let (paragraph, _) = makeController("Para")
+        let paragraph = makeEditor("Para", height: 300)
         paragraph.mode = .raw
         paragraph.textView.setSelectedRange(NSRange(location: 4, length: 0))
         paragraph.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
@@ -205,7 +158,7 @@ import Testing
         for section in 0..<1_500 {
             text += "## Section \(section)\n\nSome **bold** text and `code`.\n\n- item\n\n"
         }
-        let (controller, _) = makeController(text)
+        let controller = makeEditor(text, height: 300)
         let target = (text as NSString).range(of: "## Section 700").location
         controller.textView.setSelectedRange(NSRange(location: target, length: 0))
         controller.textView.scrollRangeToVisible(NSRange(location: target, length: 0))

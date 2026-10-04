@@ -6,27 +6,15 @@ import Testing
 @testable import GrimoireEditor
 
 @MainActor @Suite(.serialized) struct BlockBehaviorTests {
-    func makeController(_ text: String, caret: Int? = nil) -> EditorController {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        controller.textView.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
-        controller.load(text, flavor: .markdown)
-        let location = caret ?? (text as NSString).length
-        controller.textView.setSelectedRange(NSRange(location: location, length: 0))
-        return controller
-    }
-
-    func type(_ string: String, into controller: EditorController) {
-        for character in string {
-            controller.textView.insertText(String(character), replacementRange: controller.textView.selectedRange())
-        }
+    func editorAtEnd(_ text: String) -> EditorController {
+        makeEditor(text, caret: (text as NSString).length)
     }
 
     @Test func enterContinuesAListAndUndoes() {
-        let controller = makeController("- Mandrake")
+        let controller = editorAtEnd("- Mandrake")
         controller.textView.doCommand(by: #selector(NSResponder.insertNewline(_:)))
         #expect(controller.text == "- Mandrake\n- ")
-        type("Moonwater", into: controller)
+        controller.type("Moonwater")
         #expect(controller.text == "- Mandrake\n- Moonwater")
         #expect(controller.index.blocks.map(\.kind) == [.listItem(.bullet), .listItem(.bullet)])
         controller.textView.undoManager?.undo()
@@ -35,7 +23,7 @@ import Testing
     }
 
     @Test func tabAndBackspaceOnListItems() {
-        let controller = makeController("- one\n- two")
+        let controller = editorAtEnd("- one\n- two")
         controller.textView.doCommand(by: #selector(NSResponder.insertTab(_:)))
         #expect(controller.text == "- one\n  - two")
         controller.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
@@ -46,16 +34,16 @@ import Testing
     }
 
     @Test func typedShortcutsExpand() {
-        let controller = makeController("")
-        type("[] ", into: controller)
+        let controller = editorAtEnd("")
+        controller.type("[] ")
         #expect(controller.text == "- [ ] ")
-        let code = makeController("Intro\n\n")
-        type("```", into: code)
+        let code = editorAtEnd("Intro\n\n")
+        code.type("```")
         #expect(code.text == "Intro\n\n```\n```")
     }
 
     @Test func movesAndDuplicatesBlocks() {
-        let controller = makeController("# A\n\nB\n\nC\n", caret: 6)
+        let controller = makeEditor("# A\n\nB\n\nC\n", caret: 6)
         controller.textView.doCommand(by: #selector(NSResponder.moveParagraphBackwardAndModifySelection(_:)))
         #expect(controller.text == "B\n\n# A\n\nC\n")
         controller.moveBlock(0, to: 2)
@@ -68,24 +56,22 @@ import Testing
         #expect(controller.text == "# A\n\n## C\n\nB\n")
     }
 
-    @Test func commandReturnTogglesTasks() throws {
-        let controller = makeController("- [ ] Ember")
-        let event = try #require(
-            NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: 0, windowNumber: 0, context: nil,
-                characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
-        #expect(controller.handleKey(event))
+    @Test func commandReturnTogglesTasksUndoably() throws {
+        let controller = editorAtEnd("- [ ] Ember")
+        #expect(controller.handleKey(try keyEvent(36, "\r", .command)))
         #expect(controller.text == "- [x] Ember")
+        controller.textView.undoManager?.undo()
+        #expect(controller.text == "- [ ] Ember")
     }
 
     @Test func escapeSelectsTheBlock() {
-        let controller = makeController("Intro\n\n- Mandrake\n", caret: 10)
+        let controller = makeEditor("Intro\n\n- Mandrake\n", caret: 10)
         controller.textView.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
         #expect(controller.textView.selectedRange() == NSRange(location: 7, length: 10))
     }
 
     @Test func pastingAURLOverTextMakesALink() {
-        let controller = makeController("See the docs")
+        let controller = editorAtEnd("See the docs")
         controller.textView.setSelectedRange(NSRange(location: 8, length: 4))
         let board = NSPasteboard(name: NSPasteboard.Name("grimoire-test-\(UUID())"))
         board.clearContents()
@@ -95,12 +81,15 @@ import Testing
         board.releaseGlobally()
     }
 
-    @Test func pastingAnImageSavesItInAssets() throws {
+    @Test func pastingAnImageSavesItInAssetsAndAsksForAltText() throws {
         let folder = FileManager.default.temporaryDirectory.appending(path: "grimoire-paste-\(UUID())")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        let controller = makeController("")
+        let controller = editorAtEnd("")
         controller.fileURL = folder.appending(path: "page.md")
+        var casts: [IntelligenceCast] = []
+        controller.intelligenceEnabled = true
+        controller.onIntelligence = { casts.append($0) }
         let image = NSBitmapImageRep(
             bitmapDataPlanes: nil, pixelsWide: 4, pixelsHigh: 4, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
             isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
@@ -114,6 +103,8 @@ import Testing
         let saved = try FileManager.default.contentsOfDirectory(atPath: folder.appending(path: "assets").path())
         #expect(saved.count == 1)
         #expect(controller.text.contains("(assets/\(saved[0]))"))
+        #expect(casts.count == 1 && casts[0].command == "alt")
+        #expect(FileManager.default.fileExists(atPath: casts[0].source))
     }
 
     @Test func richTextBecomesMarkdown() {

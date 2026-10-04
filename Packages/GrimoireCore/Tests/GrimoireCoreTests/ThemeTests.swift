@@ -138,6 +138,21 @@ import Testing
     }
 }
 
+extension Scratch {
+    /// Zips `folder` (relative to the scratch folder) into `archive`, keeping its last path component.
+    fileprivate func zip(_ folder: String, to archive: String) throws -> URL {
+        let source = url.appending(path: folder)
+        let target = url.appending(path: archive)
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/zip")
+        process.currentDirectoryURL = source.deletingLastPathComponent()
+        process.arguments = ["-qr", target.path(percentEncoded: false), source.lastPathComponent]
+        try process.run()
+        process.waitUntilExit()
+        return target
+    }
+}
+
 @Suite struct ThemeImportTests {
     static let darkTheme = """
         {
@@ -235,7 +250,6 @@ import Testing
 
     @Test func readsAVsixExtension() throws {
         let scratch = try Scratch()
-        let root = try scratch.folder("ext/extension")
         try scratch.file(
             "ext/extension/package.json",
             """
@@ -246,13 +260,7 @@ import Testing
         try scratch.file("ext/extension/themes/night.json", Self.darkTheme)
         try scratch.file("ext/extension/themes/day.json", ##"{ "include": "./base.json" }"##)
         try scratch.file("ext/extension/themes/base.json", ##"{ "colors": { "editor.background": "#fafafa" } }"##)
-        let vsix = scratch.url.appending(path: "night-ink.vsix")
-        let zip = Process()
-        zip.executableURL = URL(filePath: "/usr/bin/zip")
-        zip.currentDirectoryURL = root.deletingLastPathComponent()
-        zip.arguments = ["-qr", vsix.path(percentEncoded: false), "extension"]
-        try zip.run()
-        zip.waitUntilExit()
+        let vsix = try scratch.zip("ext/extension", to: "night-ink.vsix")
 
         let themes = try ThemeImport.themes(from: vsix)
         #expect(themes.map(\.name) == ["Night Ink", "Day Ink"])
@@ -275,13 +283,7 @@ import Testing
         let scratch = try Scratch()
         try scratch.file("pack/small.txt", "ink")
         try scratch.file("pack/large.txt", String(repeating: "grimoire ", count: 2_000))
-        let archive = scratch.url.appending(path: "pack.zip")
-        let zip = Process()
-        zip.executableURL = URL(filePath: "/usr/bin/zip")
-        zip.currentDirectoryURL = scratch.url
-        zip.arguments = ["-qr", archive.path(percentEncoded: false), "pack"]
-        try zip.run()
-        zip.waitUntilExit()
+        let archive = try scratch.zip("pack", to: "pack.zip")
 
         let reader = try ZipArchive(data: Data(contentsOf: archive))
         #expect(Set(reader.paths).isSuperset(of: ["pack/small.txt", "pack/large.txt"]))
