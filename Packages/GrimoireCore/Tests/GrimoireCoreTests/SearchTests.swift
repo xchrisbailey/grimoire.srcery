@@ -46,22 +46,9 @@ import Testing
 }
 
 @MainActor @Suite struct ProjectIndexTests {
-    func makeWorkspace(_ scratch: Scratch, files: [String: String]) async throws -> (Workspace, ProjectLibrary) {
-        let notes = try scratch.folder("notes")
-        for (path, text) in files { try scratch.file("notes/" + path, text) }
-        let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Notes")
-        try library.bindFolder(notes, to: project.id)
-        let workspace = Workspace(projectID: project.id, library: library)
-        workspace.activate()
-        try await until { workspace.folders.first?.status == .available }
-        return (workspace, library)
-    }
-
     @Test func listsAndSearchesEveryDocument() async throws {
         let scratch = try Scratch()
-        let (workspace, _) = try await makeWorkspace(
-            scratch,
+        let (workspace, _) = try await scratch.workspace(
             files: [
                 "potions.md": "# Potions\n\nInk of recall.\n", "deep/runes.mdx": "Runes need ink too.\n",
                 "other.txt": "ink",
@@ -81,7 +68,7 @@ import Testing
 
     @Test func picksUpChangedFiles() async throws {
         let scratch = try Scratch()
-        let (workspace, _) = try await makeWorkspace(scratch, files: ["potions.md": "nothing here\n"])
+        let (workspace, _) = try await scratch.workspace(files: ["potions.md": "nothing here\n"])
         defer { workspace.deactivate() }
         let index = ProjectIndex()
         index.update(from: workspace.folders)
@@ -110,7 +97,7 @@ import Testing
                 "# Page \(number)\n\n" + String(repeating: "Some prose about potions and runes. ", count: 60) + "\n"
         }
         files["folder3/needle.md"] = "The moonwater tincture.\n"
-        let (workspace, _) = try await makeWorkspace(scratch, files: files)
+        let (workspace, _) = try await scratch.workspace(files: files)
         defer { workspace.deactivate() }
         try await until(timeout: .seconds(20)) { workspace.folders.first?.tree?.documents.count == 2_001 }
         let index = ProjectIndex()

@@ -22,19 +22,6 @@ import Testing
 
         """
 
-    func makeController(_ text: String = sample) -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
-        return (controller, window)
-    }
-
     func substring(_ text: String, _ range: NSRange) -> String {
         (text as NSString).substring(with: range)
     }
@@ -56,7 +43,7 @@ import Testing
     }
 
     @Test func dropsCheckerResultsOutsideProse() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample)
         let text = Self.sample as NSString
         let whole = NSRange(location: 0, length: text.length)
         var results: [NSTextCheckingResult] = []
@@ -75,7 +62,7 @@ import Testing
     }
 
     @Test func projectWordsAreNeverMisspelled() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample)
         let text = Self.sample as NSString
         let word = text.range(of: "Thsi is")
         let result = NSTextCheckingResult.spellCheckingResult(range: NSRange(location: word.location, length: 4))
@@ -85,7 +72,7 @@ import Testing
     }
 
     @Test func neverUnderlinesCode() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample)
         let text = Self.sample as NSString
         let code = text.range(of: "let wrng")
         #expect(controller.textView.isExcludedFromChecking?(code) == true)
@@ -93,16 +80,16 @@ import Testing
     }
 
     @Test func checksInTheFrontmatterLanguage() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample)
         #expect(controller.documentLanguage == "en")
         let options = controller.checkingOptions([:])
         #expect((options[.orthography] as? NSOrthography)?.dominantLanguage == "en")
-        let (plain, _) = makeController("Just prose.\n")
+        let plain = makeEditor("Just prose.\n")
         #expect(plain.checkingOptions([:]).isEmpty)
     }
 
     @Test func settingsAndTheEditMenuStayInStep() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample)
         #expect(controller.textChecking == .spellingOnly)
         var reported: TextChecking?
         controller.onTextCheckingChange = { reported = $0 }
@@ -117,7 +104,7 @@ import Testing
     /// check's results pass through the filter before the text view applies them, and a
     /// substitution inside code is refused even if one got through.
     @Test func quotesInCodeStayStraight() {
-        let (controller, _) = makeController("Prose \"here\n\n```\nlet spell = \"\n```\n")
+        let controller = makeEditor("Prose \"here\n\n```\nlet spell = \"\n```\n")
         controller.textChecking = TextChecking()
         let text = controller.text as NSString
         let proseQuote = text.range(of: "\"")

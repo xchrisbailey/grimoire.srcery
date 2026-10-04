@@ -8,25 +8,8 @@ import Testing
 @MainActor @Suite(.serialized) struct EditorSettingsTests {
     static let sample = EditorControllerTests.sample
 
-    func makeController(_ text: String = sample, height: CGFloat = 300) -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: height), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
-        return (controller, window)
-    }
-
-    func font(_ controller: EditorController, at offset: Int) -> NSFont? {
-        controller.textView.textStorage?.attribute(.font, at: offset, effectiveRange: nil) as? NSFont
-    }
-
     @Test func fontsAndSizesComeFromSettings() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 300)
         var theme = controller.theme
         theme.bodySize = 18
         theme.codeSize = 13
@@ -34,13 +17,13 @@ import Testing
         theme.setLineHeight(2.0)
         controller.theme = theme
         let body = (Self.sample as NSString).range(of: "Brews").location
-        #expect(font(controller, at: body)?.familyName == "Helvetica Neue")
-        #expect(font(controller, at: body)?.pointSize == 18)
+        #expect(controller.font(at: body)?.familyName == "Helvetica Neue")
+        #expect(controller.font(at: body)?.pointSize == 18)
         // Headings scale with the body.
-        #expect(font(controller, at: 2)?.pointSize == (34 * 18 / 15.5).rounded())
+        #expect(controller.font(at: 2)?.pointSize == (34 * 18 / 15.5).rounded())
         let code = (Self.sample as NSString).range(of: "let brew").location
-        #expect(font(controller, at: code)?.familyName == "Geist Mono")
-        #expect(font(controller, at: code)?.pointSize == 13)
+        #expect(controller.font(at: code)?.familyName == "Geist Mono")
+        #expect(controller.font(at: code)?.pointSize == 13)
         let style = controller.textView.textStorage?.attribute(.paragraphStyle, at: body, effectiveRange: nil)
         #expect(((style as? NSParagraphStyle)?.lineHeightMultiple ?? 0) > 1.5)
     }
@@ -51,19 +34,19 @@ import Testing
     }
 
     @Test func showingAllMarkersRevealsEveryBlock() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 300)
         let bold = (Self.sample as NSString).range(of: "autumn").location
-        #expect(font(controller, at: bold - 1)?.pointSize ?? 99 < 1)
+        #expect(controller.font(at: bold - 1)?.pointSize ?? 99 < 1)
         controller.revealsAllMarkers = true
-        #expect(font(controller, at: bold - 1)?.pointSize == 15.5)
+        #expect(controller.font(at: bold - 1)?.pointSize == 15.5)
         #expect(controller.text == Self.sample)
         controller.revealsAllMarkers = false
-        #expect(font(controller, at: bold - 1)?.pointSize ?? 99 < 1)
+        #expect(controller.font(at: bold - 1)?.pointSize ?? 99 < 1)
     }
 
     @Test func typewriterScrollingCentersTheCaret() {
         let text = (1...80).map { "Line \($0) of the ledger." }.joined(separator: "\n\n") + "\n"
-        let (controller, _) = makeController(text)
+        let controller = makeEditor(text, height: 300)
         controller.typewriterScrolling = true
         let natural = controller.textView.frame.height
         let offset = (text as NSString).range(of: "Line 60 ").location
@@ -94,7 +77,7 @@ import Testing
         #expect(
             EditorController.relativePath(
                 from: folder, to: URL(filePath: "/tmp/grimoire/assets/moon jar.png")) == "../../assets/moon%20jar.png")
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 300)
         controller.fileURL = folder.appending(path: "ledger.md")
         #expect(controller.assetsFolder?.path(percentEncoded: false) == "/tmp/grimoire/notes/potions/assets/")
         controller.imageFolder = URL(filePath: "/tmp/grimoire/assets", directoryHint: .isDirectory)

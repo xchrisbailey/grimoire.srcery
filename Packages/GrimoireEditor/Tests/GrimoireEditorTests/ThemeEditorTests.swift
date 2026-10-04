@@ -31,65 +31,35 @@ import Testing
         return theme
     }()
 
-    func makeController(_ text: String = sample) -> (EditorController, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 400), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        window.appearance = NSAppearance(named: .darkAqua)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        window.displayIfNeeded()
-        return (controller, window)
-    }
-
-    func color(_ controller: EditorController, at offset: Int) -> PaletteColor? {
-        guard
-            let color = controller.textView.textStorage?.attribute(.foregroundColor, at: offset, effectiveRange: nil)
-                as? NSColor
-        else { return nil }
-        var resolved: NSColor?
-        controller.textView.effectiveAppearance.performAsCurrentDrawingAppearance {
-            resolved = color.usingColorSpace(.sRGB)
-        }
-        guard let resolved else { return nil }
-        return PaletteColor(
-            red: UInt8((resolved.redComponent * 255).rounded()),
-            green: UInt8((resolved.greenComponent * 255).rounded()),
-            blue: UInt8((resolved.blueComponent * 255).rounded()))
-    }
-
     var heading: Int { (Self.sample as NSString).range(of: "Potion ledger").location }
 
     @Test func switchingThemesRestylesInPlace() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 400, dark: true)
         controller.mode = .raw
-        #expect(color(controller, at: heading) == BrandPalette.mocha.magic)
+        #expect(controller.color(at: heading) == BrandPalette.mocha.magic)
         controller.theme = EditorTheme(light: .latte, dark: Self.neon)
         #expect(controller.text == Self.sample)
-        #expect(color(controller, at: heading)?.description == "#123456")
+        #expect(controller.color(at: heading)?.description == "#123456")
         // The theme turned bold off for Raw headings.
         let font = controller.textView.textStorage?.attribute(.font, at: heading, effectiveRange: nil) as? NSFont
         #expect(NSFontManager.shared.weight(of: font ?? .systemFont(ofSize: 1)) < 9)
         controller.mode = .preview
-        #expect(color(controller, at: heading)?.description == "#654321")
+        #expect(controller.color(at: heading)?.description == "#654321")
     }
 
     @Test func rawFollowsTheBrandRoles() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 400, dark: true)
         controller.mode = .raw
         let text = Self.sample as NSString
-        #expect(color(controller, at: text.range(of: "title").location) == BrandPalette.mocha.link)
-        #expect(color(controller, at: text.range(of: "Potions").location) == BrandPalette.mocha.string)
-        #expect(color(controller, at: text.range(of: "- Ember").location) == BrandPalette.mocha.caret)
-        #expect(color(controller, at: text.range(of: "**draught").location) == BrandPalette.mocha.caret)
-        #expect(color(controller, at: 0) == BrandPalette.mocha.overlay1)
+        #expect(controller.color(at: text.range(of: "title").location) == BrandPalette.mocha.link)
+        #expect(controller.color(at: text.range(of: "Potions").location) == BrandPalette.mocha.string)
+        #expect(controller.color(at: text.range(of: "- Ember").location) == BrandPalette.mocha.caret)
+        #expect(controller.color(at: text.range(of: "**draught").location) == BrandPalette.mocha.caret)
+        #expect(controller.color(at: 0) == BrandPalette.mocha.overlay1)
     }
 
     @Test func rawHighlightsTheCaretLine() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 400, dark: true)
         #expect(controller.textView.caretLineColor == nil)
         controller.mode = .raw
         #expect(controller.textView.caretLineColor != nil)
@@ -98,7 +68,7 @@ import Testing
     }
 
     @Test func caretAndSelectionUseTheEditorColors() {
-        let (controller, _) = makeController()
+        let controller = makeEditor(Self.sample, height: 400, dark: true)
         controller.theme = EditorTheme(light: .latte, dark: Self.neon)
         var caret: NSColor?
         controller.textView.effectiveAppearance.performAsCurrentDrawingAppearance {

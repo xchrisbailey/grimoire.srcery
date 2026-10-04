@@ -108,19 +108,6 @@ import Testing
         #expect(preferences.imageLocation(for: project) == .projectFolder)
     }
 
-    @Test func projectsSavedBeforeOverridesStillLoad() throws {
-        let json = """
-            {"version": 1, "projects": [{"id": "6F9619FF-8B86-D011-B42D-00C04FC964FF", "name": "Old",
-            "icon": "book.closed", "color": "magic", "roots": [], "expandedFolders": []}]}
-            """
-        let scratch = try Scratch()
-        let file = try scratch.file("projects.json", json)
-        let projects = try ProjectStore(fileURL: file).load()
-        #expect(projects.first?.name == "Old")
-        #expect(projects.first?.overrides == ProjectOverrides())
-        #expect(projects.first?.dictionary == [])
-    }
-
     @Test func spellingFollowsTheSystemUntilChanged() {
         let defaults = makeDefaults()
         defaults.set(false, forKey: "NSAutomaticQuoteSubstitutionEnabled")
@@ -129,31 +116,5 @@ import Testing
         #expect(preferences.checksSpelling)
         preferences.smartQuotes = true
         #expect(Preferences(defaults: defaults).smartQuotes)
-    }
-
-    @Test func readsSimpleFrontmatterValues() {
-        let document = Document(parsing: "---\ntitle: \"Potions\"\nlang: de-DE\nnested:\n  lang: fr\n---\n\nText\n")
-        #expect(document.frontmatter?.value(forKey: "lang") == "de-DE")
-        #expect(document.frontmatter?.value(forKey: "title") == "Potions")
-        #expect(document.frontmatter?.value(forKey: "missing") == nil)
-    }
-
-    @Test func changingExtensionsRescansTheTree() async throws {
-        let scratch = try Scratch()
-        let notes = try scratch.folder("notes")
-        try scratch.file("notes/spells.md")
-        try scratch.file("notes/runes.txt")
-        let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Notes")
-        try library.bindFolder(notes, to: project.id)
-        let workspace = Workspace(projectID: project.id, library: library)
-        workspace.activate()
-        defer { workspace.deactivate() }
-        try await until { workspace.folders.first?.status == .available }
-        #expect(workspace.folders.first?.tree?.documents.map(\.name) == ["spells.md"])
-
-        workspace.setExtensions(["md", "txt"])
-        try await until { workspace.folders.first?.tree?.documents.count == 2 }
-        #expect(workspace.folders.first?.tree?.documents.map(\.name) == ["runes.txt", "spells.md"])
     }
 }

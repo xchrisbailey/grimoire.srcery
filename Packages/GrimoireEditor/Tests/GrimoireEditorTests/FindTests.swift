@@ -17,26 +17,18 @@ import Testing
 
         """
 
-    // swiftlint:disable:next large_tuple
-    func makeController(_ text: String = sample) -> (EditorController, EditorProxy, NSWindow) {
-        BrandFontTests.registerRepoFonts()
-        let controller = EditorController()
+    func makeFindEditor(_ text: String = sample) -> (EditorController, EditorProxy) {
+        let controller = makeEditor(text, height: 600)
         let proxy = EditorProxy()
         controller.proxy = proxy
         proxy.controller = controller
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 600), styleMask: [.titled], backing: .buffered,
-            defer: false)
-        controller.scrollView.frame = window.contentView?.bounds ?? .zero
-        window.contentView?.addSubview(controller.scrollView)
-        controller.load(text, flavor: .markdown)
-        return (controller, proxy, window)
+        return (controller, proxy)
     }
 
     func selected(_ controller: EditorController) -> String { controller.selectedText }
 
     @Test func findsAndWrapsAround() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         proxy.showFind()
         proxy.findQuery = "ink"
         #expect(proxy.matchCount == 4)
@@ -60,7 +52,7 @@ import Testing
     }
 
     @Test func seedsTheQueryFromTheSelection() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         controller.textView.setSelectedRange((Self.sample as NSString).range(of: "recall"))
         proxy.showFind(replace: true)
         #expect(proxy.findQuery == "recall")
@@ -71,7 +63,7 @@ import Testing
     }
 
     @Test func replacesOneThenAllInOneUndo() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         proxy.showFind(replace: true)
         proxy.findQuery = "ink"
         proxy.replacement = "quill"
@@ -90,7 +82,7 @@ import Testing
     }
 
     @Test func regexReplacementsUseGroups() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         var snapshots = 0
         controller.onBeforeLargeEdit = { _ in snapshots += 1 }
         proxy.showFind(replace: true)
@@ -106,7 +98,7 @@ import Testing
     }
 
     @Test func theFindMenuDrivesTheBar() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         controller.textView.setSelectedRange((Self.sample as NSString).range(of: "dry"))
         let item = NSMenuItem(
             title: "Find", action: #selector(NSTextView.performFindPanelAction(_:)), keyEquivalent: "")
@@ -121,7 +113,7 @@ import Testing
     }
 
     @Test func listsHeadingsAndJumpsToThem() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         #expect(proxy.headings.map(\.title) == ["Potions", "Storage"])
         #expect(proxy.headings.map(\.level) == [1, 2])
         let storage = proxy.headings[1]
@@ -130,7 +122,7 @@ import Testing
     }
 
     @Test func restoringTextIsOneUndoableEdit() {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         proxy.replaceText("# Restored\n", actionName: "Restore Version")
         #expect(controller.text == "# Restored\n")
         controller.textView.undoManager?.undo()
@@ -138,7 +130,7 @@ import Testing
     }
 
     @Test func castsSpellsAtTheCaret() throws {
-        let (controller, proxy, _) = makeController()
+        let (controller, proxy) = makeFindEditor()
         let offset = (Self.sample as NSString).range(of: "Keep").location
         controller.textView.setSelectedRange(NSRange(location: offset, length: 0))
         let quote = try #require(Spellbook.standard.first { $0.id == "quote" })

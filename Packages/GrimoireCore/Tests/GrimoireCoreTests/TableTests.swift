@@ -60,16 +60,6 @@ import Testing
     }
 }
 
-/// Text with `‸` marking the caret.
-private func run(_ marked: String, _ action: (BlockEditing) -> TextEdit?) -> String? {
-    let range = (marked as NSString).range(of: "‸")
-    let text = (marked as NSString).replacingCharacters(in: range, with: "")
-    let editing = BlockEditing(text: text, index: BlockIndex(text: text), selection: range.location..<range.location)
-    guard let edit = action(editing) else { return nil }
-    let result = edit.applied(to: text) as NSString
-    return result.replacingCharacters(in: NSRange(location: edit.selection.lowerBound, length: 0), with: "‸")
-}
-
 @Suite struct TableEditingTests {
     let table = "| a | b |\n| --- | --- |\n| 1 | 2 |\n"
 
