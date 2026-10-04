@@ -1,9 +1,13 @@
 name: CI
 
+# Docs-only changes don't build anything. Markdown under Tests is parser test
+# data, so it still runs CI (later patterns override earlier ones).
 on:
   push:
     branches: [main]
+    paths: ['**', '!**.md', '!docs/**', 'Packages/*/Tests/**']
   pull_request:
+    paths: ['**', '!**.md', '!docs/**', 'Packages/*/Tests/**']
 
 concurrency:
   group: ci-${{ github.ref }}
