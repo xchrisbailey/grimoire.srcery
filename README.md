@@ -63,16 +63,11 @@ Every shortcut can be changed in **Settings > Shortcuts**.
 Grimoire needs **macOS 27** or later. Intelligence features also need a Mac with Apple Intelligence turned on.
 
 1. Download the latest `Grimoire-<version>.dmg` from [Releases](https://github.com/xchrisbailey/grimoire.srcery/releases).
-2. Open the DMG and drag **Grimoire** into **Applications**.
-3. The beta isn't notarized by Apple yet, so macOS blocks the first launch. In Applications, right-click **Grimoire**, choose **Open**, then choose **Open** again. You only need to do this once.
+2. Open the DMG and drag **Grimoire** into **Applications**, then open it.
 
-   If macOS still won't open it, remove the quarantine flag in Terminal:
+Builds from beta 2 on are signed with a Developer ID and notarized by Apple, so they open like any other app. Beta 1 wasn't. If you still have it, right-click **Grimoire** in Applications and choose **Open** the first time, or just install the latest beta over it.
 
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/Grimoire.app
-   ```
-
-Signed and notarized builds are planned before 1.0 ([#16](https://github.com/xchrisbailey/grimoire.srcery/issues/16)). Grimoire doesn't update itself yet, so check Releases for new betas.
+Grimoire doesn't update itself yet, so check Releases for new betas.
 
 An iOS app is planned ([#17](https://github.com/xchrisbailey/grimoire.srcery/issues/17)).
 
