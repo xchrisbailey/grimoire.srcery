@@ -14,6 +14,16 @@ extension WindowState {
         actions.error = error
     }
 
+    /// Looks for loose files that went missing or moved, and follows the open one to its new
+    /// place so edits keep landing in the file.
+    func refreshLooseFiles() {
+        guard let workspace else { return }
+        for move in workspace.refreshLooseFiles() where move.id == selectedLooseFile {
+            if let selectedFile { itemMoved(from: selectedFile, to: move.to) }
+        }
+        reportWorkspaceError()
+    }
+
     /// Shows files that were opened from outside the app, ending on the last one. They
     /// belong to this window's project.
     func open(_ urls: [URL]) {

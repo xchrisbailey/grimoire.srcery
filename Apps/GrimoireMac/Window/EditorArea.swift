@@ -84,6 +84,7 @@ private struct DocumentEditor: View {
                 writingTools: preferences.shortcut(for: .writingTools))
         )
         .imageFolder(window.imageFolder(for: document.url))
+        .onImageError { window.actions.error = $0 }
         .proxy(window.editor)
         .onBeforeLargeEdit { reason in document.keepVersion(reason) }
         .intelligence(enabled: window.intelligenceReady) { cast in window.runIntelligence(cast) }

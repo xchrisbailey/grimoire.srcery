@@ -20,6 +20,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     var indentsWithTabs = false
     var keyBindings = EditorKeyBindings()
     var imageFolder: URL?
+    var onImageError: ((Error) -> Void)?
     var textChecking = TextChecking.spellingOnly
     var projectWords: [String] = []
     var onLearnWord: ((String) -> Void)?
@@ -110,6 +111,13 @@ public struct MarkdownEditor: NSViewRepresentable {
     public func imageFolder(_ folder: URL?) -> MarkdownEditor {
         var copy = self
         copy.imageFolder = folder
+        return copy
+    }
+
+    /// What to do when a pasted or picked image can't be saved.
+    public func onImageError(_ handler: @escaping (Error) -> Void) -> MarkdownEditor {
+        var copy = self
+        copy.onImageError = handler
         return copy
     }
 
@@ -204,6 +212,7 @@ public struct MarkdownEditor: NSViewRepresentable {
     private func wire(_ controller: EditorController) {
         controller.textView.placeholder = placeholder
         controller.imageFolder = imageFolder
+        controller.onImageError = onImageError
         controller.revealsAllMarkers = showsAllMarkers
         controller.typewriterScrolling = typewriterScrolling
         controller.showsLineNumbers = showsLineNumbers

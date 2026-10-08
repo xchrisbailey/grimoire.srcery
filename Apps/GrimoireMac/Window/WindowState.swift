@@ -37,6 +37,8 @@ final class WindowState {
     private(set) var projectID: Project.ID?
     private(set) var workspace: Workspace?
     private(set) var selectedFile: URL?
+    /// The loose file the selected file is, if it is one.
+    private(set) var selectedLooseFile: LooseFile.ID?
     private(set) var document: OpenDocument?
     /// The AppKit window this state is shown in, to bring it forward.
     weak var hostWindow: NSWindow?
@@ -59,6 +61,7 @@ final class WindowState {
         actions.didCreate = { [weak self] url in self?.select(url) }
         actions.didMove = { [weak self] from, to in self?.itemMoved(from: from, to: to) }
         actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
+        actions.willRelease = { [weak self] in self?.save() }
     }
 
     var project: Project? { projectID.flatMap(library.project) }
@@ -97,9 +100,10 @@ final class WindowState {
     func projectRootsChanged() {
         workspace?.sync()
         reportWorkspaceError()
-        if let url = selectedFile, workspace?.reference(for: url) == nil, workspace?.looseFile(at: url) == nil {
-            select(nil)
-        }
+        // A loose file that can't be found stays open, with its text; only taking it off the
+        // list closes it.
+        let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
+        if let url = selectedFile, workspace?.reference(for: url) == nil, !listed { select(nil) }
     }
 
     func close() {
@@ -151,6 +155,7 @@ final class WindowState {
         guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else { return }
         closeDocument()
         selectedFile = url
+        selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
         guard let url else { return }
         editorMode = FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
@@ -280,7 +285,7 @@ final class WindowState {
         openError = nil
     }
 
-    private func itemMoved(from: URL, to: URL) {
+    func itemMoved(from: URL, to: URL) {
         guard let current = selectedFile else { return }
         let fromPath = from.standardizedFileURL.path(percentEncoded: false)
         let currentPath = current.standardizedFileURL.path(percentEncoded: false)

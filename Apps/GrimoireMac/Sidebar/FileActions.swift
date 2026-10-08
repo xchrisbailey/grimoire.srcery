@@ -21,6 +21,9 @@ final class FileActions {
     @ObservationIgnored var didMove: ((URL, URL) -> Void)?
     /// Called after an item goes to the Trash.
     @ObservationIgnored var didTrash: ((URL) -> Void)?
+    /// Called before a folder or loose file leaves the project and its access ends, so the
+    /// window can save what it has open while it still can.
+    @ObservationIgnored var willRelease: (() -> Void)?
 
     /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
     @discardableResult
@@ -116,7 +119,13 @@ final class FileActions {
     }
 
     func unbind(_ folder: BoundFolder, from workspace: Workspace) {
+        willRelease?()
         workspace.unbind(folder.id)
+    }
+
+    func removeLooseFile(_ file: BoundFile, from workspace: Workspace) {
+        willRelease?()
+        workspace.removeLooseFile(file.id)
     }
 
     private func perform(_ workspace: Workspace, near url: URL, _ operation: () throws -> Void) {

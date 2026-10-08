@@ -157,8 +157,7 @@ private struct SavesWithApp: ViewModifier {
                 window.save()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                window.workspace?.refreshLooseFiles()
-                window.reportWorkspaceError()
+                window.refreshLooseFiles()
                 window.document?.checkDisk()
             }
     }

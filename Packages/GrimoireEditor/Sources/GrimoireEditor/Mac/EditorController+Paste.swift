@@ -7,7 +7,11 @@ import UniformTypeIdentifiers
 /// text makes a link, and rich text from browsers becomes markdown.
 extension EditorController {
     func paste(from pasteboard: NSPasteboard) -> Bool {
-        let images = savedImages(from: pasteboard)
+        let (images, failure) = savedImages(from: pasteboard)
+        if let failure, images.isEmpty {
+            onImageError?(ImageSaveError(underlying: failure))
+            return true
+        }
         if !images.isEmpty {
             insert(images.map(imageLink).joined(separator: "\n\n"), actionName: String(localized: "Paste Image"))
             imagesAdded(images)
@@ -46,19 +50,28 @@ extension EditorController {
     }
 
     /// Saves pasted image data, or image files copied in Finder, into the assets folder.
-    private func savedImages(from pasteboard: NSPasteboard) -> [URL] {
-        guard let assets = assetsFolder else { return [] }
+    private func savedImages(from pasteboard: NSPasteboard) -> (saved: [URL], failure: Error?) {
+        guard let assets = assetsFolder else { return ([], nil) }
         var saved: [URL] = []
+        var failure: Error?
         let files =
             (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
         for file in files where UTType(filenameExtension: file.pathExtension)?.conforms(to: .image) == true {
-            if let copy = try? copyIntoAssets(file, assets: assets) { saved.append(copy) }
+            do {
+                saved.append(try copyIntoAssets(file, assets: assets))
+            } catch {
+                failure = error
+            }
         }
         if saved.isEmpty, files.isEmpty, let data = pngData(from: pasteboard) {
             let name = "pasted-\(Self.timestamp()).png"
-            if let url = try? write(data, named: name, assets: assets) { saved.append(url) }
+            do {
+                saved.append(try write(data, named: name, assets: assets))
+            } catch {
+                failure = error
+            }
         }
-        return saved
+        return (saved, failure)
     }
 
     /// Where images go: `imageFolder` when set, else `assets/` next to the file.
@@ -117,6 +130,16 @@ extension EditorController {
     static func looksLikeMarkdown(_ string: String) -> Bool {
         let markers = ["# ", "- ", "* ", "> ", "```", "](", "**"]
         return markers.contains { string.contains($0) }
+    }
+}
+
+/// A pasted or picked image that couldn't be saved next to the page. The sandbox grants a
+/// page opened on its own, not the folder around it.
+struct ImageSaveError: LocalizedError {
+    let underlying: Error
+
+    var errorDescription: String? {
+        String(localized: "The image couldn't be saved next to this page. \(underlying.localizedDescription)")
     }
 }
 #endif

@@ -208,8 +208,14 @@ extension EditorController {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let file = panel.url, let copy = try? copyIntoAssets(file, assets: assets)
-        else { return }
+        guard panel.runModal() == .OK, let file = panel.url else { return }
+        let copy: URL
+        do {
+            copy = try copyIntoAssets(file, assets: assets)
+        } catch {
+            onImageError?(ImageSaveError(underlying: error))
+            return
+        }
         let markdown = imageLink(copy)
         let end = offset + markdown.utf16.count
         apply(TextEdit(range: offset..<offset, replacement: markdown, selection: end..<end))

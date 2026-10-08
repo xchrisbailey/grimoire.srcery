@@ -66,6 +66,20 @@ private let betaTwoProjects = """
         #expect(projects.allSatisfy { $0.kind == .standard && $0.looseFiles.isEmpty })
     }
 
+    @Test func aKindFromALaterBuildReadsAsStandardAndTheOtherProjectsStillLoad() throws {
+        let json = """
+            {"version": 1, "projects": [
+              {"id": "6F9619FF-8B86-D011-B42D-00C04FC964FF", "name": "Later", "icon": "book.closed", "color": "magic",
+               "roots": [], "expandedFolders": [], "kind": "archive"},
+              {"id": "22222222-2222-2222-2222-222222222222", "name": "Strays", "icon": "tray", "color": "magic",
+               "roots": [], "expandedFolders": [], "kind": "unsorted"}]}
+            """
+        let scratch = try Scratch()
+        let projects = try ProjectStore(fileURL: scratch.file("projects.json", json)).load()
+        #expect(projects.map(\.name) == ["Later", "Strays"])
+        #expect(projects.map(\.kind) == [.standard, .unsorted])
+    }
+
     @Test func kindAndLooseFilesSurviveSavingAndLoading() throws {
         let scratch = try Scratch()
         let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
@@ -245,6 +259,29 @@ private let betaTwoProjects = """
         workspace.removeLooseFile(workspace.looseFiles[1].id)
         #expect(workspace.looseFiles.map(\.name) == ["kept.md"])
         #expect(library.project(id)?.looseFiles.count == 1)
+    }
+
+    @Test func aMovedLooseFileIsFollowedAndAGoneOneIsNot() throws {
+        let scratch = try Scratch()
+        let moving = try scratch.file("elsewhere/moving.md")
+        let vanishing = try scratch.file("elsewhere/vanishing.md")
+        let (workspace, _) = unsorted(scratch, files: [moving, vanishing])
+        defer { workspace.deactivate() }
+        let movingID = workspace.looseFiles[0].id
+
+        let moved = scratch.url.appending(path: "archive/renamed.md")
+        try scratch.folder("archive")
+        try FileManager.default.moveItem(at: moving, to: moved)
+        try FileManager.default.removeItem(at: vanishing)
+
+        let moves = workspace.refreshLooseFiles()
+        #expect(moves.map(\.id) == [movingID])
+        #expect(moves.first?.to.lastPathComponent == "renamed.md")
+        #expect(workspace.looseFiles.map(\.status) == [.available, .unavailable])
+        #expect(workspace.looseFile(at: moved)?.id == movingID)
+        #expect(workspace.isListed(workspace.looseFiles[1].id))
+        // A second look finds nothing new to follow.
+        #expect(workspace.refreshLooseFiles().isEmpty)
     }
 
     @Test func removingALooseFileLeavesItOnDisk() throws {

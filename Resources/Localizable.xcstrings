@@ -1218,6 +1218,10 @@
       "comment" : "plain: error when acting on a deleted project",
       "extractionState" : "manual"
     },
+    "The image couldn't be saved next to this page. %@" : {
+      "comment" : "plain: alert when a pasted or picked image can't be written beside the page; %@ is the system's reason",
+      "extractionState" : "manual"
+    },
     "The model declined to answer that." : {
       "comment" : "plain: error when the model refuses (#18)",
       "extractionState" : "manual"

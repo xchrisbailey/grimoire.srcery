@@ -14,7 +14,7 @@ struct FileTreeView: View {
         List(selection: $selectedFile) {
             if !workspace.looseFiles.isEmpty {
                 Section {
-                    ForEach(workspace.looseFiles) { LooseFileRow(file: $0, workspace: workspace) }
+                    ForEach(workspace.looseFiles) { LooseFileRow(file: $0, workspace: workspace, actions: actions) }
                 } header: {
                     if !workspace.folders.isEmpty {
                         Text("Loose Files")
@@ -145,6 +145,7 @@ private struct RootHeader: View {
 private struct LooseFileRow: View {
     let file: BoundFile
     let workspace: Workspace
+    let actions: FileActions
 
     var body: some View {
         if let url = file.url {
@@ -176,7 +177,7 @@ private struct LooseFileRow: View {
             if let url {
                 Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
             }
-            Button("Remove from List") { workspace.removeLooseFile(file.id) }
+            Button("Remove from List") { actions.removeLooseFile(file, from: workspace) }
         }
     }
 }

@@ -34,6 +34,8 @@ public final class EditorController: NSObject {
     var fileURL: URL?
     /// Where pasted and picked images are saved; nil for `assets/` next to the file.
     public var imageFolder: URL?
+    /// Called when a pasted or picked image can't be saved.
+    var onImageError: ((Error) -> Void)?
     /// Words the spell checker accepts in this file's project.
     public var projectWords: [String] = [] {
         didSet { if projectWords != oldValue { projectWordsChanged() } }

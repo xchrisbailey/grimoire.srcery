@@ -82,6 +82,13 @@ public enum ProjectKind: String, Codable, Sendable {
     /// by kind rather than by name, so renaming it, or another language, doesn't make a
     /// second one.
     case unsorted
+
+    /// A kind this build doesn't know, written by a later one, reads as standard, so the
+    /// projects around it still load.
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = ProjectKind(rawValue: raw) ?? .standard
+    }
 }
 
 /// The brand roles a project can be tinted with.
