@@ -88,7 +88,13 @@ jobs:
         if: env.PUBLISH_FEED == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: scripts/make-appcast.sh "$TAG" dist/*.dmg feed
+        # Sign the DMG as the release serves it, so the feed matches what users download
+        # even when this run replaced an earlier attempt's upload.
+        run: |
+          gh release download "$TAG" --pattern "Grimoire-${TAG#v}.dmg" --dir release --clobber
+          scripts/make-appcast.sh "$TAG" "release/Grimoire-${TAG#v}.dmg" feed
+      # A fixed name, so the feed job finds it when it alone is re-run; a re-run of
+      # this job replaces the earlier attempt's copy.
       - name: Keep the update feed
         if: env.PUBLISH_FEED == 'true'
         uses: actions/upload-artifact@v7
@@ -96,6 +102,7 @@ jobs:
           name: feed
           path: feed
           if-no-files-found: error
+          overwrite: true
 
       - name: Remove the signing keychain and key
         if: always() && env.SIGNED == 'true'
@@ -124,8 +131,13 @@ jobs:
         with:
           name: feed
           path: feed
+      # Named by attempt, because the Pages artifact can't be replaced within a run
+      # and a re-run of this job is a new attempt.
       - uses: actions/upload-pages-artifact@v5
         with:
+          name: pages-${{ github.run_attempt }}
           path: feed
       - id: deploy
         uses: actions/deploy-pages@v5
+        with:
+          artifact_name: pages-${{ github.run_attempt }}

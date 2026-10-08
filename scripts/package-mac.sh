@@ -105,8 +105,9 @@ if [ -n "$team" ]; then
     done
   done
 fi
-if [ -n "$team" ] && [ -z "$skip_notarize" ]; then
-  # A notarized build only ever reads the published feed, over https.
+if [ -z "$local_feed" ]; then
+  # Every build that isn't for a local update run, ad-hoc ones included since the
+  # workflow attaches those to the release too, reads only the published feed, over https.
   [ "$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$plist")" = "$feed_url" ] \
     || { echo "The app's SUFeedURL isn't $feed_url." >&2; exit 1; }
   ! /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$plist" >/dev/null 2>&1 \
