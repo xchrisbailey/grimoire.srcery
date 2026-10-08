@@ -28,6 +28,8 @@ public final class OpenDocument {
     public var autosaveDelay: Duration
     /// Where earlier versions are kept; nil keeps none.
     public var versions: VersionStore?
+    /// Called with the file's URL after each write, since a write replaces the file.
+    public var didSave: ((URL) -> Void)?
 
     private var autosave: Task<Void, Never>?
     private var watcher: FolderWatcher?
@@ -119,6 +121,7 @@ public final class OpenDocument {
             try Data(text.utf8).write(to: url, options: .atomic)
             savedText = text
             saveError = nil
+            didSave?(url)
         } catch {
             saveError = error
         }

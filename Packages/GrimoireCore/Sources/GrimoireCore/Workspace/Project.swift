@@ -9,6 +9,10 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     public var icon: String
     public var color: ProjectColor
     public var roots: [FolderRoot]
+    /// Single files kept in the project without their folder, opened from Finder.
+    public var looseFiles: [LooseFile]
+    /// What the project is for. Only the Unsorted project receives loose files on its own.
+    public var kind: ProjectKind
     /// The file to reopen when the project is opened again.
     public var lastOpenedFile: FileReference?
     /// Folders the user has expanded in the tree.
@@ -25,6 +29,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         icon: String = "book.closed",
         color: ProjectColor = .magic,
         roots: [FolderRoot] = [],
+        looseFiles: [LooseFile] = [],
+        kind: ProjectKind = .standard,
         lastOpenedFile: FileReference? = nil,
         expandedFolders: Set<FileReference> = [],
         overrides: ProjectOverrides = ProjectOverrides(),
@@ -35,6 +41,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         self.icon = icon
         self.color = color
         self.roots = roots
+        self.looseFiles = looseFiles
+        self.kind = kind
         self.lastOpenedFile = lastOpenedFile
         self.expandedFolders = expandedFolders
         self.overrides = overrides
@@ -42,7 +50,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, icon, color, roots, lastOpenedFile, expandedFolders, overrides, dictionary
+        case id, name, icon, color, roots, looseFiles, kind, lastOpenedFile, expandedFolders, overrides, dictionary
     }
 
     public init(from decoder: Decoder) throws {
@@ -52,6 +60,9 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         icon = try container.decode(String.self, forKey: .icon)
         color = try container.decode(ProjectColor.self, forKey: .color)
         roots = try container.decode([FolderRoot].self, forKey: .roots)
+        // Projects saved before loose files existed have none, and are all standard.
+        looseFiles = try container.decodeIfPresent([LooseFile].self, forKey: .looseFiles) ?? []
+        kind = try container.decodeIfPresent(ProjectKind.self, forKey: .kind) ?? .standard
         lastOpenedFile = try container.decodeIfPresent(FileReference.self, forKey: .lastOpenedFile)
         expandedFolders = try container.decode(Set<FileReference>.self, forKey: .expandedFolders)
         // Projects saved before overrides existed have none.
@@ -62,6 +73,15 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     public func root(_ id: UUID) -> FolderRoot? {
         roots.first { $0.id == id }
     }
+}
+
+/// What a project is for.
+public enum ProjectKind: String, Codable, Sendable {
+    case standard
+    /// Holds the Markdown files opened from Finder that belong to no other project. Marked
+    /// by kind rather than by name, so renaming it, or another language, doesn't make a
+    /// second one.
+    case unsorted
 }
 
 /// The brand roles a project can be tinted with.
@@ -107,6 +127,26 @@ public struct FolderRoot: Codable, Identifiable, Hashable, Sendable {
     public var displayName: String { alias ?? name }
 
     public var lastKnownURL: URL { URL(filePath: lastKnownPath, directoryHint: .isDirectory) }
+}
+
+/// One file bound to a project on its own, remembered as a security-scoped bookmark. The
+/// sandbox grants the file and not the folder around it.
+public struct LooseFile: Codable, Identifiable, Hashable, Sendable {
+    public var id: UUID
+    /// The file's name when it was added or last resolved.
+    public var name: String
+    public var bookmark: Data
+    /// Where the file was last seen, for naming it when the bookmark no longer resolves.
+    public var lastKnownPath: String
+
+    public init(id: UUID = UUID(), name: String, bookmark: Data, lastKnownPath: String) {
+        self.id = id
+        self.name = name
+        self.bookmark = bookmark
+        self.lastKnownPath = lastKnownPath
+    }
+
+    public var lastKnownURL: URL { URL(filePath: lastKnownPath) }
 }
 
 /// A file or folder inside a project, as a path relative to one of its roots so it
