@@ -8,6 +8,7 @@ struct GrimoireMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var library = ExternalOpens.shared.library
     @Environment(\.openWindow) private var openWindow
+    @State private var updater = AppUpdater()
 
     init() {
         BrandFont.register()
@@ -29,6 +30,7 @@ struct GrimoireMacApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("About Grimoire") { AboutPanel.show() }
             }
+            UpdateCommands(updater: updater)
             TextEditingCommands()
             GrimoireCommands()
             DiagnosticCommands()

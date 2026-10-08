@@ -10,12 +10,26 @@
 # Without TEAM_ID the build is ad-hoc signed and not notarized, and the DMG
 # carries a note on getting past Gatekeeper.
 #
+# Two variables exist only to try the updater on a development Mac, and the
+# result is never notarized, so it can't be released:
+#   SKIP_NOTARIZE=1   with TEAM_ID, signs with the Developer ID certificate but skips
+#                     the notary profile, notarization, stapling and spctl.
+#   LOCAL_FEED_URL    points the app at a feed served over plain http from this Mac,
+#                     with an App Transport Security exception for that host.
+#
+# Sparkle's nested code (XPC services, helper apps, the framework) is signed one
+# component at a time, inside out, never with --deep, as Sparkle's sandboxing guide
+# describes for builds signed outside Xcode's archive export.
+#
 # Usage, from the repo root:  [TEAM_ID=ABCDE12345] scripts/package-mac.sh 1.0.0-beta.2
 set -eu
 
 label=${1:?usage: scripts/package-mac.sh <release label, e.g. 1.0.0-beta.2>}
 team=${TEAM_ID:-}
 profile=${NOTARY_PROFILE:-grimoire-notary}
+skip_notarize=${SKIP_NOTARIZE:-}
+local_feed=${LOCAL_FEED_URL:-}
+feed_url=https://xchrisbailey.github.io/grimoire.srcery/appcast.xml
 root=$(cd "$(dirname "$0")/.." && pwd)
 build="$root/build/release"
 dist="$root/dist"
@@ -28,11 +42,21 @@ if [ -n "$team" ]; then
     | sed -n "s/.*\"\(Developer ID Application: .*($team)\)\"/\1/p" | head -1)
   [ -n "$identity" ] \
     || { echo "No Developer ID Application certificate for team $team in the keychain." >&2; exit 1; }
-  xcrun notarytool history --keychain-profile "$profile" >/dev/null \
-    || { echo "No notarytool keychain profile named $profile." >&2; exit 1; }
+  if [ -n "$skip_notarize" ]; then
+    echo "SKIP_NOTARIZE set: signing with the Developer ID certificate, without notarization." >&2
+  else
+    xcrun notarytool history --keychain-profile "$profile" >/dev/null \
+      || { echo "No notarytool keychain profile named $profile." >&2; exit 1; }
+  fi
 else
   identity=-
+  [ -z "$skip_notarize" ] || { echo "SKIP_NOTARIZE needs TEAM_ID." >&2; exit 1; }
   echo "TEAM_ID not set: building ad-hoc signed, without notarization." >&2
+fi
+# A build that talks to a local http feed must never be notarized or released.
+if [ -n "$local_feed" ] && [ -n "$team" ] && [ -z "$skip_notarize" ]; then
+  echo "LOCAL_FEED_URL builds can't be notarized: set SKIP_NOTARIZE=1 or unset TEAM_ID." >&2
+  exit 1
 fi
 
 cd "$root"
@@ -45,7 +69,48 @@ xcodebuild build \
   CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO OTHER_CODE_SIGN_FLAGS=--timestamp \
   -quiet
 
+plist="$app/Contents/Info.plist"
+if [ -n "$local_feed" ]; then
+  host=$(printf '%s' "$local_feed" | sed -n 's|^http://\([^:/]*\).*|\1|p')
+  [ -n "$host" ] || { echo "LOCAL_FEED_URL must be an http:// URL." >&2; exit 1; }
+  /usr/libexec/PlistBuddy \
+    -c "Set :SUFeedURL $local_feed" \
+    -c "Add :NSAppTransportSecurity:NSExceptionDomains:$host:NSExceptionAllowsInsecureHTTPLoads bool true" \
+    "$plist"
+fi
+
+# Re-sign inside out: Sparkle's XPC services, helper tools and framework first, then
+# the app, keeping its entitlements. A timestamp needs the real identity.
+if [ -n "$team" ]; then stamp=--timestamp; else stamp=--timestamp=none; fi
+sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+set -- "$sparkle/XPCServices/Installer.xpc" "$sparkle/XPCServices/Downloader.xpc" \
+  "$sparkle/Autoupdate" "$sparkle/Updater.app" "$app/Contents/Frameworks/Sparkle.framework"
+for component in "$@"; do
+  [ -e "$component" ] || { echo "Missing Sparkle component: $component" >&2; exit 1; }
+  codesign --force --sign "$identity" --options runtime "$stamp" \
+    --preserve-metadata=entitlements "$component"
+done
+codesign --force --sign "$identity" --options runtime "$stamp" \
+  --preserve-metadata=entitlements "$app"
+
 codesign --verify --deep --strict "$app"
+if [ -n "$team" ]; then
+  # Every component is signed by the team, with hardened runtime and a secure timestamp.
+  for component in "$@" "$app"; do
+    details=$(codesign -dv --verbose=4 "$component" 2>&1)
+    for expected in "TeamIdentifier=$team" "flags=0x10000(runtime)" "Timestamp="; do
+      printf '%s\n' "$details" | grep -q -F "$expected" \
+        || { echo "$component: no $expected in its signature." >&2; exit 1; }
+    done
+  done
+fi
+if [ -n "$team" ] && [ -z "$skip_notarize" ]; then
+  # A notarized build only ever reads the published feed, over https.
+  [ "$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$plist")" = "$feed_url" ] \
+    || { echo "The app's SUFeedURL isn't $feed_url." >&2; exit 1; }
+  ! /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$plist" >/dev/null 2>&1 \
+    || { echo "The app has an App Transport Security exception." >&2; exit 1; }
+fi
 /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' -c 'Print :CFBundleVersion' \
   "$app/Contents/Info.plist"
 
@@ -73,6 +138,8 @@ hdiutil create -quiet -volname "Grimoire $label" -srcfolder "$stage" -fs HFS+ -f
 
 if [ -n "$team" ]; then
   codesign --sign "$identity" --timestamp "$dmg"
+fi
+if [ -n "$team" ] && [ -z "$skip_notarize" ]; then
   # Prints the submission ID; if it comes back Invalid, `xcrun notarytool log <id>
   # --keychain-profile <profile>` says why, and the staple below fails.
   xcrun notarytool submit "$dmg" --keychain-profile "$profile" --wait

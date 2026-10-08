@@ -67,7 +67,7 @@ Grimoire needs **macOS 27** or later. Intelligence features also need a Mac with
 
 Builds from beta 2 on are signed with a Developer ID and notarized by Apple, so they open like any other app. Beta 1 wasn't. If you still have it, right-click **Grimoire** in Applications and choose **Open** the first time, or just install the latest beta over it.
 
-Grimoire doesn't update itself yet, so check Releases for new betas.
+Grimoire checks for updates in the background and offers new versions; **Grimoire > Check for Updates…** looks right away. Builds before the first one with updates (beta 1 and beta 2) don't, so install the next beta by hand.
 
 An iOS app is planned ([#17](https://github.com/xchrisbailey/grimoire.srcery/issues/17)).
 

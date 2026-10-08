@@ -284,6 +284,9 @@
     "Check Document Now" : {
       "comment" : "plain: Edit › Spelling and Grammar item"
     },
+    "Check for Updates…" : {
+      "comment" : "plain: macOS app menu item that looks for a new version of Grimoire"
+    },
     "Check grammar with spelling" : {
       "comment" : "plain: setting, same as Edit › Spelling and Grammar"
     },

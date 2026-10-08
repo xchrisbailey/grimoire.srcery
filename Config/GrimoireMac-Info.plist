@@ -57,5 +57,13 @@
 			</dict>
 		</dict>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://xchrisbailey.github.io/grimoire.srcery/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>vA1SejRQ2Zz/hTsTny/5hzOony9nB5OET1l5a+yT8So=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 </dict>
 </plist>

@@ -7,6 +7,11 @@ name: Release
 # With the signing secrets set (see "Releasing from CI" in the README), the app
 # and DMG are signed with the Developer ID certificate and the DMG is notarized
 # and stapled. Without them the build is ad-hoc signed, as before.
+#
+# With those and SPARKLE_PRIVATE_KEY set, it then publishes the update feed
+# (appcast.xml) to GitHub Pages, after the DMG is on the release. The release
+# workflow owns the whole Pages site: each deploy replaces it. Before packaging,
+# it fails if the build number in project.yml isn't higher than the published feed's.
 on:
   push:
     tags: ["v*"]
@@ -22,6 +27,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
       SIGNED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      # The feed needs a signed, notarized build and the EdDSA key.
+      PUBLISH_FEED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.SPARKLE_PRIVATE_KEY != '' }}
+    outputs:
+      publish_feed: ${{ env.PUBLISH_FEED }}
     steps:
       - uses: actions/checkout@v5
       - run: xcodebuild -version
@@ -62,6 +71,10 @@ jobs:
           xcrun notarytool store-credentials grimoire-notary \
             --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$API_KEY_ID" --issuer "$API_ISSUER_ID"
 
+      - name: Check the build number is higher than the published feed's
+        if: env.PUBLISH_FEED == 'true'
+        run: scripts/check-build-number.sh
+
       - name: Package
         run: scripts/package-mac.sh "${TAG#v}"
       - name: Upload to release
@@ -70,8 +83,49 @@ jobs:
             || gh release create "$TAG" --prerelease --verify-tag --title "Grimoire ${TAG#v}" --generate-notes
           gh release upload "$TAG" dist/*.dmg dist/*.sha256 --clobber
 
+      # After the DMG is on the release, so the feed never points at a missing file.
+      - name: Build the update feed
+        if: env.PUBLISH_FEED == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: scripts/make-appcast.sh "$TAG" dist/*.dmg feed
+      - name: Keep the update feed
+        if: env.PUBLISH_FEED == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: feed
+          path: feed
+          if-no-files-found: error
+
       - name: Remove the signing keychain and key
         if: always() && env.SIGNED == 'true'
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
           rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+  # Replaces the whole GitHub Pages site with the feed. A separate job, because
+  # the Pages actions run on Linux and need their own permissions.
+  feed:
+    name: Publish update feed
+    needs: mac
+    if: needs.mac.outputs.publish_feed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: feed
+          path: feed
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: feed
+      - id: deploy
+        uses: actions/deploy-pages@v5
