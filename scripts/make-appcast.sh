@@ -30,6 +30,7 @@ archives=$(mktemp -d)
 trap 'rm -rf "$archives"' EXIT
 cp "$dmg" "$archives/"
 mkdir -p "$out"
+rm -f "$out/appcast.xml"
 
 if [ -n "${SPARKLE_PRIVATE_KEY:-}" ]; then
   printf '%s' "$SPARKLE_PRIVATE_KEY" | "$bin/generate_appcast" --ed-key-file - \
@@ -38,3 +39,22 @@ else
   "$bin/generate_appcast" --account "${SPARKLE_ACCOUNT:-ed25519}" \
     --download-url-prefix "$download_prefix" -o "$out/appcast.xml" "$archives"
 fi
+
+# generate_appcast links release notes from files beside the archive; this feed
+# links the release's own page instead, so add that link to the item.
+feed="$out/appcast.xml"
+awk -v url="$notes_url" '
+  { print }
+  /<\/sparkle:minimumSystemVersion>/ {
+    print "            <sparkle:releaseNotesLink>" url "</sparkle:releaseNotesLink>"
+  }' "$feed" > "$feed.new"
+mv "$feed.new" "$feed"
+
+# The item must carry everything the updater needs.
+xmllint --noout "$feed"
+for expected in "<sparkle:version>" "<sparkle:shortVersionString>" "<sparkle:minimumSystemVersion>" \
+  "<sparkle:releaseNotesLink>$notes_url<" "url=\"$download_prefix${dmg##*/}\"" \
+  "length=\"$(wc -c < "$dmg" | tr -d ' ')\"" "sparkle:edSignature=\""; do
+  grep -q -F "$expected" "$feed" || { echo "The feed has no $expected." >&2; exit 1; }
+done
+echo "Wrote $feed"

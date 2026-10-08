@@ -16,8 +16,8 @@ final class AppUpdater {
 
     init() {
         // Sparkle turns this off while a check or an update session is running.
-        observation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) {
-            [weak self] _, change in
+        let updater = controller.updater
+        observation = updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] _, change in
             let canCheck = change.newValue ?? false
             Task { @MainActor in self?.canCheckForUpdates = canCheck }
         }

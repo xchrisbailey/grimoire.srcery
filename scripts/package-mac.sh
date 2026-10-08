@@ -36,6 +36,12 @@ dist="$root/dist"
 app="$build/Build/Products/Release/Grimoire.app"
 dmg="$dist/Grimoire-$label.dmg"
 
+# A build that talks to a local http feed must never be notarized or released.
+if [ -n "$local_feed" ] && [ -n "$team" ] && [ -z "$skip_notarize" ]; then
+  echo "LOCAL_FEED_URL builds can't be notarized: set SKIP_NOTARIZE=1 or unset TEAM_ID." >&2
+  exit 1
+fi
+
 if [ -n "$team" ]; then
   # Fail before the slow build if the certificate or notary profile is missing.
   identity=$(security find-identity -v -p codesigning \
@@ -52,11 +58,6 @@ else
   identity=-
   [ -z "$skip_notarize" ] || { echo "SKIP_NOTARIZE needs TEAM_ID." >&2; exit 1; }
   echo "TEAM_ID not set: building ad-hoc signed, without notarization." >&2
-fi
-# A build that talks to a local http feed must never be notarized or released.
-if [ -n "$local_feed" ] && [ -n "$team" ] && [ -z "$skip_notarize" ]; then
-  echo "LOCAL_FEED_URL builds can't be notarized: set SKIP_NOTARIZE=1 or unset TEAM_ID." >&2
-  exit 1
 fi
 
 cd "$root"
