@@ -76,9 +76,6 @@ targets:
         PRODUCT_NAME: Grimoire
         PRODUCT_BUNDLE_IDENTIFIER: computer.srcery.grimoire
         SDKROOT: macosx
-        # Keys with no INFOPLIST_KEY_* setting (Sparkle's) live here and merge
-        # with the generated ones.
-        INFOPLIST_FILE: Config/GrimoireMac-Info.plist
         # Target-level so it wins over the AppIcon default in XcodeGen's presets.
         ASSETCATALOG_COMPILER_APPICON_NAME: Grimoire
         COMBINE_HIDPI_IMAGES: YES
