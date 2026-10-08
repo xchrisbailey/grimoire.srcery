@@ -12,6 +12,14 @@
 - Opus fixes trivial review nits itself. Anything larger goes back to a coder.
 - When a spec or ticket records execution assignments, it uses these roles unless the user names others for that work.
 
+**Skills.**
+
+- These roles override a skill's own wording about who does the work. A skill's "implementer subagent" is a `coder`, its "exploration subagent" is a `scout`, and its "merger subagent" is Opus.
+- A skill that writes code or tests meant to merge (`/implement`, `/implement-spec`, `/tdd`) runs that work through a `coder`. Opus doesn't write it in the main checkout, and "commit to the current branch" means the coder's branch.
+- `/implement-spec` may use an integration branch. Opus keeps it in its own worktree under `.claude/worktrees/`, names it as the base in each coder's brief, and merges each reviewed ticket branch into it. The review, the checks, and the adversarial pass below apply to each ticket branch, and again to the integration branch before it merges to `main`.
+- `/tdd` wants its seams confirmed with the user, and a coder can't ask. The seams in the spec's Testing Decisions count as confirmed, and the brief points at them. A coder that needs a seam the spec doesn't name stops and reports it.
+- Throwaway code is the exception: Opus may write a `/prototype` or a `/diagnosing-bugs` reproduction itself, in a scratch worktree that is never merged. The fix or the real implementation goes to a coder.
+
 **Delegation.**
 
 - Each delegated task is confined to one ticket, or one clearly bounded piece of one.
