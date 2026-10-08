@@ -256,6 +256,9 @@
       "comment" : "plain: error when a folder is dropped into itself",
       "extractionState" : "manual"
     },
+    "Can't open the diagnostic reports folder" : {
+      "comment" : "plain: alert title when Show Diagnostic Reports cannot create the folder (#66)"
+    },
     "Cancel" : {
       "comment" : "plain: cancel button"
     },

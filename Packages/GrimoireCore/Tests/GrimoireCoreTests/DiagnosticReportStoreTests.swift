@@ -4,8 +4,8 @@ import Testing
 @testable import GrimoireCore
 
 @Suite struct DiagnosticReportStoreTests {
-    func makeStore(_ scratch: Scratch) -> DiagnosticReportStore {
-        DiagnosticReportStore(folder: scratch.url.appending(path: "Diagnostics"))
+    func makeStore(_ scratch: Scratch, maxCount: Int = 20) -> DiagnosticReportStore {
+        DiagnosticReportStore(folder: scratch.url.appending(path: "Diagnostics"), maxCount: maxCount)
     }
 
     let start = Date(timeIntervalSince1970: 1_800_000_000)
@@ -57,8 +57,7 @@ import Testing
 
     @Test func prunesByEndTimeNotByTheOrderOfArrival() throws {
         let scratch = try Scratch()
-        let store = makeStore(scratch)
-        store.maxCount = 3
+        let store = makeStore(scratch, maxCount: 3)
         // The past reports MetricKit hands over may arrive out of order.
         for number in [5, 1, 4, 2, 3] {
             try store.save(Data("r\(number)".utf8), endDate: start.addingTimeInterval(Double(number)))
@@ -69,8 +68,7 @@ import Testing
 
     @Test func prunesSharedEndTimeSiblingsOldestFirst() throws {
         let scratch = try Scratch()
-        let store = makeStore(scratch)
-        store.maxCount = 2
+        let store = makeStore(scratch, maxCount: 2)
         for name in ["a", "b", "c"] {
             try store.save(Data(name.utf8), endDate: start)
         }
@@ -80,8 +78,7 @@ import Testing
 
     @Test func leavesOtherFilesAloneWhenPruning() throws {
         let scratch = try Scratch()
-        let store = makeStore(scratch)
-        store.maxCount = 1
+        let store = makeStore(scratch, maxCount: 1)
         let note = try scratch.file("Diagnostics/notes.txt", "mine")
         for number in 0..<3 {
             try store.save(Data("r".utf8), endDate: start.addingTimeInterval(Double(number)))

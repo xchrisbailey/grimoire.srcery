@@ -1,6 +1,7 @@
 import AppKit
 import GrimoireCore
 import MetricKit
+import OSLog
 import SwiftUI
 
 /// Receives the crash and hang diagnostics macOS delivers through MetricKit and hands each
@@ -9,6 +10,8 @@ final class DiagnosticReporter: NSObject, MXMetricManagerSubscriber, @unchecked 
     /// MetricKit keeps no strong reference to its subscribers, so the app holds this one
     /// for as long as it runs.
     private static let shared = DiagnosticReporter(store: .standard)
+
+    private static let log = Logger(subsystem: "computer.srcery.grimoire", category: "diagnostics")
 
     private let store: DiagnosticReportStore
 
@@ -24,7 +27,11 @@ final class DiagnosticReporter: NSObject, MXMetricManagerSubscriber, @unchecked 
     /// Called on a background queue.
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         for payload in payloads {
-            try? store.save(payload.jsonRepresentation(), endDate: payload.timeStampEnd)
+            do {
+                try store.save(payload.jsonRepresentation(), endDate: payload.timeStampEnd)
+            } catch {
+                Self.log.error("Could not save a diagnostic report: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 }
@@ -33,11 +40,22 @@ final class DiagnosticReporter: NSObject, MXMetricManagerSubscriber, @unchecked 
 struct DiagnosticCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .help) {
-            Button("Show Diagnostic Reports") {
-                let store = DiagnosticReportStore.standard
-                try? store.ensureFolder()
-                NSWorkspace.shared.open(store.folder)
-            }
+            Button("Show Diagnostic Reports") { Self.show() }
         }
+    }
+
+    @MainActor
+    private static func show() {
+        let store = DiagnosticReportStore.standard
+        do {
+            try store.ensureFolder()
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Can't open the diagnostic reports folder")
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+            return
+        }
+        NSWorkspace.shared.open(store.folder)
     }
 }

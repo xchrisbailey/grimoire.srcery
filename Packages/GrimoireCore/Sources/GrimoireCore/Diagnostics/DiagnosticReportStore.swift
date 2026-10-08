@@ -14,13 +14,14 @@ public final class DiagnosticReportStore: @unchecked Sendable {
             .appending(path: "Diagnostics", directoryHint: .isDirectory))
 
     public let folder: URL
-    public var maxCount = 20
+    public let maxCount: Int
 
     /// Serializes saves, so two payloads arriving together don't pick the same name.
     private let lock = NSLock()
 
-    public init(folder: URL) {
+    public init(folder: URL, maxCount: Int = 20) {
         self.folder = folder
+        self.maxCount = maxCount
     }
 
     /// Writes `json` as the report for a payload that ended at `endDate`, then removes the
