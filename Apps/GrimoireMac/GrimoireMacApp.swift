@@ -5,7 +5,9 @@ import SwiftUI
 
 @main
 struct GrimoireMacApp: App {
-    @State private var library = ProjectLibrary()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @State private var library = ExternalOpens.shared.library
+    @Environment(\.openWindow) private var openWindow
 
     init() {
         BrandFont.register()
@@ -13,10 +15,15 @@ struct GrimoireMacApp: App {
     }
 
     var body: some Scene {
+        // `ExternalOpens` opens windows for files from Finder, which can arrive before any
+        // window has appeared to hand it this action.
+        let _ = ExternalOpens.shared.openWindow = { openWindow(id: "project") }
         WindowGroup(id: "project") {
             ContentView()
                 .environment(library)
         }
+        // Files from Finder are routed by `ExternalOpens`; SwiftUI would open a window for each.
+        .handlesExternalEvents(matching: [])
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Grimoire") { AboutPanel.show() }

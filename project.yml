@@ -77,6 +77,9 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Apps/GrimoireMac/GrimoireMac.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        # Keys with no INFOPLIST_KEY_ setting live in this file; GENERATE_INFOPLIST_FILE
+        # merges it with the generated ones.
+        INFOPLIST_FILE: Config/GrimoireMac-Info.plist
   GrimoireiOS:
     type: application
     platform: iOS

@@ -17,8 +17,8 @@ struct SidebarView: View {
 
             if let workspace = window.workspace, let project = workspace.project {
                 if !project.roots.isEmpty, !window.search.isActive, !window.ask.isActive { summonField }
-                if project.roots.isEmpty {
-                    emptyProject
+                if project.roots.isEmpty && project.looseFiles.isEmpty {
+                    emptyProject(of: project)
                 } else if window.search.isActive {
                     SearchResultsView(window: window)
                 } else if window.ask.isActive {
@@ -76,11 +76,17 @@ struct SidebarView: View {
         .padding(.bottom, 8)
     }
 
-    private var emptyProject: some View {
+    private func emptyProject(of project: Project) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("This grimoire is empty. Bind a folder to begin.")
-                .brandFont(.chrome)
-                .foregroundStyle(Color.brand(\.subtext))
+            if project.kind == .unsorted {
+                Text("Markdown files opened from Finder that belong to no project are kept here.")
+                    .brandFont(.chrome)
+                    .foregroundStyle(Color.brand(\.subtext))
+            } else {
+                Text("This grimoire is empty. Bind a folder to begin.")
+                    .brandFont(.chrome)
+                    .foregroundStyle(Color.brand(\.subtext))
+            }
             Spacer()
         }
         .padding()
