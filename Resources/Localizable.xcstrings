@@ -1092,6 +1092,9 @@
     "Show All" : {
       "comment" : "plain: app menu item"
     },
+    "Show Diagnostic Reports" : {
+      "comment" : "plain: Help menu item that reveals the saved crash and hang reports in Finder (#66)"
+    },
     "Show markdown markers on every line" : {
       "comment" : "plain: setting that shows # and ** on every block, not only the caret's"
     },

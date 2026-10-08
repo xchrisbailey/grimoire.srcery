@@ -9,6 +9,7 @@ struct GrimoireMacApp: App {
 
     init() {
         BrandFont.register()
+        DiagnosticReporter.start()
     }
 
     var body: some Scene {
@@ -22,6 +23,7 @@ struct GrimoireMacApp: App {
             }
             TextEditingCommands()
             GrimoireCommands()
+            DiagnosticCommands()
         }
         Settings {
             SettingsView()

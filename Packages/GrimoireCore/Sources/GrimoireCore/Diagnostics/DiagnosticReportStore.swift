@@ -67,10 +67,14 @@ public final class DiagnosticReportStore: @unchecked Sendable {
 
     /// The end time in UTC to the millisecond, with no colons, which Finder shows as slashes.
     static func stamp(_ date: Date) -> String {
-        date.formatted(
-            Date.VerbatimFormatStyle(
-                format: "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits)T\(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))-\(minute: .twoDigits)-\(second: .twoDigits).\(secondFraction: .fractional(3))Z",
-                timeZone: .gmt, calendar: Calendar(identifier: .gregorian)))
+        let format = Date.VerbatimFormatStyle(
+            format: """
+                \(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits)\
+                T\(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))\
+                -\(minute: .twoDigits)-\(second: .twoDigits).\(secondFraction: .fractional(3))Z
+                """,
+            timeZone: .gmt, calendar: Calendar(identifier: .gregorian))
+        return date.formatted(format)
     }
 
     static func fileName(stem: String, copy: Int) -> String {

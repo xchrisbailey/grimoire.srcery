@@ -95,7 +95,8 @@ import Testing
         let store = makeStore(scratch)
         try store.ensureFolder()
         var isFolder: ObjCBool = false
-        #expect(FileManager.default.fileExists(atPath: store.folder.path(percentEncoded: false), isDirectory: &isFolder))
+        let path = store.folder.path(percentEncoded: false)
+        #expect(FileManager.default.fileExists(atPath: path, isDirectory: &isFolder))
         #expect(isFolder.boolValue)
         #expect(store.reports().isEmpty)
     }
