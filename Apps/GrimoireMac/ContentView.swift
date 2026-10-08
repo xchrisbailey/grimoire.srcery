@@ -12,6 +12,7 @@ struct ContentView: View {
         Group {
             if let window {
                 WindowContent(window: window)
+                    .background(WindowReader { window.hostWindow = $0 })
             } else {
                 Color.brand(\.page)
             }
@@ -67,8 +68,11 @@ private struct WindowContent: View {
             if window.focusMode, window.columnVisibility != .detailOnly { window.setFocusMode(false) }
         }
         .onAppear {
-            if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
-            window.restore(projectID: storedProject, file: storedFile, fallbackProject: lastProject)
+            let stored = (project: storedProject, file: storedFile, fallback: lastProject)
+            ExternalOpens.shared.whenLaunched {
+                if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
+                window.restore(projectID: stored.project, file: stored.file, fallbackProject: stored.fallback)
+            }
         }
         .onDisappear { window.close() }
         .onChange(of: window.projectID) {
@@ -76,23 +80,8 @@ private struct WindowContent: View {
             if !storedProject.isEmpty { lastProject = storedProject }
         }
         .onChange(of: window.selectedFile) { storedFile = window.restorationFile }
-        .onChange(of: window.project?.roots) { window.projectRootsChanged() }
-        .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
-        .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
-        .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
-        .onChange(of: Preferences.shared.fileListing) { window.preferencesChanged() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
-            window.save()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-            window.save()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
-            window.save()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            window.document?.checkDisk()
-        }
+        .modifier(FollowsProject(window: window))
+        .modifier(SavesWithApp(window: window))
     }
 
     // MARK: - Palettes
@@ -133,5 +122,43 @@ private struct WindowContent: View {
             Incantations.items(
                 for: window, openWindow: { openWindow(id: "project") }, openSettings: { openSettings() })
         }
+    }
+}
+
+/// Keeps the workspace and the editor current as the project and the preferences change.
+private struct FollowsProject: ViewModifier {
+    let window: WindowState
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: window.project?.roots) { window.projectRootsChanged() }
+            .onChange(of: window.project?.looseFiles) { window.projectRootsChanged() }
+            .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
+            .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
+            .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
+            .onChange(of: Preferences.shared.fileListing) { window.preferencesChanged() }
+    }
+}
+
+/// Saves the open file as the app or window loses focus or quits, and rechecks the disk
+/// when the app comes back.
+private struct SavesWithApp: ViewModifier {
+    let window: WindowState
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
+                window.save()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                window.save()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+                window.save()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                window.refreshLooseFiles()
+                window.document?.checkDisk()
+            }
     }
 }

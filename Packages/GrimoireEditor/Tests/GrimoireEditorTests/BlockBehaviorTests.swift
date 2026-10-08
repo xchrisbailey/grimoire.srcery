@@ -107,6 +107,31 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: casts[0].source))
     }
 
+    @Test func aPastedImageThatCantBeSavedIsReportedAndNotDropped() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "grimoire-paste-\(UUID())")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // A file where the assets folder should go, so the folder can't be made.
+        try Data().write(to: folder.appending(path: "assets"))
+        let controller = editorAtEnd("Text")
+        controller.fileURL = folder.appending(path: "page.md")
+        var reported: [Error] = []
+        controller.onImageError = { reported.append($0) }
+        let image = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 4, pixelsHigh: 4, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+            isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        let png = try #require(image?.representation(using: .png, properties: [:]))
+        let board = NSPasteboard(name: NSPasteboard.Name("grimoire-test-\(UUID())"))
+        board.clearContents()
+        board.setData(png, forType: .png)
+        #expect(controller.paste(from: board))
+        board.releaseGlobally()
+        #expect(reported.count == 1)
+        #expect(
+            reported.first?.localizedDescription.hasPrefix("The image couldn't be saved next to this page.") == true)
+        #expect(controller.text == "Text")
+    }
+
     @Test func richTextBecomesMarkdown() {
         let html = """
             <h1>Potions</h1><p>Some <b>bold</b>, <i>italic</i> and <a href="https://x.dev/docs">a link</a>.</p>

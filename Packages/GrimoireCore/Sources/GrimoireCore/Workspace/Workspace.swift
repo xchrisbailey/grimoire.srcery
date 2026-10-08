@@ -10,11 +10,14 @@ import Observation
 public final class Workspace {
     public let projectID: Project.ID
     public private(set) var folders: [BoundFolder] = []
+    /// The project's loose files, resolved from their bookmarks.
+    public private(set) var looseFiles: [BoundFile] = []
     public var lastError: Error?
 
     private let library: ProjectLibrary
     private var scanner: FileScanner
     private var accessed: [FolderRoot.ID: URL] = [:]
+    private var accessedFiles: [LooseFile.ID: URL] = [:]
     private var watchers: [FolderRoot.ID: FolderWatcher] = [:]
     private var scans: [FolderRoot.ID: Task<Void, Never>] = [:]
     public private(set) var isActive = false
@@ -41,10 +44,13 @@ public final class Workspace {
     public func deactivate() {
         isActive = false
         for id in Array(accessed.keys) { release(id) }
+        for id in Array(accessedFiles.keys) { releaseFile(id) }
         folders = []
+        looseFiles = []
     }
 
-    /// Brings `folders` in line with the project's roots: opens new ones, releases removed ones.
+    /// Brings `folders` and `looseFiles` in line with the project: opens new ones, releases
+    /// removed ones.
     public func sync() {
         guard isActive, let project else { return }
         let ids = Set(project.roots.map(\.id))
@@ -55,6 +61,71 @@ public final class Workspace {
                 return existing
             }
             return open(root)
+        }
+        syncLooseFiles(project)
+    }
+
+    /// A loose file that resolved to another place.
+    public struct LooseFileMove: Equatable, Sendable {
+        public var id: LooseFile.ID
+        public var from: URL
+        public var to: URL
+    }
+
+    /// Resolves every loose file again, to pick up one that came back, went missing or was
+    /// moved. Access to a file that stays where it is is kept, so a window editing it can
+    /// still save. Returns the files that moved, which a window showing one follows.
+    @discardableResult
+    public func refreshLooseFiles() -> [LooseFileMove] {
+        guard isActive, let project else { return [] }
+        let before = looseFiles
+        looseFiles = project.looseFiles.map(resolveLooseFile)
+        return looseFiles.compactMap { now in
+            guard let from = before.first(where: { $0.id == now.id })?.url, let to = now.url,
+                !FileIdentity.same(from, to)
+            else { return nil }
+            return LooseFileMove(id: now.id, from: from, to: to)
+        }
+    }
+
+    /// Whether the project still lists the loose file, whether or not it can be found.
+    public func isListed(_ fileID: LooseFile.ID) -> Bool {
+        project?.looseFiles.contains { $0.id == fileID } ?? false
+    }
+
+    /// The loose file at `url`, if the project lists it and it's available.
+    public func looseFile(at url: URL) -> BoundFile? {
+        looseFiles.first { file in file.url.map { FileIdentity.same($0, url) } ?? false }
+    }
+
+    /// Takes a loose file off the project's list. Nothing on disk changes.
+    public func removeLooseFile(_ fileID: LooseFile.ID) {
+        library.removeLooseFile(fileID, from: projectID)
+        sync()
+    }
+
+    /// The file at `url` was just written. Saving atomically replaces the file, so a loose
+    /// file's bookmark is made again while it no longer resolves exactly. A file that was
+    /// missing and has been written again goes back to available. A window passes `fileID`
+    /// for the loose file it shows, since a missing file can't be found by its URL.
+    public func didSave(_ url: URL, fileID: LooseFile.ID? = nil) {
+        let bound = fileID.flatMap { id in looseFiles.first { $0.id == id } } ?? looseFile(at: url)
+        guard let bound else { return }
+        if bound.status == .available, let resolved = try? FolderBookmark.resolve(bound.file.bookmark),
+            !resolved.isStale, FileIdentity.same(resolved.url, url)
+        {
+            return
+        }
+        do {
+            try library.replaceBookmark(ofLooseFile: bound.id, in: projectID, with: url)
+        } catch {
+            lastError = error
+            return
+        }
+        if let file = project?.looseFiles.first(where: { $0.id == bound.id }),
+            let index = looseFiles.firstIndex(where: { $0.id == bound.id })
+        {
+            looseFiles[index] = resolveLooseFile(file)
         }
     }
 
@@ -188,6 +259,56 @@ public final class Workspace {
         return folder
     }
 
+    private func syncLooseFiles(_ project: Project) {
+        let ids = Set(project.looseFiles.map(\.id))
+        for id in Array(accessedFiles.keys) where !ids.contains(id) { releaseFile(id) }
+        looseFiles = project.looseFiles.map { file in
+            if var existing = looseFiles.first(where: { $0.id == file.id }), existing.status == .available {
+                existing.file = file
+                return existing
+            }
+            return resolveLooseFile(file)
+        }
+    }
+
+    /// Resolves a loose file's bookmark and holds access to where it points. Access already
+    /// held to the same place is kept, since a window may be saving to it; access to a file
+    /// that can't be found is kept too, so its window can still try.
+    private func resolveLooseFile(_ file: LooseFile) -> BoundFile {
+        var bound = BoundFile(file: file, status: .unavailable)
+        guard let resolved = try? FolderBookmark.resolve(file.bookmark) else { return bound }
+        let url = resolved.url
+        let held = accessedFiles[file.id]
+        let holdsIt = held.map { FileIdentity.same($0, url) } ?? false
+        let accessing = holdsIt ? false : url.startAccessingSecurityScopedResource()
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false), isDirectory: &isDirectory),
+            !isDirectory.boolValue
+        else {
+            if accessing { url.stopAccessingSecurityScopedResource() }
+            return bound
+        }
+        if !holdsIt {
+            held?.stopAccessingSecurityScopedResource()
+            accessedFiles[file.id] = accessing ? url : nil
+        }
+        if resolved.isStale {
+            do {
+                try library.replaceBookmark(ofLooseFile: file.id, in: projectID, with: url)
+            } catch {
+                lastError = error
+            }
+            bound.file = project?.looseFiles.first { $0.id == file.id } ?? file
+        }
+        bound.url = url
+        bound.status = .available
+        return bound
+    }
+
+    private func releaseFile(_ fileID: LooseFile.ID) {
+        accessedFiles.removeValue(forKey: fileID)?.stopAccessingSecurityScopedResource()
+    }
+
     private func release(_ rootID: FolderRoot.ID) {
         scans.removeValue(forKey: rootID)?.cancel()
         watchers.removeValue(forKey: rootID)?.stop()
@@ -212,4 +333,23 @@ public struct BoundFolder: Identifiable, Sendable {
     public var tree: FileNode?
 
     public var id: FolderRoot.ID { root.id }
+}
+
+/// A loose file as this workspace sees it.
+public struct BoundFile: Identifiable, Sendable {
+    public enum Status: Equatable, Sendable {
+        case available
+        /// The bookmark no longer resolves, or the file is gone. It can only be removed
+        /// from the list.
+        case unavailable
+    }
+
+    public var file: LooseFile
+    public var status: Status
+    /// Where the bookmark resolved to.
+    public var url: URL?
+
+    public var id: LooseFile.ID { file.id }
+    /// The file's name, from where it resolved or where it was last seen.
+    public var name: String { url?.lastPathComponent ?? file.name }
 }

@@ -723,11 +723,17 @@
     "Load Theirs" : {
       "comment" : "plain: conflict banner button that takes the file's text from disk"
     },
+    "Loose Files" : {
+      "comment" : "plain: sidebar section header for single files kept without their folder"
+    },
     "Make Lower Case" : {
       "comment" : "plain: Edit › Transformations item"
     },
     "Make Upper Case" : {
       "comment" : "plain: Edit › Transformations item"
+    },
+    "Markdown files opened from Finder that belong to no project are kept here." : {
+      "comment" : "voice: sidebar empty state for the Unsorted project"
     },
     "Markers like # and ** normally show only on the block you're writing in. Typewriter scrolling keeps that line in the middle of the window." : {
       "comment" : "plain: footer explaining the editor behavior settings"
@@ -949,6 +955,9 @@
     },
     "Related passages" : {
       "comment" : "plain: project search section for matches by meaning (#21)"
+    },
+    "Remove from List" : {
+      "comment" : "plain: context menu item that takes a loose file off the project's list; the file stays on disk"
     },
     "Remove “%@”?" : {
       "comment" : "plain: confirmation for removing an imported theme; %@ is the theme name"
@@ -1209,6 +1218,10 @@
       "comment" : "plain: error when acting on a deleted project",
       "extractionState" : "manual"
     },
+    "The image couldn't be saved next to this page. %@" : {
+      "comment" : "plain: alert when a pasted or picked image can't be written beside the page; %@ is the system's reason",
+      "extractionState" : "manual"
+    },
     "The model declined to answer that." : {
       "comment" : "plain: error when the model refuses (#18)",
       "extractionState" : "manual"
@@ -1333,11 +1346,17 @@
     "Typewriter scrolling" : {
       "comment" : "plain: setting that keeps the caret's line centered"
     },
+    "Unavailable" : {
+      "comment" : "plain: label on a loose file that can't be found anymore"
+    },
     "Unbind Folder" : {
       "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
     },
     "Undo" : {
       "comment" : "plain: Edit menu item"
+    },
+    "Unsorted" : {
+      "comment" : "plain: name of the project that holds Markdown files opened from Finder that belong to no other project"
     },
     "Untitled" : {
       "comment" : "plain: name for an export with no file name"

@@ -37,7 +37,11 @@ final class WindowState {
     private(set) var projectID: Project.ID?
     private(set) var workspace: Workspace?
     private(set) var selectedFile: URL?
+    /// The loose file the selected file is, if it is one.
+    private(set) var selectedLooseFile: LooseFile.ID?
     private(set) var document: OpenDocument?
+    /// The AppKit window this state is shown in, to bring it forward.
+    weak var hostWindow: NSWindow?
     /// Why the selected file couldn't be opened.
     var openError: Error?
     var projectPrompt: ProjectPrompt?
@@ -57,6 +61,7 @@ final class WindowState {
         actions.didCreate = { [weak self] url in self?.select(url) }
         actions.didMove = { [weak self] from, to in self?.itemMoved(from: from, to: to) }
         actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
+        actions.willRelease = { [weak self] in self?.save() }
     }
 
     var project: Project? { projectID.flatMap(library.project) }
@@ -90,15 +95,21 @@ final class WindowState {
         }
     }
 
-    /// The project's roots changed (bound or unbound elsewhere); update the workspace.
+    /// The project's roots or loose files changed (bound or unbound elsewhere); update the
+    /// workspace.
     func projectRootsChanged() {
         workspace?.sync()
-        if let url = selectedFile, workspace?.reference(for: url) == nil { select(nil) }
+        reportWorkspaceError()
+        // A loose file that can't be found stays open, with its text; only taking it off the
+        // list closes it.
+        let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
+        if let url = selectedFile, workspace?.reference(for: url) == nil, !listed { select(nil) }
     }
 
     func close() {
         closeDocument()
         workspace?.deactivate()
+        ExternalOpens.shared.unregister(self)
     }
 
     /// Lets the user pick folders to bind to this window's project, then offers to alias
@@ -144,11 +155,17 @@ final class WindowState {
         guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else { return }
         closeDocument()
         selectedFile = url
+        selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
         guard let url else { return }
         editorMode = FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
             document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
             document?.versions = .standard
+            document?.didSave = { [weak self] url in
+                guard let self else { return }
+                workspace?.didSave(url, fileID: selectedLooseFile)
+                reportWorkspaceError()
+            }
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {
                 library.update(projectID) { $0.lastOpenedFile = reference }
@@ -269,7 +286,7 @@ final class WindowState {
         openError = nil
     }
 
-    private func itemMoved(from: URL, to: URL) {
+    func itemMoved(from: URL, to: URL) {
         guard let current = selectedFile else { return }
         let fromPath = from.standardizedFileURL.path(percentEncoded: false)
         let currentPath = current.standardizedFileURL.path(percentEncoded: false)
@@ -298,29 +315,6 @@ final class WindowState {
         document?.discard()
         document = nil
         selectedFile = nil
-    }
-
-    // MARK: - Restoration
-
-    /// `rootID/relative/path` for the selected file, for scene storage.
-    var restorationFile: String {
-        guard let selectedFile, let reference = workspace?.reference(for: selectedFile) else { return "" }
-        return reference.rootID.uuidString + "/" + reference.relativePath
-    }
-
-    /// Reopens the project and file a window last showed.
-    func restore(projectID storedProject: String, file storedFile: String, fallbackProject: String) {
-        let ids = [storedProject, fallbackProject].compactMap(UUID.init(uuidString:))
-        let id = ids.first { library.project($0) != nil } ?? library.projects.first?.id
-        let reopens = preferences.restoresLastSession
-        selectProject(id, openLastFile: reopens)
-        guard reopens, !storedFile.isEmpty else { return }
-        let parts = storedFile.split(separator: "/", maxSplits: 1)
-        guard parts.count == 2, let rootID = UUID(uuidString: String(parts[0])),
-            let url = workspace?.url(for: FileReference(rootID: rootID, relativePath: String(parts[1]))),
-            FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
-        else { return }
-        select(url)
     }
 }
 

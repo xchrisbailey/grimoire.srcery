@@ -25,8 +25,10 @@ public final class ProjectLibrary {
     }
 
     @discardableResult
-    public func createProject(named name: String) -> Project {
-        let project = Project(name: name)
+    public func createProject(named name: String, icon: String = "book.closed", kind: ProjectKind = .standard)
+        -> Project
+    {
+        let project = Project(name: name, icon: icon, kind: kind)
         projects.append(project)
         save()
         return project

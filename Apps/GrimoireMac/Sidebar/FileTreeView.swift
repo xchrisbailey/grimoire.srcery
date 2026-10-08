@@ -12,6 +12,17 @@ struct FileTreeView: View {
 
     var body: some View {
         List(selection: $selectedFile) {
+            if !workspace.looseFiles.isEmpty {
+                Section {
+                    ForEach(workspace.looseFiles) { LooseFileRow(file: $0, workspace: workspace, actions: actions) }
+                } header: {
+                    if !workspace.folders.isEmpty {
+                        Text("Loose Files")
+                            .brandFont(.chrome)
+                            .foregroundStyle(Color.brand(\.subtext))
+                    }
+                }
+            }
             ForEach(workspace.folders) { folder in
                 Section(isExpanded: expansion(of: folder)) {
                     switch folder.status {
@@ -127,6 +138,48 @@ private struct RootHeader: View {
         guard let entry = getpwuid(getuid()), let dir = entry.pointee.pw_dir else { return NSHomeDirectory() }
         return String(cString: dir)
     }()
+}
+
+/// A loose file: listed flat, and only removable from the list, since the sandbox
+/// grants the file and not its folder.
+private struct LooseFileRow: View {
+    let file: BoundFile
+    let workspace: Workspace
+    let actions: FileActions
+
+    var body: some View {
+        if let url = file.url {
+            row(url)
+                .tag(url)
+        } else {
+            row(nil)
+                .selectionDisabled()
+        }
+    }
+
+    private func row(_ url: URL?) -> some View {
+        HStack(spacing: 8) {
+            Label {
+                Text(file.name)
+                    .brandFont(.chrome)
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: url == nil ? "exclamationmark.triangle.fill" : "doc.text")
+                    .foregroundStyle(url == nil ? Color.brand(\.callout) : Color.brand(\.overlay1))
+            }
+            Spacer(minLength: 4)
+            Text(url == nil ? String(localized: "Unavailable") : (url?.pathExtension.lowercased() ?? ""))
+                .brandFont(.metadata)
+                .foregroundStyle(Color.brand(\.overlay0))
+        }
+        .help(Text(url?.path(percentEncoded: false) ?? file.file.lastKnownPath))
+        .contextMenu {
+            if let url {
+                Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            }
+            Button("Remove from List") { actions.removeLooseFile(file, from: workspace) }
+        }
+    }
 }
 
 /// The rows under a folder: subfolders as disclosure groups, then documents.
