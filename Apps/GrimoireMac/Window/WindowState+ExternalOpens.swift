@@ -6,6 +6,14 @@ extension WindowState {
         hostWindow?.makeKeyAndOrderFront(nil)
     }
 
+    /// Shows the error the workspace recorded, such as a loose file's bookmark that couldn't
+    /// be refreshed, once.
+    func reportWorkspaceError() {
+        guard let error = workspace?.lastError else { return }
+        workspace?.lastError = nil
+        actions.error = error
+    }
+
     /// Shows files that were opened from outside the app, ending on the last one. They
     /// belong to this window's project.
     func open(_ urls: [URL]) {

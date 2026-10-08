@@ -70,6 +70,7 @@ extension ProjectLibrary {
     /// Stores a fresh bookmark for a loose file: after the file was replaced by a save or
     /// moved, when the old bookmark still resolved but was stale.
     public func replaceBookmark(ofLooseFile fileID: LooseFile.ID, in projectID: Project.ID, with url: URL) throws {
+        guard project(projectID) != nil else { throw LibraryError.unknownProject }
         let bookmark = try FolderBookmark.make(for: url)
         update(projectID) { project in
             guard let index = project.looseFiles.firstIndex(where: { $0.id == fileID }) else { return }

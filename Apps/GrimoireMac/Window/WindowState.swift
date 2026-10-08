@@ -96,6 +96,7 @@ final class WindowState {
     /// workspace.
     func projectRootsChanged() {
         workspace?.sync()
+        reportWorkspaceError()
         if let url = selectedFile, workspace?.reference(for: url) == nil, workspace?.looseFile(at: url) == nil {
             select(nil)
         }
@@ -155,7 +156,10 @@ final class WindowState {
         do {
             document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
             document?.versions = .standard
-            document?.didSave = { [weak self] url in self?.workspace?.didSave(url) }
+            document?.didSave = { [weak self] url in
+                self?.workspace?.didSave(url)
+                self?.reportWorkspaceError()
+            }
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {
                 library.update(projectID) { $0.lastOpenedFile = reference }

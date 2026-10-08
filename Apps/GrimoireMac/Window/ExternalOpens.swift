@@ -42,7 +42,13 @@ final class ExternalOpens {
 
     func open(_ urls: [URL]) {
         let files = urls.filter { $0.isFileURL && !$0.hasDirectoryPath }
-        for placement in library.place(files, unsortedName: String(localized: "Unsorted")) {
+        library.lastError = nil
+        let placements = library.place(files, unsortedName: String(localized: "Unsorted"))
+        if let error = library.lastError {
+            library.lastError = nil
+            report(error)
+        }
+        for placement in placements {
             if let window = windowShowing(placement.projectID) {
                 window.open(placement.urls)
                 window.bringToFront()
@@ -52,6 +58,16 @@ final class ExternalOpens {
         }
         NSApp.activate()
         requestWindows()
+    }
+
+    /// Tells the user a file couldn't be opened: in a window's alert, or on its own when
+    /// the app has none yet.
+    private func report(_ error: Error) {
+        if let window = windows.compactMap(\.window).first {
+            window.actions.error = error
+        } else {
+            Task { NSAlert(error: error).runModal() }
+        }
     }
 
     /// A window that is about to restore itself asks what Finder left for it: the files of
