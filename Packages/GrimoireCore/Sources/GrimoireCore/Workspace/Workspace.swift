@@ -92,7 +92,12 @@ public final class Workspace {
         {
             return
         }
-        try? library.replaceBookmark(ofLooseFile: bound.id, in: projectID, with: url)
+        do {
+            try library.replaceBookmark(ofLooseFile: bound.id, in: projectID, with: url)
+        } catch {
+            lastError = error
+            return
+        }
         if let file = project?.looseFiles.first(where: { $0.id == bound.id }),
             let index = looseFiles.firstIndex(where: { $0.id == bound.id })
         {
@@ -256,7 +261,11 @@ public final class Workspace {
         }
         if accessing { accessedFiles[file.id] = url }
         if resolved.isStale {
-            try? library.replaceBookmark(ofLooseFile: file.id, in: projectID, with: url)
+            do {
+                try library.replaceBookmark(ofLooseFile: file.id, in: projectID, with: url)
+            } catch {
+                lastError = error
+            }
             bound.file = project?.looseFiles.first { $0.id == file.id } ?? file
         }
         bound.url = url

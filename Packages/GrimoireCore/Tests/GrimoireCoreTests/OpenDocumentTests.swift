@@ -18,6 +18,30 @@ import Testing
         #expect(try String(contentsOf: file, encoding: .utf8) == "# Page\n\nInk.\n")
     }
 
+    @Test func tellsTheOwnerAfterEachWrite() throws {
+        let scratch = try Scratch()
+        let file = try scratch.file("page.md", "a")
+        let document = try OpenDocument(url: file, autosaveDelay: .seconds(60))
+        defer { document.close() }
+        var saved: [URL] = []
+        document.didSave = { saved.append($0) }
+
+        document.save()
+        #expect(saved.isEmpty)  // nothing changed, nothing written
+
+        document.text = "b"
+        document.save()
+        #expect(saved == [file])
+
+        // Keeping mine writes over a change made on disk.
+        document.text = "c"
+        try Data("elsewhere".utf8).write(to: file)
+        document.checkDisk()
+        #expect(document.conflict != nil)
+        document.keepMine()
+        #expect(saved == [file, file])
+    }
+
     @Test func saveWritesAtOnceAndOpeningNeverWrites() throws {
         let scratch = try Scratch()
         let file = try scratch.file("page.md", "a")

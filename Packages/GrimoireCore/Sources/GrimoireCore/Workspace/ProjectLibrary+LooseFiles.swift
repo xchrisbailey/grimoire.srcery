@@ -55,9 +55,7 @@ extension ProjectLibrary {
         if let existing = project.looseFiles.first(where: { Self.resolves($0, to: url) }) {
             return existing
         }
-        let file = LooseFile(
-            name: url.lastPathComponent, bookmark: try FolderBookmark.make(for: url),
-            lastKnownPath: url.standardizedFileURL.path(percentEncoded: false))
+        let file = try Self.looseFile(for: url)
         update(projectID) { $0.looseFiles.append(file) }
         return file
     }
@@ -85,14 +83,23 @@ extension ProjectLibrary {
 
     private func projectID(for url: URL, unsortedName: String) -> Project.ID? {
         if let id = projectHolding(folderOf: url) ?? projectListingLoosely(url) { return id }
-        let projectID = unsortedProject?.id ?? createProject(named: unsortedName, icon: "tray", kind: .unsorted).id
+        // Bookmark first, so a file that can't be bookmarked doesn't leave an empty Unsorted behind.
+        let file: LooseFile
         do {
-            try addLooseFile(url, to: projectID)
-            return projectID
+            file = try Self.looseFile(for: url)
         } catch {
             lastError = error
             return nil
         }
+        let projectID = unsortedProject?.id ?? createProject(named: unsortedName, icon: "tray", kind: .unsorted).id
+        update(projectID) { $0.looseFiles.append(file) }
+        return projectID
+    }
+
+    private static func looseFile(for url: URL) throws -> LooseFile {
+        LooseFile(
+            name: url.lastPathComponent, bookmark: try FolderBookmark.make(for: url),
+            lastKnownPath: url.standardizedFileURL.path(percentEncoded: false))
     }
 
     /// The project with the innermost root that contains `url`.

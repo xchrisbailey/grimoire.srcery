@@ -22,8 +22,6 @@ final class ExternalOpens {
     private var afterLaunch: [() -> Void] = []
     private var windows: [WeakWindow] = []
     private var pending = PendingOpens()
-    /// Windows asked for that haven't restored yet.
-    private var requestedWindows = 0
 
     private struct WeakWindow {
         weak var window: WindowState?
@@ -59,9 +57,7 @@ final class ExternalOpens {
     /// A window that is about to restore itself asks what Finder left for it: the files of
     /// the project it showed last time, or, for a new window, those of any project waiting.
     func claim(preferring project: Project.ID?, isNew: Bool) -> ProjectLibrary.Placement? {
-        if isNew && requestedWindows > 0 { requestedWindows -= 1 }
-        if let project, let placement = pending.take(project) { return placement }
-        return isNew ? pending.takeFirst() : nil
+        pending.claim(preferring: project, isNew: isNew)
     }
 
     /// Windows show their project through this once restored, and are found by it until
@@ -84,10 +80,7 @@ final class ExternalOpens {
     /// Opens a window for each project still waiting, once windows can be opened.
     private func requestWindows() {
         guard hasLaunched, let openWindow else { return }
-        while requestedWindows < pending.count {
-            requestedWindows += 1
-            openWindow()
-        }
+        for _ in 0..<pending.windowsToRequest() { openWindow() }
     }
 }
 
