@@ -162,8 +162,9 @@ final class WindowState {
             document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
             document?.versions = .standard
             document?.didSave = { [weak self] url in
-                self?.workspace?.didSave(url)
-                self?.reportWorkspaceError()
+                guard let self else { return }
+                workspace?.didSave(url, fileID: selectedLooseFile)
+                reportWorkspaceError()
             }
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {

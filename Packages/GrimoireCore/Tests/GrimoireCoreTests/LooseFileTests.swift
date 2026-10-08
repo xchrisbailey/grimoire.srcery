@@ -341,6 +341,34 @@ private let betaTwoProjects = """
         #expect(workspace.looseFiles[0].file.bookmark == Data([0, 1, 2]))
     }
 
+    @Test func aLooseFileDeletedWhileOpenIsAvailableAgainOnceTheWindowSavesItBack() throws {
+        let scratch = try Scratch()
+        let page = try scratch.file("elsewhere/page.md", "one")
+        let (workspace, library) = unsorted(scratch, files: [page])
+        defer { workspace.deactivate() }
+        let id = workspace.looseFiles[0].id
+        let projectID = workspace.projectID
+
+        try FileManager.default.removeItem(at: page)
+        workspace.refreshLooseFiles()
+        #expect(workspace.looseFiles[0].status == .unavailable)
+
+        // The window's autosave writes the page again; the entry is found by the window's id.
+        try Data("two".utf8).write(to: page)
+        workspace.didSave(page, fileID: id)
+        #expect(workspace.looseFiles[0].status == .available)
+        #expect(workspace.looseFile(at: page)?.id == id)
+        let resolved = try FolderBookmark.resolve(library.project(projectID)!.looseFiles[0].bookmark)
+        #expect(resolved.url.resolvingSymlinksInPath() == page.resolvingSymlinksInPath())
+
+        // After a relaunch the entry is listed and available, not stuck as unavailable.
+        workspace.deactivate()
+        let again = Workspace(projectID: projectID, library: library)
+        again.activate()
+        defer { again.deactivate() }
+        #expect(again.looseFiles.map(\.status) == [.available])
+    }
+
     @Test func aLooseFileStaysListedAndEditableAcrossSavesAndARelaunch() async throws {
         let scratch = try Scratch()
         let page = try scratch.file("elsewhere/page.md", "one")

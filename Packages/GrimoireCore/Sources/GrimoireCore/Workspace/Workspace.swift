@@ -105,10 +105,13 @@ public final class Workspace {
     }
 
     /// The file at `url` was just written. Saving atomically replaces the file, so a loose
-    /// file's bookmark is made again while it no longer resolves exactly.
-    public func didSave(_ url: URL) {
-        guard let bound = looseFile(at: url) else { return }
-        if let resolved = try? FolderBookmark.resolve(bound.file.bookmark),
+    /// file's bookmark is made again while it no longer resolves exactly. A file that was
+    /// missing and has been written again goes back to available. A window passes `fileID`
+    /// for the loose file it shows, since a missing file can't be found by its URL.
+    public func didSave(_ url: URL, fileID: LooseFile.ID? = nil) {
+        let bound = fileID.flatMap { id in looseFiles.first { $0.id == id } } ?? looseFile(at: url)
+        guard let bound else { return }
+        if bound.status == .available, let resolved = try? FolderBookmark.resolve(bound.file.bookmark),
             !resolved.isStale, FileIdentity.same(resolved.url, url)
         {
             return
@@ -122,7 +125,7 @@ public final class Workspace {
         if let file = project?.looseFiles.first(where: { $0.id == bound.id }),
             let index = looseFiles.firstIndex(where: { $0.id == bound.id })
         {
-            looseFiles[index].file = file
+            looseFiles[index] = resolveLooseFile(file)
         }
     }
 
