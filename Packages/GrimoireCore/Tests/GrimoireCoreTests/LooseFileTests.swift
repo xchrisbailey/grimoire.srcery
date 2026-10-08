@@ -217,20 +217,21 @@ private let betaTwoProjects = """
 }
 
 @MainActor @Suite struct LooseFileWorkspaceTests {
-    private func unsorted(_ scratch: Scratch, files: [URL]) -> (Workspace, ProjectLibrary, Project.ID) {
+    private func unsorted(_ scratch: Scratch, files: [URL]) -> (Workspace, ProjectLibrary) {
         let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
         library.place(files, unsortedName: "Unsorted")
         let id = library.unsortedProject!.id
         let workspace = Workspace(projectID: id, library: library)
         workspace.activate()
-        return (workspace, library, id)
+        return (workspace, library)
     }
 
     @Test func listsLooseFilesAndMarksMissingOnesUnavailable() throws {
         let scratch = try Scratch()
         let kept = try scratch.file("elsewhere/kept.md")
         let lost = try scratch.file("elsewhere/lost.md")
-        let (workspace, library, id) = unsorted(scratch, files: [kept, lost])
+        let (workspace, library) = unsorted(scratch, files: [kept, lost])
+        let id = workspace.projectID
         defer { workspace.deactivate() }
         #expect(workspace.looseFiles.map(\.status) == [.available, .available])
 
@@ -249,7 +250,7 @@ private let betaTwoProjects = """
     @Test func removingALooseFileLeavesItOnDisk() throws {
         let scratch = try Scratch()
         let page = try scratch.file("elsewhere/page.md", "ink")
-        let (workspace, _, _) = unsorted(scratch, files: [page])
+        let (workspace, _) = unsorted(scratch, files: [page])
         defer { workspace.deactivate() }
 
         workspace.removeLooseFile(workspace.looseFiles[0].id)
@@ -260,7 +261,8 @@ private let betaTwoProjects = """
     @Test func aBookmarkThatNoLongerResolvesShowsAsUnavailableWithoutBreakingTheProject() throws {
         let scratch = try Scratch()
         let page = try scratch.file("elsewhere/page.md")
-        let (workspace, library, id) = unsorted(scratch, files: [page])
+        let (workspace, library) = unsorted(scratch, files: [page])
+        let id = workspace.projectID
         library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
         workspace.deactivate()
 
@@ -273,7 +275,8 @@ private let betaTwoProjects = """
     @Test func savingMakesABookmarkThatNoLongerResolvesAgain() throws {
         let scratch = try Scratch()
         let page = try scratch.file("elsewhere/page.md", "one")
-        let (workspace, library, id) = unsorted(scratch, files: [page])
+        let (workspace, library) = unsorted(scratch, files: [page])
+        let id = workspace.projectID
         defer { workspace.deactivate() }
         library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
         workspace.sync()
@@ -287,7 +290,8 @@ private let betaTwoProjects = """
     @Test func aLooseFileStaysListedAndEditableAcrossSavesAndARelaunch() async throws {
         let scratch = try Scratch()
         let page = try scratch.file("elsewhere/page.md", "one")
-        let (workspace, library, id) = unsorted(scratch, files: [page])
+        let (workspace, library) = unsorted(scratch, files: [page])
+        let id = workspace.projectID
         let url = try #require(workspace.looseFiles[0].url)
         let document = try OpenDocument(url: url, autosaveDelay: .seconds(60))
         document.didSave = { [weak workspace] in workspace?.didSave($0) }

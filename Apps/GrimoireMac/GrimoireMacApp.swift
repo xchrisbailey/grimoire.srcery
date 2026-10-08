@@ -17,6 +17,7 @@ struct GrimoireMacApp: App {
     var body: some Scene {
         // `ExternalOpens` opens windows for files from Finder, which can arrive before any
         // window has appeared to hand it this action.
+        // swiftlint:disable:next redundant_discardable_let
         let _ = ExternalOpens.shared.openWindow = { openWindow(id: "project") }
         WindowGroup(id: "project") {
             ContentView()
