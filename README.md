@@ -117,7 +117,7 @@ xcrun swift-format format --in-place --recursive Apps Packages
 swiftlint
 ```
 
-CI runs the package tests, builds the Mac and iOS apps, and lints on every pull request.
+CI runs the package tests, builds the Mac and iOS apps, and lints on every pull request. `docs/development.md` lists the checks a branch passes before it merges.
 
 ## Project layout
 
