@@ -1,0 +1,10 @@
+{
+  "window": { "x": 200, "y": 140, "width": 600, "height": 460 },
+  "iconSize": 88,
+  "textSize": 12,
+  "icons": {
+    "Grimoire.app": [170, 290],
+    "Applications": [430, 290],
+    "Read me first.txt": [520, 388]
+  }
+}
