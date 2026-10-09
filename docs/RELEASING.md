@@ -21,7 +21,7 @@ To try the updater on a Mac that has the certificate but no notary profile, `SKI
 
 ## Updates
 
-The Mac app updates itself with [Sparkle](https://sparkle-project.org). It checks `https://xchrisbailey.github.io/grimoire.srcery/appcast.xml` in the background, and the app menu has "Check for Updates…". The feed URL and the EdDSA public key (`SUPublicEDKey`) are in `Config/GrimoireMac-Info.plist`. The app stays sandboxed and installs through Sparkle's XPC installer service, which the `-spks` and `-spki` mach-lookup entries in `GrimoireMac.entitlements` allow.
+The Mac app updates itself with [Sparkle](https://sparkle-project.org). It checks `https://xchrisbailey.github.io/grimoire.srcery/appcast.xml` in the background, and the app menu has "Check for Updates…". The feed URL and the EdDSA public key (`SUPublicEDKey`) are in `Config/GrimoireMac-Info.plist`. The app stays sandboxed and installs through Sparkle's XPC installer service, which the `-spks` and `-spki` mach-lookup entries in `GrimoireMac.entitlements` allow. `docs/entitlements.md` says what each sandbox entitlement is for.
 
 **Build numbers.** Sparkle compares `CFBundleVersion`, which is `CURRENT_PROJECT_VERSION` in `project.yml`. Raise it for every release (beta 1 was 1, beta 2 was 2), before tagging. The release workflow runs `scripts/check-build-number.sh` before packaging and fails if the number isn't higher than every build in the published feed. A feed that doesn't exist yet (HTTP 404) passes; any other failure to read it fails the run. Re-running a release whose feed was already published fails for the same reason: the feed then holds that build number.
 
