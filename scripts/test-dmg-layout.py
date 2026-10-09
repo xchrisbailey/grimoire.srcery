@@ -11,8 +11,10 @@ import plistlib
 import shutil
 import struct
 import tempfile
+import sys
 import unittest
 
+sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 spec = importlib.util.spec_from_file_location("dmg_layout", os.path.join(HERE, "dmg-layout.py"))
