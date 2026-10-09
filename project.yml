@@ -45,6 +45,11 @@ packages:
     path: Packages/GrimoireEditor
   GrimoireIntelligence:
     path: Packages/GrimoireIntelligence
+  # Mac target only. Pinned exactly so the framework and the sign_update and
+  # generate_appcast tools the release workflow runs are always the same version.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 targets:
   # Sources are synced folders, so files added under them build without
   # running `xcodegen generate` again. Regenerate only when this file changes.
@@ -65,6 +70,7 @@ targets:
       - package: GrimoireCore
       - package: GrimoireEditor
       - package: GrimoireIntelligence
+      - package: Sparkle
     settings:
       base:
         PRODUCT_NAME: Grimoire
