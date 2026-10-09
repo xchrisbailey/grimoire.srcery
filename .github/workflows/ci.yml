@@ -103,3 +103,7 @@ jobs:
       - name: SwiftLint
         if: success() || failure()  # report both linters in one run
         run: brew install swiftlint && swiftlint --strict
+      # Standard library only, and it reads st_birthtime, so it needs the macOS runner's python3.
+      - name: DMG layout writer
+        if: success() || failure()
+        run: python3 scripts/test-dmg-layout.py

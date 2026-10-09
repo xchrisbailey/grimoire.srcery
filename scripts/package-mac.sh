@@ -117,9 +117,27 @@ fi
   "$app/Contents/Info.plist"
 
 stage=$(mktemp -d)
-trap 'rm -rf "$stage"' EXIT
+volume="Grimoire $label"
+mount="/Volumes/$volume"
+attached=
+scratch=
+cleanup() {
+  [ -z "$attached" ] || hdiutil detach "$mount" -force -quiet >/dev/null 2>&1 || true
+  rm -rf "$stage"
+  [ -z "$scratch" ] || rm -f "$scratch"
+}
+trap cleanup EXIT
 ditto "$app" "$stage/Grimoire.app"
 ln -s /Applications "$stage/Applications"
+# The Finder window's artwork is a hidden file on the volume. Brand/scripts/dmg-background.swift
+# renders it; Brand/dmg-layout.json says where everything sits. Ad-hoc builds carry a note,
+# and their artwork has a label plate for it.
+mkdir "$stage/.background"
+if [ -z "$team" ]; then
+  cp "$root/Brand/dmg-background-with-note.tiff" "$stage/.background/background.tiff"
+else
+  cp "$root/Brand/dmg-background.tiff" "$stage/.background/background.tiff"
+fi
 if [ -z "$team" ]; then
   cat > "$stage/Read me first.txt" <<'TXT'
 Grimoire is not notarized by Apple yet, so macOS blocks the first launch.
@@ -135,8 +153,33 @@ After that, Grimoire opens normally.
 TXT
 fi
 
+# Lay out the window: build a writable image, write its .DS_Store with scripts/dmg-layout.py
+# (no Finder or window server, so it works the same on a headless runner), then compress.
+# The layout refers to the artwork on the mounted volume, so it is mounted at its own name.
+[ ! -e "$mount" ] || { echo "$mount is already mounted or exists; eject it first." >&2; exit 1; }
 mkdir -p "$dist"
-hdiutil create -quiet -volname "Grimoire $label" -srcfolder "$stage" -fs HFS+ -format UDZO "$dmg"
+scratch="$dist/.layout-$$.dmg"
+hdiutil create -quiet -volname "$volume" -srcfolder "$stage" -fs HFS+ -format UDRW "$scratch"
+attached=1
+hdiutil attach -quiet -nobrowse -noautoopen -noverify "$scratch" >/dev/null 2>&1 \
+  || { echo "Could not attach the layout image at $mount." >&2; exit 1; }
+[ -d "$mount/.background" ] \
+  || { echo "The layout image didn't mount at $mount." >&2; exit 1; }
+python3 "$root/scripts/dmg-layout.py" "$mount" "$root/Brand/dmg-layout.json"
+# Spotlight and FSEvents drop bookkeeping folders on a freshly attached volume.
+rm -rf "$mount/.fseventsd" "$mount/.Spotlight-V100" "$mount/.Trashes"
+sync
+# Detaching can fail while the volume is briefly busy.
+n=0
+until hdiutil detach "$mount" -quiet >/dev/null 2>&1; do
+  n=$((n + 1))
+  [ "$n" -lt 10 ] || { echo "Could not eject $mount." >&2; exit 1; }
+  sleep 1
+done
+attached=
+hdiutil convert -quiet "$scratch" -format UDZO -o "$dmg"
+rm -f "$scratch"
+scratch=
 
 if [ -n "$team" ]; then
   codesign --sign "$identity" --timestamp "$dmg"
