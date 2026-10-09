@@ -17,6 +17,8 @@ Sparkle's framework, XPC services and helper apps are signed one component at a 
 
 Without `TEAM_ID`, the build is ad-hoc signed and not notarized, so Gatekeeper blocks the first launch. That DMG carries a "Read me first" note: right-click the app in Applications and choose Open, or run `xattr -dr com.apple.quarantine /Applications/Grimoire.app`.
 
+**The DMG window.** The DMG opens as a fixed-size icon-view window with the mark on Mocha behind the app and the Applications shortcut (artwork in `Brand/dmg-background.tiff`, geometry in `Brand/dmg-layout.json`; `Brand/README.md` says how to regenerate it). The script builds a writable image, mounts it at `/Volumes/Grimoire <label>` (so that name must be free), writes the window layout into its `.DS_Store` with `scripts/dmg-layout.py`, ejects it and compresses it. That script writes the file directly with Python's standard library, never driving Finder, so a headless runner and a Mac with a logged-in user get the same layout; `python3 scripts/test-dmg-layout.py` checks what it writes. The ad-hoc "Read me first" note sits in the bottom corner, off the artwork.
+
 To try the updater on a Mac that has the certificate but no notary profile, `SKIP_NOTARIZE=1 TEAM_ID=<team id> scripts/package-mac.sh <label>` signs everything with the Developer ID identity and stops before notarization. Setting `LOCAL_FEED_URL=http://localhost:8000/appcast.xml` as well points the app at a feed served from this Mac, with an App Transport Security exception for that host. A build made either way is never notarized, and the script refuses `LOCAL_FEED_URL` together with notarization.
 
 ## Updates

@@ -100,9 +100,10 @@ func render(scale: Int) -> Data {
         bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh, bitsPerSample: 8,
         samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
         bytesPerRow: 0, bitsPerPixel: 0)!
-    rep.size = NSSize(width: width, height: height)  // 144 dpi at 2x, which tiffutil pairs by
+    // Setting the size in points makes the 2x image 144 dpi, which tiffutil pairs by, and
+    // makes the graphics context scale drawing in points up to its pixels.
+    rep.size = NSSize(width: width, height: height)
     let ctx = NSGraphicsContext(bitmapImageRep: rep)!.cgContext
-    ctx.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
     draw(in: ctx)
     return rep.representation(using: .png, properties: [:])!
 }
