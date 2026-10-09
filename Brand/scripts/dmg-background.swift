@@ -13,7 +13,8 @@ let mocha = (
     mantle: NSColor(srgbRed: 0x18 / 255, green: 0x18 / 255, blue: 0x25 / 255, alpha: 1),
     surface2: NSColor(srgbRed: 0x58 / 255, green: 0x5b / 255, blue: 0x70 / 255, alpha: 1),
     subtext: NSColor(srgbRed: 0xa6 / 255, green: 0xad / 255, blue: 0xc8 / 255, alpha: 1),
-    mauve: NSColor(srgbRed: 0xcb / 255, green: 0xa6 / 255, blue: 0xf7 / 255, alpha: 1)
+    mauve: NSColor(srgbRed: 0xcb / 255, green: 0xa6 / 255, blue: 0xf7 / 255, alpha: 1),
+    ink: NSColor(srgbRed: 0xcd / 255, green: 0xd6 / 255, blue: 0xf4 / 255, alpha: 1)
 )
 
 let layout = try JSONSerialization.jsonObject(
@@ -24,7 +25,9 @@ let width = Double(window["width"]!)
 let height = Double(window["height"]!)
 let app = icons["Grimoire.app"]!
 let applications = icons["Applications"]!
+let labels = layout["labels"] as! [String: String]
 let iconSize = layout["iconSize"] as! Double
+let textSize = layout["textSize"] as! Double
 
 func svg(_ name: String) -> NSImage {
     NSImage(contentsOf: URL(fileURLWithPath: "Brand/\(name).svg"))!
@@ -89,6 +92,20 @@ func draw(in ctx: CGContext) {
     arrow.lineJoinStyle = .round
     mocha.surface2.setStroke()
     arrow.stroke()
+
+    // Finder draws icon labels in black whatever sits behind them, which a Mocha base would
+    // swallow, so each label gets a light plate. The plate is as wide as the label at the
+    // system font and sits where Finder puts the label: just under the icon.
+    let labelFont = NSFont.systemFont(ofSize: textSize)
+    for (name, text) in labels {
+        guard let place = icons[name] else { continue }
+        let textWidth = (text as NSString).size(withAttributes: [.font: labelFont]).width
+        let plate = NSRect(
+            x: place[0] - (textWidth + 14) / 2, y: place[1] + iconSize / 2 + 5,
+            width: textWidth + 14, height: textSize + 8)
+        mocha.ink.setFill()
+        NSBezierPath(roundedRect: plate, xRadius: 6, yRadius: 6).fill()
+    }
 
     NSGraphicsContext.restoreGraphicsState()
 }

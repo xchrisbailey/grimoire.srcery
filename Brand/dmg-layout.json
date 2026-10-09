@@ -2,9 +2,14 @@
   "window": { "x": 200, "y": 140, "width": 600, "height": 460 },
   "iconSize": 88,
   "textSize": 12,
+  "labels": {
+    "Grimoire.app": "Grimoire",
+    "Applications": "Applications",
+    "Read me first.txt": "Read me first.txt"
+  },
   "icons": {
     "Grimoire.app": [170, 290],
     "Applications": [430, 290],
-    "Read me first.txt": [520, 388]
+    "Read me first.txt": [535, 388]
   }
 }
