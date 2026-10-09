@@ -130,9 +130,14 @@ trap cleanup EXIT
 ditto "$app" "$stage/Grimoire.app"
 ln -s /Applications "$stage/Applications"
 # The Finder window's artwork is a hidden file on the volume. Brand/scripts/dmg-background.swift
-# renders it; Brand/dmg-layout.json says where everything sits.
+# renders it; Brand/dmg-layout.json says where everything sits. Ad-hoc builds carry a note,
+# and their artwork has a label plate for it.
 mkdir "$stage/.background"
-cp "$root/Brand/dmg-background.tiff" "$stage/.background/background.tiff"
+if [ -z "$team" ]; then
+  cp "$root/Brand/dmg-background-with-note.tiff" "$stage/.background/background.tiff"
+else
+  cp "$root/Brand/dmg-background.tiff" "$stage/.background/background.tiff"
+fi
 if [ -z "$team" ]; then
   cat > "$stage/Read me first.txt" <<'TXT'
 Grimoire is not notarized by Apple yet, so macOS blocks the first launch.
@@ -155,8 +160,11 @@ fi
 mkdir -p "$dist"
 scratch="$dist/.layout-$$.dmg"
 hdiutil create -quiet -volname "$volume" -srcfolder "$stage" -fs HFS+ -format UDRW "$scratch"
-hdiutil attach -quiet -nobrowse -noautoopen -noverify "$scratch" >/dev/null 2>&1
 attached=1
+hdiutil attach -quiet -nobrowse -noautoopen -noverify "$scratch" >/dev/null 2>&1 \
+  || { echo "Could not attach the layout image at $mount." >&2; exit 1; }
+[ -d "$mount/.background" ] \
+  || { echo "The layout image didn't mount at $mount." >&2; exit 1; }
 python3 "$root/scripts/dmg-layout.py" "$mount" "$root/Brand/dmg-layout.json"
 # Spotlight and FSEvents drop bookkeeping folders on a freshly attached volume.
 rm -rf "$mount/.fseventsd" "$mount/.Spotlight-V100" "$mount/.Trashes"

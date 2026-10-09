@@ -1,5 +1,7 @@
-// Writes Brand/dmg-background.tiff, the artwork behind the release DMG's Finder window:
-// the Mocha base, the mark and wordmark, and an arrow from the app to Applications.
+// Writes the artwork behind the release DMG's Finder window: the Mocha base, the mark and
+// wordmark, an arrow from the app to Applications, and a light plate behind each icon label.
+// Brand/dmg-background.tiff is for notarized builds; Brand/dmg-background-with-note.tiff adds
+// the plate for "Read me first.txt", which only ad-hoc builds carry.
 // It is a two-representation TIFF (1x and 2x), so the window is sharp on Retina and
 // non-Retina displays. The window and icon geometry come from Brand/dmg-layout.json,
 // which scripts/dmg-layout.py reads too, so the arrow lands between the icons.
@@ -27,6 +29,7 @@ let app = icons["Grimoire.app"]!
 let applications = icons["Applications"]!
 let labels = layout["labels"] as! [String: String]
 let iconSize = layout["iconSize"] as! Double
+let note = "Read me first.txt"
 let textSize = layout["textSize"] as! Double
 
 func svg(_ name: String) -> NSImage {
@@ -45,7 +48,7 @@ func caption(_ text: String, size: CGFloat) -> NSAttributedString {
 }
 
 // Draws the artwork with a top-left origin, in points.
-func draw(in ctx: CGContext) {
+func draw(in ctx: CGContext, withNote: Bool) {
     ctx.setFillColor(mocha.base.cgColor)
     ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
     ctx.translateBy(x: 0, y: height)
@@ -98,7 +101,7 @@ func draw(in ctx: CGContext) {
     // system font and sits where Finder puts the label: just under the icon.
     let labelFont = NSFont.systemFont(ofSize: textSize)
     for (name, text) in labels {
-        guard let place = icons[name] else { continue }
+        guard let place = icons[name], withNote || name != note else { continue }
         let textWidth = (text as NSString).size(withAttributes: [.font: labelFont]).width
         let plate = NSRect(
             x: place[0] - (textWidth + 14) / 2, y: place[1] + iconSize / 2 + 5,
@@ -110,7 +113,7 @@ func draw(in ctx: CGContext) {
     NSGraphicsContext.restoreGraphicsState()
 }
 
-func render(scale: Int) -> Data {
+func render(scale: Int, withNote: Bool) -> Data {
     let pixelsWide = Int(width) * scale
     let pixelsHigh = Int(height) * scale
     let rep = NSBitmapImageRep(
@@ -121,22 +124,23 @@ func render(scale: Int) -> Data {
     // makes the graphics context scale drawing in points up to its pixels.
     rep.size = NSSize(width: width, height: height)
     let ctx = NSGraphicsContext(bitmapImageRep: rep)!.cgContext
-    draw(in: ctx)
+    draw(in: ctx, withNote: withNote)
     return rep.representation(using: .png, properties: [:])!
 }
 
 let work = FileManager.default.temporaryDirectory.appendingPathComponent("dmg-background-\(getpid())")
 try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
 defer { try? FileManager.default.removeItem(at: work) }
-try render(scale: 1).write(to: work.appendingPathComponent("background.png"))
-try render(scale: 2).write(to: work.appendingPathComponent("background@2x.png"))
 
-let tiffutil = Process()
-tiffutil.executableURL = URL(fileURLWithPath: "/usr/bin/tiffutil")
-tiffutil.arguments = [
-    "-cathidpicheck", work.appendingPathComponent("background.png").path,
-    work.appendingPathComponent("background@2x.png").path, "-out", "Brand/dmg-background.tiff",
-]
-try tiffutil.run()
-tiffutil.waitUntilExit()
-exit(tiffutil.terminationStatus)
+for (output, withNote) in [("dmg-background", false), ("dmg-background-with-note", true)] {
+    let one = work.appendingPathComponent("\(output).png")
+    let two = work.appendingPathComponent("\(output)@2x.png")
+    try render(scale: 1, withNote: withNote).write(to: one)
+    try render(scale: 2, withNote: withNote).write(to: two)
+    let tiffutil = Process()
+    tiffutil.executableURL = URL(fileURLWithPath: "/usr/bin/tiffutil")
+    tiffutil.arguments = ["-cathidpicheck", one.path, two.path, "-out", "Brand/\(output).tiff"]
+    try tiffutil.run()
+    tiffutil.waitUntilExit()
+    if tiffutil.terminationStatus != 0 { exit(tiffutil.terminationStatus) }
+}
