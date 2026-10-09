@@ -15,9 +15,10 @@ xcodebuild build -project Grimoire.xcodeproj -scheme GrimoireiOS -destination 'g
 (cd Packages/GrimoireIntelligence && swift test)
 xcrun swift-format lint --strict --recursive Apps Packages
 swiftlint --strict
+python3 scripts/test-dmg-layout.py
 ```
 
-Each build ends in `** BUILD SUCCEEDED **` or `** BUILD FAILED **`, and each package in a `Test run with … passed` or `… failed` line. When clean, `swift-format` prints nothing and SwiftLint ends in `Found 0 violations`.
+Each build ends in `** BUILD SUCCEEDED **` or `** BUILD FAILED **`, and each package in a `Test run with … passed` or `… failed` line. When clean, `swift-format` prints nothing and SwiftLint ends in `Found 0 violations`. The last command checks the DMG window layout writer and ends in `OK`; it needs only the Python 3 that macOS and the CI runner provide.
 
 The suites in `GrimoireIntelligence` gated on `modelIsReady` run the real on-device model, so they only run on a Mac that has it, and its output varies from run to run. `WritingEvaluations` fails now and then on unchanged code. When one of those suites fails, rerun the package: a pass on the rerun counts, reported with both result lines and the name of the test that failed. A failure anywhere else, or one that repeats, is a real failure.
 
@@ -29,6 +30,6 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, and both linters. Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.
 
 `.github/workflows/release.yml` packages a DMG when a `v*` tag is pushed; see the README.
