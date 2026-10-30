@@ -2,6 +2,21 @@ import Darwin
 import Foundation
 
 extension Workspace {
+    func requireAvailableTemplateDependency(_ assignment: FolderTemplateAssignment) throws {
+        for operation in project?.pendingLifecycleOperations ?? [] {
+            if operation.touches(assignment)
+                || (operation.before + operation.after).contains(where: { $0.owner == assignment.owner })
+            {
+                throw LifecycleError.pendingRepair
+            }
+        }
+        // Check recorded reservations before resolving a source alias or opening saved bytes.
+        if let owner = url(for: assignment.owner) { try requireNoPendingLifecycle(at: owner) }
+        if case .useSource(let reference) = assignment.choice, let source = url(for: reference) {
+            try requireNoPendingLifecycle(at: source)
+        }
+    }
+
     func saveTemplateAssignment(_ assignment: FolderTemplateAssignment) throws {
         if let owner = url(for: assignment.owner) { try requireNoPendingLifecycle(at: owner) }
         if case .useSource(let reference) = assignment.choice, let source = url(for: reference) {

@@ -2,9 +2,17 @@ import Darwin
 import Foundation
 
 public struct LifecycleResult {
-    /// Non-nil whenever the filesystem move succeeded, even if its settings commit failed.
+    /// The identity-verified original item's destination, including when final settings persistence fails.
     public let movedURL: URL?
+    /// The pre-existing unconfigured cross-volume route. This is not an identity-verified handoff.
+    public let legacyMovedURL: URL?
     public let error: (any Error)?
+
+    init(movedURL: URL?, error: (any Error)?, legacyMovedURL: URL? = nil) {
+        self.movedURL = movedURL
+        self.legacyMovedURL = legacyMovedURL
+        self.error = error
+    }
 }
 
 struct LifecycleOperations {
@@ -12,6 +20,9 @@ struct LifecycleOperations {
     var move: (URL, URL) throws -> URL = { try FileOperations.move($0, into: $1) }
     var caseSensitiveNames: (URL) -> Bool? = {
         (try? $0.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?.volumeSupportsCaseSensitiveNames
+    }
+    var isSameVolume: (URL, URL) throws -> Bool = {
+        try LifecycleIdentity($0).device == LifecycleIdentity($1).device
     }
 }
 
@@ -50,23 +61,34 @@ extension Workspace {
             try requireNoPendingLifecycle(at: source)
             try requireNoPendingLifecycle(at: destination)
             if source.standardizedFileURL == destination.standardizedFileURL {
+                _ = try LifecycleIdentity(source)
                 return LifecycleResult(movedURL: source, error: nil)
             }
-            let operation = try prepareRelocation(source, to: destination)
+            let preparation = try prepareRelocation(source, to: destination)
+            if preparation.isLegacy {
+                let legacy = try perform()
+                refreshAll()
+                return LifecycleResult(movedURL: nil, error: nil, legacyMovedURL: legacy)
+            }
+            let operation = preparation.operation
             pending = operation
             if let operation {
                 try library.update(projectID) { $0.pendingLifecycleOperations.append(operation) }
             }
             do {
-                moved = try perform()
+                _ = try perform()
             } catch {
                 // Even a failed filesystem call can leave an uncertain outcome. Inspect identities,
                 // never reverse or replay it; failed cleanup persistence must retain the intent.
+                if (try? preparation.observation.completed()) == true {
+                    moved = preparation.observation.destination
+                }
                 reconcileLifecycleOperations()
                 throw error
             }
+            guard try preparation.observation.completed() else { throw LifecycleError.pendingRepair }
+            moved = preparation.observation.destination
             if let operation {
-                guard try observedCompletion(of: operation) else { throw LifecycleError.pendingRepair }
                 try finishRelocation(operation, completed: true)
             }
             refreshAll()
@@ -83,7 +105,7 @@ extension Workspace {
         }
     }
 
-    private func prepareRelocation(_ source: URL, to destination: URL) throws -> PendingLifecycleOperation? {
+    private func prepareRelocation(_ source: URL, to destination: URL) throws -> LifecyclePreparation {
         guard let project, let from = try lifecycleReference(for: source),
             let parent = try lifecycleReference(for: destination.deletingLastPathComponent()),
             !from.relativePath.isEmpty
@@ -95,17 +117,8 @@ extension Workspace {
         var before: [FolderTemplateAssignment] = []
         var after: [FolderTemplateAssignment] = []
         for assignment in project.templateAssignments {
-            try assignment.validate()
-            var updated = assignment
-            if assignment.state == .unresolved {
-                // Inactive aliases are stored choices, not evidence of the live target's identity.
-                updated.owner = PendingLifecycleOperation.relocated(assignment.owner, from: from, to: to)
-            } else {
-                updated.owner = try relocatedReference(assignment.owner, source: source, destination: destination)
-            }
-            if case .useSource(let reference) = assignment.choice {
-                updated.choice = .useSource(try relocatedReference(reference, source: source, destination: destination))
-            }
+            let updated = try relocatedAssignment(
+                assignment, from: from, to: to, source: source, destination: destination)
             if assignment != updated {
                 before.append(assignment)
                 after.append(updated)
@@ -113,20 +126,50 @@ extension Workspace {
         }
         let remaining = project.templateAssignments.filter { !before.contains($0) }
         try validateDestinationChoices(remaining, destination: destination)
-        if before.isEmpty { return nil }
+        let observation = try LifecycleObservation(
+            source: source, destination: destination,
+            roots: [root, rootURL(to.rootID)])
+        if try !lifecycleOperations.isSameVolume(source, destination.deletingLastPathComponent())
+            || observation.itemIdentity.device != observation.destinationParentIdentity.device
+        {
+            guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity,
+                before.isEmpty
+            else { throw LifecycleError.unsupportedBoundary }
+            try requireLegacyAdmission(source: source, destination: destination)
+            return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
+        }
+        if before.isEmpty { return LifecyclePreparation(operation: nil, observation: observation) }
         guard from.rootID == to.rootID else { throw LifecycleError.unsupportedBoundary }
         try FolderTemplateAssignment.validate(remaining + after)
         let operation = PendingLifecycleOperation(
             id: UUID(), projectID: projectID, source: from, destination: to,
-            rootIdentity: try LifecycleIdentity(root), itemIdentity: try LifecycleIdentity(source),
-            sourceParentIdentity: try LifecycleIdentity(source.deletingLastPathComponent()),
-            destinationParentIdentity: try LifecycleIdentity(destination.deletingLastPathComponent()),
+            rootIdentity: observation.roots[0].identity, itemIdentity: observation.itemIdentity,
+            sourceParentIdentity: observation.sourceParentIdentity,
+            destinationParentIdentity: observation.destinationParentIdentity,
             before: before, after: after)
         try operation.validate(in: project)
         guard !project.pendingLifecycleOperations.contains(where: { $0.conflicts(with: operation) }) else {
             throw LifecycleError.pendingRepair
         }
-        return operation
+        return LifecyclePreparation(operation: operation, observation: observation)
+    }
+
+    private func relocatedAssignment(
+        _ assignment: FolderTemplateAssignment, from: FileReference, to: FileReference,
+        source: URL, destination: URL
+    ) throws -> FolderTemplateAssignment {
+        try assignment.validate()
+        var updated = assignment
+        if assignment.state == .unresolved {
+            // Inactive aliases are stored choices, not evidence of the live target's identity.
+            updated.owner = PendingLifecycleOperation.relocated(assignment.owner, from: from, to: to)
+        } else {
+            updated.owner = try relocatedReference(assignment.owner, source: source, destination: destination)
+        }
+        if case .useSource(let reference) = assignment.choice {
+            updated.choice = .useSource(try relocatedReference(reference, source: source, destination: destination))
+        }
+        return updated
     }
 
     private func validateDestinationChoices(_ assignments: [FolderTemplateAssignment], destination: URL) throws {
@@ -157,7 +200,7 @@ extension Workspace {
         }
         // Only the original entry's case alias may already answer the prospective name.
         if source.lastPathComponent.lowercased() == destination.lastPathComponent.lowercased(),
-            try !hasExactEntry(destination),
+            try !LifecycleObservation.hasExactEntry(destination),
             let identity = try? LifecycleIdentity(destination), try identity == LifecycleIdentity(source),
             try LifecycleIdentity(source.deletingLastPathComponent())
                 == LifecycleIdentity(destination.deletingLastPathComponent())
@@ -225,28 +268,7 @@ extension Workspace {
 
     private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
         let root = try rootURL(operation.source.rootID)
-        let source = operation.source.url(in: root)
-        let destination = operation.destination.url(in: root)
-        guard try LifecycleIdentity(root) == operation.rootIdentity,
-            try LifecycleIdentity(source.deletingLastPathComponent()) == operation.sourceParentIdentity,
-            try LifecycleIdentity(destination.deletingLastPathComponent()) == operation.destinationParentIdentity
-        else { throw LifecycleError.pendingRepair }
-        let atSource = try observedIdentity(source)
-        let atDestination = try observedIdentity(destination)
-        if atSource == operation.itemIdentity, atDestination == nil { return false }
-        if atSource == nil, atDestination == operation.itemIdentity { return true }
-        throw LifecycleError.pendingRepair
-    }
-
-    private func observedIdentity(_ url: URL) throws -> LifecycleIdentity? {
-        guard try hasExactEntry(url) else { return nil }
-        return try LifecycleIdentity(url)
-    }
-
-    private func hasExactEntry(_ url: URL) throws -> Bool {
-        // Exact names distinguish a case-only rename on a case-insensitive volume.
-        let names = try FileManager.default.contentsOfDirectory(atPath: url.deletingLastPathComponent().path)
-        return names.contains(url.lastPathComponent)
+        return try LifecycleObservation(operation: operation, root: root).completed()
     }
 
     private func finishRelocation(_ operation: PendingLifecycleOperation, completed: Bool) throws {

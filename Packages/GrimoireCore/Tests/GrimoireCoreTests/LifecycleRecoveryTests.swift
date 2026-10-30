@@ -4,7 +4,8 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct LifecycleRecoveryTests {
-    @Test func replacedSourceDuringMoveCannotCommitConfigurationForTheWrongItem() async throws {
+    @Test(arguments: [false, true], [false, true])
+    func replacedSourceDuringMoveCannotCommitConfigurationForTheWrongItem(rename: Bool, configured: Bool) async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "original"])
         defer { workspace.deactivate() }
@@ -12,27 +13,50 @@ import Testing
         let owner = try scratch.folder("notes/owner")
         let target = try scratch.folder("notes/target")
         let preserved = scratch.url.appending(path: "preserved.md")
-        try workspace.assignTemplate(source, to: owner)
+        if configured { try workspace.assignTemplate(source, to: owner) }
+        let document = try OpenDocument(url: source, autosaveDelay: .seconds(3600))
+        defer { document.discard() }
+        document.text = "unsaved original edit"
         let before = workspace.project?.templateAssignments
         workspace.lifecycleOperations.move = { url, destination in
             try FileManager.default.moveItem(at: url, to: preserved)
             try Data("replacement".utf8).write(to: url)
             return try FileOperations.move(url, into: destination)
         }
-        let result = workspace.move(source, into: target)
-        let moved = try #require(result.movedURL)
+        workspace.lifecycleOperations.rename = { url, name in
+            try FileManager.default.moveItem(at: url, to: preserved)
+            try Data("replacement".utf8).write(to: url)
+            return try FileOperations.rename(url, to: name)
+        }
+        let result = rename ? workspace.rename(source, to: "renamed") : workspace.move(source, into: target)
+        let moved =
+            rename
+            ? source.deletingLastPathComponent().appending(path: "renamed.md")
+            : target.appending(path: "source.md")
+        // FileActions forwards only a result's moved URL to WindowState.itemMoved.
+        if let verified = result.movedURL { document.moved(to: verified) }
+        if let legacy = result.legacyMovedURL { document.moved(to: legacy) }
+        document.save()
+        #expect(result.movedURL == nil)
+        #expect(document.url == source)
         #expect(result.error != nil)
-        #expect(workspace.hasPendingLifecycleOperations)
+        #expect(workspace.hasPendingLifecycleOperations == configured)
         #expect(workspace.project?.templateAssignments == before)
         #expect(ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)).projects == library.projects)
         #expect(try String(contentsOf: preserved, encoding: .utf8) == "original")
         #expect(try String(contentsOf: moved, encoding: .utf8) == "replacement")
+        document.discard()
+        try FileManager.default.removeItem(at: source)
         try FileManager.default.moveItem(at: moved, to: scratch.url.appending(path: "replacement.md"))
         try FileManager.default.moveItem(at: preserved, to: moved)
         workspace.reconcileLifecycleOperations()
         #expect(!workspace.hasPendingLifecycleOperations)
         let reference = try #require(workspace.reference(for: moved))
-        #expect(try workspace.templateAssignment(for: owner)?.choice == .useSource(reference))
+        if configured {
+            #expect(try workspace.templateAssignment(for: owner)?.choice == .useSource(reference))
+        } else {
+            #expect(try workspace.templateAssignment(for: owner) == nil)
+        }
     }
 
     @Test(arguments: [false, true], [false, true])

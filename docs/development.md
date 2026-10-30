@@ -175,9 +175,28 @@ closed rather than silently dropping configuration. The full feature is not ship
 User-facing configured regrant accepts only an observable same-root identity in this
 slice. Authoritative library bookmark updates remain allowed without conflicting
 pending intent; creation must still revalidate them rather than writing through stale access.
-Core also rechecks the recorded item/root/parent identities after filesystem success
-before committing configuration. A source replaced during the operation remains pending;
-the successful filesystem result is still reported without reversing or deleting either item.
+Core rechecks the original item/root/parent identities before returning an editor handoff,
+including moves with no configuration changes. Identity rejection retains pending intent
+without retargeting a dirty document to a replacement. Verified movement still hands off
+when final settings persistence fails, or when filesystem I/O throws after an observable
+verified move. No operation is replayed or reversed.
+
+Pending intent reserves its affected assignments' before/after owners, not only spatial
+paths. Check a pending source move followed by an owner rename/drag and the reverse:
+the second operation must leave disk and settings untouched. Independent choices can move.
+Missing destination records use read-only volume case capability and canonical Unicode
+comparison; unknown capability blocks ambiguous aliases without changing saved references.
+
+Fresh and stale creation plans must block source-dependent reads and publication while
+the effective supplying choice/source is reserved. Explicit **Create Empty Once** can
+proceed only through a valid independent destination/owner context without reading that
+source. Unrelated untemplated creation remains available; neither bypass changes assignments.
+
+Genuinely unconfigured cross-volume moves between distinct roots retain an explicit
+legacy result/route, not the identity-verified handoff contract. Source/destination choices,
+descendants, source references, aliases and pending reservations block legacy admission.
+Same-root moves never fall back to legacy; unsupported identity-preserving semantics fail
+before mutation. Native acceptance of these distinctions is still **UNVERIFIED**.
 
 ## CI
 

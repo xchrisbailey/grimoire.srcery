@@ -201,6 +201,7 @@ extension Workspace {
     private func creationBytes(_ plan: DocumentCreationPlan) throws -> Data {
         if emptyOnceCreations.contains(plan.id) { return Data() }
         guard plan.usesSource else { return Data() }
+        if let assignment = plan.assignment { try requireAvailableTemplateDependency(assignment) }
         guard let source = plan.source else { throw TemplateAssignmentError.ineligibleSource }
         return try savedTemplateBytes(at: source)
     }
@@ -258,6 +259,7 @@ extension Workspace {
             fresh.context.sourceRootIdentity == plan.context.sourceRootIdentity
         else { throw TemplateAssignmentError.unavailableFolder }
         if plan.usesSource, !emptyOnceCreations.contains(plan.id), let source = plan.source {
+            if let assignment = plan.assignment { try requireAvailableTemplateDependency(assignment) }
             _ = try eligibleTemplateReference(for: source)
         }
     }

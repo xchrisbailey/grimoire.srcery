@@ -235,6 +235,7 @@ extension FileActions {
             perform(workspace, near: url) {
                 let result = workspace.move(url, into: folder)
                 if let moved = result.movedURL, moved != url { didMove?(url, moved) }
+                if let legacy = result.legacyMovedURL, legacy != url { didMove?(url, legacy) }
                 if let error = result.error { throw error }
             }
         }
