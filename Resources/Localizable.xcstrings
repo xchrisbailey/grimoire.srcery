@@ -1,6 +1,18 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The affected configuration changed. Review it, then confirm again." : {
+      "extractionState" : "manual"
+    },
+    "This removes the binding and its owned template assignments and opt-outs. Files on disk stay unchanged. Rebinding starts unconfigured." : {
+      "extractionState" : "manual"
+    },
+    "Choices to remove" : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments with broken sources" : {
+      "extractionState" : "manual"
+    },
     "Folder names may conflict. Restore volume access or resolve the destination choices, then retry." : {
       "extractionState" : "manual"
     },

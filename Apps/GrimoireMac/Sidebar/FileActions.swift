@@ -11,6 +11,8 @@ final class FileActions {
     var aliasing: (id: FolderRoot.ID, name: String)?
     var newAlias = ""
     var banishing: URL?
+    var destructivePlan: DestructiveLifecyclePlan?
+    var destructiveNotice: String?
     var error: Error?
     var configuringTemplate: URL?
     var creationPlan: DocumentCreationPlan?
@@ -33,6 +35,7 @@ final class FileActions {
     /// Called before a folder or loose file leaves the project and its access ends, so the
     /// window can save what it has open while it still can.
     @ObservationIgnored var willRelease: (() -> Bool)?
+    @ObservationIgnored var didUnbind: (() -> Void)?
     @ObservationIgnored var retryReconciliation: (() -> Void)?
     /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
     @discardableResult
@@ -282,14 +285,29 @@ extension FileActions {
     }
 
     func unbind(_ folder: BoundFolder, from workspace: Workspace) {
-        // Save the open document while access is held; only a committed removal may
-        // release that access. Saving can refresh bookmarks, so it precedes staging.
-        guard willRelease?() ?? true else { return }
         do {
-            try workspace.unbind(folder.id)
+            destructivePlan = try workspace.prepareUnbind(folder.id)
+            destructiveNotice = nil
         } catch {
             self.error = error
         }
+    }
+
+    func confirmDestructiveOperation(workspace: Workspace) {
+        guard let plan = destructivePlan, willRelease?() ?? true else { return }
+        do {
+            switch try workspace.confirmDestructiveOperation(plan) {
+            case .completed:
+                destructivePlan = nil
+                didUnbind?()
+            case .cancelled:
+                destructivePlan = nil
+            case .reviewNeeded(let updated):
+                destructivePlan = updated
+                destructiveNotice = String(
+                    localized: "The affected configuration changed. Review it, then confirm again.")
+            }
+        } catch { self.error = error }
     }
 
     func removeLooseFile(_ file: BoundFile, from workspace: Workspace) {
@@ -333,6 +351,7 @@ private struct FileActionPrompts: ViewModifier {
         content
             .modifier(DocumentCreationPrompt(actions: actions, workspace: workspace))
             .modifier(TemplateConfigurationPrompt(actions: actions, workspace: workspace, select: select))
+            .modifier(DestructiveLifecyclePrompt(actions: actions, workspace: workspace))
             .alert(
                 String(localized: "Rename “\(actions.renaming?.lastPathComponent ?? "")”"),
                 isPresented: Binding(get: { actions.renaming != nil }, set: { if !$0 { actions.renaming = nil } })

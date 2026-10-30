@@ -140,10 +140,22 @@ final class ExternalOpens {
 
     func prepareRelease(in project: Project.ID?) -> Bool {
         var allowed = true
-        for window in windows.compactMap(\.window) where window.projectID == project {
+        for window in affectedWindows(in: project) {
             if !window.prepareForRelease() { allowed = false }
         }
         return allowed
+    }
+
+    private func affectedWindows(in project: Project.ID?) -> [WindowState] {
+        var affected = windows.compactMap(\.window).filter { $0.projectID == project }
+        for window in blockedWindows where window.projectID == project {
+            if !affected.contains(where: { $0 === window }) { affected.append(window) }
+        }
+        return affected
+    }
+
+    func rootsRemoved(in project: Project.ID?) {
+        for window in affectedWindows(in: project) { window.projectRootsChanged() }
     }
 
     func itemMoved(from: URL, to: URL, in project: Project.ID?) {

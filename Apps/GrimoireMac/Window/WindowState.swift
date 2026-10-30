@@ -72,6 +72,10 @@ final class WindowState {
             guard let self else { return false }
             return ExternalOpens.shared.prepareRelease(in: projectID)
         }
+        actions.didUnbind = { [weak self] in
+            guard let self else { return }
+            ExternalOpens.shared.rootsRemoved(in: projectID)
+        }
         actions.retryReconciliation = { [weak self] in self?.retryRecovery() }
     }
 
