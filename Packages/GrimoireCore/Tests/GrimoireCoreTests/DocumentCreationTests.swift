@@ -5,6 +5,38 @@ import Testing
 @testable import GrimoireCore
 
 @Suite struct DocumentCreationTests {
+    @Test func creationCannotPublishOutsideItsDestinationDirectory() throws {
+        let scratch = try Scratch()
+        let destination = try scratch.folder("notes")
+        #expect(throws: FileOperationError.invalidName("../escape.md")) {
+            try FileOperations.createDocument(in: destination, named: "../escape")
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: scratch.url.path) == ["notes"])
+        #expect(try FileManager.default.contentsOfDirectory(atPath: destination.path).isEmpty)
+    }
+
+    @Test func destinationChangedDuringPublicationDoesNotHandOffAnUnrelatedFile() throws {
+        let scratch = try Scratch()
+        let destination = try scratch.folder("notes")
+        let moved = scratch.url.appending(path: "moved")
+        var operations = DocumentCreationOperations()
+        operations.publish = { directory, temporary, candidate in
+            try FileManager.default.moveItem(at: destination, to: moved)
+            try scratch.file("notes/Untitled.md", "Not the created document")
+            try DocumentCreationOperations.publish(directory, temporary, candidate)
+        }
+        var opened: URL?
+        #expect(throws: FileOperationError.couldNotCreate("Untitled.md")) {
+            opened = try FileOperations.createDocument(in: destination, operations: operations)
+        }
+        #expect(opened == nil)
+        #expect(
+            try String(contentsOf: destination.appending(path: "Untitled.md"), encoding: .utf8)
+                == "Not the created document")
+        // Publication already succeeded in the pinned directory; do not roll it back through a changed path.
+        #expect(try FileManager.default.contentsOfDirectory(atPath: moved.path) == ["Untitled.md"])
+    }
+
     @Test func cleanupDoesNotRemoveAReplacedTemporaryFile() throws {
         let scratch = try Scratch()
         var replacement: URL?

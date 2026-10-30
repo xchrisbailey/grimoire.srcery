@@ -19,6 +19,11 @@ extension FileOperations {
         in folder: URL, named baseName: String = "Untitled", extension ext: String = "md",
         operations: DocumentCreationOperations
     ) throws -> URL {
+        let initialName = ext.isEmpty ? baseName : "\(baseName).\(ext)"
+        // Directory-relative publication must accept only a single filename, never a path or a C-string prefix.
+        guard !initialName.isEmpty, initialName != ".", initialName != "..",
+            !initialName.contains("/"), !initialName.contains("\0")
+        else { throw FileOperationError.invalidName(initialName) }
         let directory = open(folder.path(percentEncoded: false), O_RDONLY | O_DIRECTORY | O_CLOEXEC)
         guard directory >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
         defer { close(directory) }
@@ -53,12 +58,17 @@ extension FileOperations {
             }
             do {
                 try operations.publish(directory, temporary, name)
+                // A renamed/replaced directory must not hand off a URL into an unrelated folder.
+                // The completed publication stays put; rollback through the old path would be unsafe.
+                guard matchesDestination(folder, identity: destinationIdentity) else {
+                    throw FileOperationError.couldNotCreate(name)
+                }
                 return folder.appending(path: name)
             } catch let error as POSIXError where error.code == .EEXIST {
                 index += 1
             }
         }
-        throw FileOperationError.couldNotCreate(ext.isEmpty ? baseName : "\(baseName).\(ext)")
+        throw FileOperationError.couldNotCreate(initialName)
     }
 
     private static func nextDocumentName(
