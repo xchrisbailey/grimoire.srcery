@@ -24,9 +24,11 @@ import Testing
     let window = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: width, height: height), styleMask: [.titled], backing: .buffered,
         defer: false)
-    if dark { window.appearance = NSAppearance(named: .darkAqua) }
+    window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     controller.scrollView.frame = window.contentView?.bounds ?? .zero
     window.contentView?.addSubview(controller.scrollView)
+    // Match MarkdownEditor.makeNSView: an initially dark view need not receive an appearance change.
+    controller.styler.theme.isDark = controller.textView.isDarkAppearance
     controller.load(text, flavor: .markdown)
     if let caret { controller.textView.setSelectedRange(NSRange(location: caret, length: 0)) }
     window.displayIfNeeded()
