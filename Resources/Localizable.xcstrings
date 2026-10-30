@@ -22,6 +22,28 @@
     "Discard Replacement" : {
       "comment" : "plain: abandon the selected replacement without changing settings"
     },
+    "Template authoring details changed. Choose the location and folder again." : {
+      "comment" : "plain: authoring context changed before publication or assignment",
+      "extractionState" : "manual"
+    },
+    "Create Template…" : {
+      "comment" : "plain: create and assign an empty ordinary Markdown source"
+    },
+    "Create Template" : {
+      "comment" : "plain: source authoring location picker prompt"
+    },
+    "Edit Template" : {
+      "comment" : "plain: open the ordinary saved template source"
+    },
+    "Open Created Source" : {
+      "comment" : "plain: open the source preserved after an assignment save failure"
+    },
+    "Create an empty Markdown template source inside a folder bound to this project. Existing files are never replaced; a numbered name is used instead." : {
+      "comment" : "plain: source authoring location and collision behavior"
+    },
+    "The empty source was created at %@, but its assignment was not saved. The previous choice is unchanged. After fixing project settings, use Choose Existing File… to assign this source; do not create it again." : {
+      "comment" : "plain: partial source authoring success with actionable assignment recovery"
+    },
     "Folder" : {
       "comment" : "plain: folder whose local template choice is being edited"
     },

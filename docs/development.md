@@ -42,7 +42,24 @@ replacement, choose an invalid or outside-project source, and simulate a setting
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
 starts unconfigured. Source files and content folders must stay untouched. No
-source authoring or recovery actions are included yet.
+recovery actions are included yet.
+
+**Use a template → Create Template…** asks for a Markdown save location in an
+active project binding. It creates an empty ordinary source even in a templated
+destination, then persists the assignment and opens the editor at the empty end.
+Existing filenames use numbered suffixes, never replacement. Cancelling or failed
+publication keeps the old choice. A settings-save failure preserves the published
+source and old choice, reports the source's path, and offers **Open Created Source**;
+repair settings and use **Choose Existing File…** rather than creating another copy.
+**Edit Template** opens the effective source, including an inherited source, using
+ordinary document selection without rewriting it or changing its assignments.
+Creating a source assigns only the edited folder; it never replaces an ancestor's choice.
+
+Native save/open picker, Edit Template selection, post-dismissal editor focus and
+caret acceptance remain **UNVERIFIED**. Check invalid/unbound/symlink destinations,
+cancel, collision protection, assignment persistence failure, and source opening.
+Check reuse across folders, saved versus unsaved edits, and unchanged existing
+documents in the app too; package regressions do not establish native UI acceptance.
 
 New File uses the nearest active explicit choice within the destination's most-specific
 bound root. **Inherit** removes only the edited folder's explicit choice;

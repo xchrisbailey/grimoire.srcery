@@ -26,6 +26,7 @@ public final class Workspace {
     public private(set) var scanCount = 0
     @ObservationIgnored var publishedCreations: [UUID: PublishedDocument] = [:]
     @ObservationIgnored var emptyOnceCreations: Set<UUID> = []
+    @ObservationIgnored var templateAuthoringResults: [UUID: TemplateAuthoringResult] = [:]
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
