@@ -32,17 +32,17 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 In the Mac app, bind a folder to a project and save an ordinary Markdown file inside it
 (a separate bound templates folder also works). Right-click a root or subfolder,
-choose **Content Template…**, then **Use a template → Choose Existing File…**. The sheet shows the
-exact owning folder and saved template source. Close and reopen the sheet, then
-relaunch to check persistence. Several folders can choose the same source.
+choose **Content Template…**, then **Use a template** → **Choose Existing File…**.
+The sheet shows the effective owning/inherited-from folder and saved template source.
+Close and reopen the sheet, then relaunch to check persistence. Several folders can
+choose the same source.
 
 Manual QA still needs to check the native picker and sandbox access: cancel a
 replacement, choose an invalid or outside-project source, and simulate a settings
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
 starts unconfigured. Source files and content folders must stay untouched. No
-inheritance, opt-out controls, placeholder expansion, or recovery
-actions are included yet.
+placeholder expansion or recovery actions are included yet.
 
 **Use a template → Create Template…** asks for a Markdown save location in an
 active project binding. It creates an empty ordinary source even in a templated
@@ -51,9 +51,9 @@ Existing filenames use numbered suffixes, never replacement. Cancelling or faile
 publication keeps the old choice. A settings-save failure preserves the published
 source and old choice, reports the source's path, and offers **Open Created Source**;
 repair settings and use **Choose Existing File…** rather than creating another copy.
-**Edit Template** uses ordinary document selection without rewriting the source.
-This branch currently uses an exact-folder adapter for Edit Template; effective
-inherited editing still needs #87's shared effective-assignment API before #89 is complete.
+**Edit Template** opens the effective source, including an inherited source, using
+ordinary document selection without rewriting it or changing its assignments.
+Creating a source assigns only the edited folder; it never replaces an ancestor's choice.
 
 Native save/open picker, Edit Template selection, post-dismissal editor focus and
 caret acceptance remain **UNVERIFIED**. Check invalid/unbound/symlink destinations,
@@ -61,8 +61,23 @@ cancel, collision protection, assignment persistence failure, and source opening
 Check reuse across folders, saved versus unsaved edits, and unchanged existing
 documents in the app too; package regressions do not establish native UI acceptance.
 
-New File now uses an exact-folder assignment's saved static contents. Menu/shortcut
-and palette commands resolve their existing destination before joining the same
+New File uses the nearest active explicit choice within the destination's most-specific
+bound root. **Inherit** removes only the edited folder's explicit choice;
+**Use a template** replaces inherited content; **No template** disables it for
+descendants until a deeper source choice. A separately bound inner folder starts
+unconfigured and masks, but retains, outer assignment records. Equivalent-depth
+aliases use project order. A broken inherited source blocks creation and identifies
+its owning folder rather than falling back. Unresolved choices remain inactive.
+
+Native checks for all three choices and effective owner/source display are
+**UNVERIFIED**. Check a root assignment inherited by descendants, a nearer override,
+an opt-out and a deeper re-enable. Choose Inherit on an unconfigured descendant and
+confirm its ancestor choice is not deleted. Also check Inherit after an override,
+save-failure preservation, overlapping-root masking, project isolation, and an
+unavailable inherited source's owner display. No native GUI tools are available;
+package integration tests and compiled UI wiring do not verify these interactions.
+
+Menu/shortcut and palette commands resolve their existing destination before joining the same
 creation flow as the folder context menu. The naming sheet shows destination and
 source, edits a literal stem with `.md` separate, and creates nothing on cancel.
 Relevant context changes require another confirmation; saved edits to the same
@@ -75,6 +90,8 @@ input, collision suffixes, no preview or second rename prompt, and focused edito
 with its caret at the UTF-16 content end (including emoji and a BOM). Check an open
 or last-opened-settings failure after publication separately: preserve the created
 file and do not retry creation. No native GUI automation harness is available.
+Check creation with an unrelated document selected: only the actual destination's
+effective choice should apply.
 
 Also check destination review without a template: prepare creation in an unassigned
 folder, replace that directory before confirmation, review the updated destination,

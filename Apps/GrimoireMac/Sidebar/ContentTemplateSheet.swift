@@ -10,34 +10,36 @@ struct ContentTemplateSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var error: Error?
     @State private var unassignedSource: PublishedDocument?
+    @State private var localAssignment: Result<FolderTemplateAssignment?, Error> = .success(nil)
+    @State private var effectiveAssignment: Result<FolderTemplateAssignment?, Error> = .success(nil)
+    @State private var editableSource: URL?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Content Template").font(.headline)
-            LabeledContent("Owning Folder") {
+            LabeledContent("Folder") {
                 Text(folder.path(percentEncoded: false)).textSelection(.enabled)
             }
-            choice
-            Text("This choice applies to new documents in this exact folder in this project.")
+            localChoice
+            effectiveChoice
+            Text("This choice applies to this folder and its descendants within this bound root in this project.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             HStack {
+                Button("Inherit") { changeChoice { try workspace.inheritTemplate(in: folder) } }
                 Menu("Use a template") {
                     Button("Choose Existing File…", action: chooseSource)
                     Button("Create Template…", action: createSource)
                 }
-                if let source = editableSource {
-                    Button("Edit Template") {
-                        actions.editTemplateAfterDismissal(source)
-                        dismiss()
-                    }
-                }
+                Button("No template") { changeChoice { try workspace.disableTemplate(in: folder) } }
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)
         .frame(width: 560)
+        .onAppear(perform: refreshChoices)
+        .onChange(of: workspace.project) { refreshChoices() }
         .alert(
             error?.localizedDescription ?? "",
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
@@ -62,16 +64,8 @@ struct ContentTemplateSheet: View {
         }
     }
 
-    // Exact-folder adapter until #87 supplies Workspace.effectiveTemplateAssignment(for:).
-    private var editableSource: URL? {
-        guard let assignment = try? workspace.templateAssignment(for: folder), assignment.state == .active else {
-            return nil
-        }
-        return try? workspace.templateSourceURL(for: assignment)
-    }
-
-    @ViewBuilder private var choice: some View {
-        switch Result(catching: { try workspace.templateAssignment(for: folder) }) {
+    @ViewBuilder private var localChoice: some View {
+        switch localAssignment {
         case .failure(let failure):
             Text(failure.localizedDescription).foregroundStyle(.secondary)
         case .success(.some(let assignment)):
@@ -79,19 +73,60 @@ struct ContentTemplateSheet: View {
                 Text("Unresolved folder template assignment (inactive)")
             }
             switch assignment.choice {
-            case .useSource(let source):
-                LabeledContent("Template Source") {
-                    let root = workspace.project?.root(source.rootID)?.displayName ?? source.rootID.uuidString
-                    let path = workspace.url(for: source)?.path(percentEncoded: false)
-                    Text(path ?? root + " [" + source.rootID.uuidString + "]/" + source.relativePath)
-                        .textSelection(.enabled)
-                }
+            case .useSource:
+                LabeledContent("Folder Choice", value: String(localized: "Use a template"))
             case .noTemplate:
-                Text("No template (explicit choice)")
+                LabeledContent("Folder Choice", value: String(localized: "No template"))
             }
         case .success(.none):
-            Text("No explicit content template choice for this folder.")
+            LabeledContent("Folder Choice", value: String(localized: "Inherit"))
         }
+    }
+
+    @ViewBuilder private var effectiveChoice: some View {
+        switch effectiveAssignment {
+        case .failure(let failure):
+            Text(failure.localizedDescription).foregroundStyle(.secondary)
+        case .success(.some(let assignment)):
+            let local = try? localAssignment.get()
+            if local?.owner == assignment.owner {
+                LabeledContent("Owning Folder", value: displayPath(assignment.owner))
+            } else {
+                LabeledContent("Inherited From", value: displayPath(assignment.owner))
+            }
+            switch assignment.choice {
+            case .useSource(let source):
+                LabeledContent("Template Source", value: displayPath(source)).textSelection(.enabled)
+                if let source = editableSource {
+                    Button("Edit Template") {
+                        actions.editTemplateAfterDismissal(source)
+                        dismiss()
+                    }
+                }
+            case .noTemplate:
+                Text("No template (effective choice)")
+            }
+        case .success(.none):
+            Text("No effective content template.")
+        }
+    }
+
+    private func displayPath(_ reference: FileReference) -> String {
+        if let url = workspace.url(for: reference) { return url.path(percentEncoded: false) }
+        let root = workspace.project?.root(reference.rootID)?.displayName ?? reference.rootID.uuidString
+        return root + " [" + reference.rootID.uuidString + "]/" + reference.relativePath
+    }
+
+    private func changeChoice(_ edit: () throws -> Void) {
+        unassignedSource = nil
+        do { try edit() } catch { self.error = error }
+    }
+
+    private func refreshChoices() {
+        // Inspection refreshes bound-root access; do that on events, not during view evaluation.
+        localAssignment = Result(catching: { try workspace.templateAssignment(for: folder) })
+        effectiveAssignment = Result(catching: { try workspace.effectiveTemplateAssignment(for: folder) })
+        editableSource = (try? effectiveAssignment.get()).flatMap { try? workspace.templateSourceURL(for: $0) }
     }
 
     private func chooseSource() {

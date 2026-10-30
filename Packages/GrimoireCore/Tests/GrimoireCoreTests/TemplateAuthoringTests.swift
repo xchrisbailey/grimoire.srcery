@@ -4,6 +4,46 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct TemplateAuthoringTests {
+    @Test func inheritedSourceIsAnOrdinaryDocumentAndAuthoringOverridesOnlyTheEditedFolder() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["source.md": "ancestor", "existing.md": "keep"])
+        defer { workspace.deactivate() }
+        let root = scratch.url.appending(path: "notes")
+        let source = root.appending(path: "source.md")
+        let editedFolder = try scratch.folder("notes/posts")
+        let destination = try scratch.folder("notes/posts/templates")
+        try workspace.assignTemplate(source, to: root)
+        let ancestor = try #require(try workspace.templateAssignment(for: root))
+        let inherited = try #require(try workspace.effectiveTemplateAssignment(for: editedFolder))
+        #expect(inherited == ancestor)
+        #expect(try workspace.templateAssignment(for: editedFolder) == nil)
+        let before = library.projects
+        let openedSource = try #require(try workspace.templateSourceURL(for: inherited))
+        let document = try OpenDocument(url: openedSource, autosaveDelay: .seconds(3600))
+        defer { document.discard() }
+        document.text = "saved ordinary source\r\n"
+        document.save()
+        #expect(library.projects == before)
+        #expect(try workspace.effectiveTemplateAssignment(for: editedFolder) == ancestor)
+        #expect(try workspace.prepareDocument(in: destination, filenamePattern: "Draft").assignment == ancestor)
+
+        let plan = try workspace.prepareTemplateSource(in: destination, assigningTo: editedFolder)
+        guard case .assigned(let created) = workspace.createTemplateSource(plan, named: "Empty") else {
+            Issue.record("Authoring must bypass the destination's inherited source")
+            return
+        }
+        #expect(try Data(contentsOf: created.url).isEmpty)
+        #expect(created.editorCaretUTF16 == 0)
+        #expect(try workspace.templateAssignment(for: root) == ancestor)
+        let local = try #require(try workspace.templateAssignment(for: editedFolder))
+        #expect(local.owner.relativePath == "posts")
+        #expect(try workspace.templateSourceURL(for: local) == created.url.resolvingSymlinksInPath())
+        #expect(try workspace.effectiveTemplateAssignment(for: destination) == local)
+        #expect(try String(contentsOf: source, encoding: .utf8) == "saved ordinary source\r\n")
+        #expect(try String(contentsOf: root.appending(path: "existing.md"), encoding: .utf8) == "keep")
+        #expect(ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)).projects == library.projects)
+    }
+
     @Test func emptySourceBypassesItsOwnAssignmentAndCommitsOnlyAfterPublication() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "inherited content"])
