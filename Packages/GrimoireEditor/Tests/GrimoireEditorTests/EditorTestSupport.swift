@@ -8,6 +8,72 @@ import Testing
 /// The windows the editors live in, kept for the whole run so hosting never changes mid-test.
 @MainActor private var windows: [NSWindow] = []
 
+final class EditorTestDefaults: UserDefaults, @unchecked Sendable {
+    let suiteName: String
+    private let lock = NSLock()
+    private var values: [String: Any] = [:]
+
+    init() {
+        suiteName = "grimoire-tests-\(UUID())"
+        super.init(suiteName: suiteName)!
+    }
+
+    func cleanUp() {
+        lock.withLock { values.removeAll() }
+    }
+
+    override func set(_ value: Any?, forKey key: String) {
+        // Persistent domains leave plists; the argument domain is shared across fixtures.
+        lock.withLock { values[key] = value }
+    }
+
+    override func object(forKey key: String) -> Any? {
+        lock.withLock { values[key] } ?? super.object(forKey: key)
+    }
+
+    override func removeObject(forKey key: String) {
+        set(nil, forKey: key)
+    }
+}
+
+final class EditorTestPreferences: @unchecked Sendable {
+    private let lock = NSLock()
+    private var defaults: [EditorTestDefaults] = []
+
+    func register(_ defaults: EditorTestDefaults) {
+        lock.withLock { self.defaults.append(defaults) }
+    }
+
+    func cleanUp() {
+        // Editors can outlive their test through AppKit; teardown owns only this scope's UUID domains.
+        for defaults in lock.withLock({ defaults }) {
+            defaults.cleanUp()
+        }
+    }
+}
+
+enum EditorTestContext {
+    @TaskLocal static var preferences: EditorTestPreferences?
+}
+
+nonisolated(nonsending) func withEditorFixtures<Result: Sendable>(
+    _ body: () async throws -> Result
+) async rethrows -> Result {
+    let preferences = EditorTestPreferences()
+    defer { preferences.cleanUp() }
+    return try await EditorTestContext.$preferences.withValue(preferences) { try await body() }
+}
+
+struct EditorFixtureScope: TestTrait, SuiteTrait, TestScoping {
+    var isRecursive: Bool { true }
+
+    func provideScope(
+        for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void
+    ) async throws {
+        try await withEditorFixtures(function)
+    }
+}
+
 /// An editor hosted in a window, as in the app, with the repo's fonts registered.
 @MainActor func makeEditor(
     _ text: String = "", height: CGFloat = 700, width: CGFloat = 900, dark: Bool = false,
@@ -17,16 +83,23 @@ import Testing
     BrandFontTests.registerRepoFonts()
     let controller = EditorController()
     if freshDefaults {
-        controller.defaults = UserDefaults(suiteName: "grimoire-tests-\(UUID())") ?? .standard
+        guard let preferences = EditorTestContext.preferences else {
+            preconditionFailure("Fresh editor defaults require EditorFixtureScope")
+        }
+        let defaults = EditorTestDefaults()
+        preferences.register(defaults)
+        controller.defaults = defaults
     }
     controller.styler.highlightsSynchronously = synchronousHighlighting
     controller.mode = mode
     let window = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: width, height: height), styleMask: [.titled], backing: .buffered,
         defer: false)
-    if dark { window.appearance = NSAppearance(named: .darkAqua) }
+    window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     controller.scrollView.frame = window.contentView?.bounds ?? .zero
     window.contentView?.addSubview(controller.scrollView)
+    // Match MarkdownEditor.makeNSView: an initially dark view need not receive an appearance change.
+    controller.styler.theme.isDark = controller.textView.isDarkAppearance
     controller.load(text, flavor: .markdown)
     if let caret { controller.textView.setSelectedRange(NSRange(location: caret, length: 0)) }
     window.displayIfNeeded()

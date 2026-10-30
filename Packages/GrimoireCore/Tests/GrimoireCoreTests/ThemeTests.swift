@@ -299,12 +299,15 @@ extension Scratch {
 }
 
 @MainActor @Suite struct ThemeLibraryTests {
+    let fixture = TestPreferences()
+
     func makeLibrary(_ scratch: Scratch) -> (ThemeLibrary, UserDefaults) {
-        let defaults = UserDefaults(suiteName: "grimoire-tests-\(UUID().uuidString)")!
+        let defaults = fixture
         return (ThemeLibrary(folder: scratch.url.appending(path: "Themes"), defaults: defaults), defaults)
     }
 
     @Test func startsWithTheBuiltInThemes() throws {
+        defer { fixture.cleanUp() }
         let (library, _) = makeLibrary(try Scratch())
         #expect(library.themes.prefix(2).map(\.name) == ["Catppuccin Mocha", "Catppuccin Latte"])
         #expect(library.themes.contains(.dracula) && library.themes.contains(.solarizedLight))
@@ -314,6 +317,7 @@ extension Scratch {
     }
 
     @Test func importsSavesAndSelectsATheme() throws {
+        defer { fixture.cleanUp() }
         let scratch = try Scratch()
         let file = try scratch.file("night-ink.json", ThemeImportTests.darkTheme)
         let (library, defaults) = makeLibrary(scratch)
@@ -333,6 +337,7 @@ extension Scratch {
     }
 
     @Test func removingAThemeFallsBackToCatppuccin() throws {
+        defer { fixture.cleanUp() }
         let scratch = try Scratch()
         let file = try scratch.file("night-ink.json", ThemeImportTests.darkTheme)
         let (library, _) = makeLibrary(scratch)
@@ -345,6 +350,7 @@ extension Scratch {
     }
 
     @Test func remembersTheChoices() throws {
+        defer { fixture.cleanUp() }
         let scratch = try Scratch()
         let (library, defaults) = makeLibrary(scratch)
         library.setAppearance(.dark)
