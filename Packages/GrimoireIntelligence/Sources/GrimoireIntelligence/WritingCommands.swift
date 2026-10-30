@@ -189,10 +189,9 @@ enum Prompts {
 
     static func translate(into language: String) -> String {
         """
-        Translate the supplied ordered prose pieces into \(language). Return exactly one plain prose \
-        translation per piece, in the same order. Pieces may be fragments of a sentence or link labels; \
-        use the original passage only as context. Do not include Markdown, URLs, code, commentary, or \
-        extra pieces. Preserve the meaning of each individual piece.
+        Translate this one prose fragment into \(language). It may be part of a sentence or a link label. \
+        Return only its plain prose translation, without Markdown, code, URLs, commentary, or extra text. \
+        Preserve the fragment's meaning; do not finish the surrounding sentence.
         """
     }
 }

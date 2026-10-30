@@ -5,7 +5,23 @@ import Testing
 
 @testable import GrimoireIntelligence
 
+private func renderTranslation(_ translations: [String], source: String) throws -> String {
+    let text = try #require(translations.last)
+    let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": text]))
+    return try result.markdown(source: source, preceding: Array(translations.dropLast()))
+}
+
 @MainActor @Suite struct TranslationTests {
+    @Test func projectsOneTypedPieceWithoutRequiringTheModelToCompleteAnArray() throws {
+        let source = "Read [page](https://x.test) and run `build.sh` now."
+        let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": "Lisez"]))
+        #expect(try result.markdown(source: source) == "Lisez [page](https://x.test) and run `build.sh` now.")
+        let label = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": "pa"]))
+        #expect(
+            try label.markdown(source: source, preceding: ["Lisez"])
+                == "Lisez [pa](https://x.test) and run `build.sh` now.")
+    }
+
     @Test func preservesRepeatedDestinationsNestedMarkersUnicodeAndLineEndings() throws {
         let source =
             "---\r\ntitle: Original\r\n---\r\n\r\n## Hello 🧪 ##  \r\n\r\n"
@@ -14,13 +30,10 @@ import Testing
             + "```swift\r\nlet value = \"[id]\"\r\n```\r\n\r\n"
             + "| Left | Right |\r\n| :--- | ---: |\r\n| **bold** | [label](https://x.test) |\r\n\r\n"
             + "\\*literal\\*\r\n"
-        let result = try GeneratedTranslation.PartiallyGenerated(
-            GeneratedContent(properties: [
-                "pieces": [
-                    "Bonjour 🧪", "Première", "grasse", "étiquette", "et", "deuxième", "Imbriqué", "Gardez",
-                    "Gauche", "Droite", "grasse", "étiquette", "littéral",
-                ]
-            ]))
+        let translations = [
+            "Bonjour 🧪", "Première", "grasse", "étiquette", "et", "deuxième", "Imbriqué", "Gardez",
+            "Gauche", "Droite", "grasse", "étiquette", "littéral",
+        ]
         let expected =
             "---\r\ntitle: Original\r\n---\r\n\r\n## Bonjour 🧪 ##  \r\n\r\n"
             + "- [Première **grasse** étiquette](<https://x.test/a_(b)> \"Title\") et "
@@ -29,15 +42,13 @@ import Testing
             + "```swift\r\nlet value = \"[id]\"\r\n```\r\n\r\n"
             + "| Gauche | Droite |\r\n| :--- | ---: |\r\n| **grasse** | [étiquette](https://x.test) |\r\n\r\n"
             + "\\*littéral\\*\r\n"
-        #expect(try result.markdown(source: source) == expected)
+        #expect(try renderTranslation(translations, source: source) == expected)
     }
 
     @Test func translatesLinkLabelsWithoutLettingTheModelWriteTheirSyntax() throws {
         let source = "Visit [download page](https://srcery.computer/grimoire) and run `build.sh`."
-        let result = try GeneratedTranslation.PartiallyGenerated(
-            GeneratedContent(properties: ["pieces": ["Visitez", "page de téléchargement", "et lancez"]]))
         #expect(
-            try result.markdown(source: source)
+            try renderTranslation(["Visitez", "page de téléchargement", "et lancez"], source: source)
                 == "Visitez [page de téléchargement](https://srcery.computer/grimoire) et lancez `build.sh`.")
     }
 
@@ -66,26 +77,27 @@ import Testing
         #expect(snapshots.isEmpty)
     }
 
-    @Test func rejectsMissingExtraEmptyAndDamagedGeneratedFields() throws {
+    @Test func rejectsMissingUnusableAndOutOfRangeGeneratedFields() throws {
         let source = "Visit [download page](https://srcery.computer/grimoire) and run `build.sh`."
         let missing = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(json: "{}"))
         #expect(throws: IntelligenceError.invalidTranslation) { try missing.markdown(source: source) }
-        for pieces in [
-            [], ["Visitez"], ["Visitez", "page", "et lancez", "extra"],
-            ["Visitez", "", "et lancez"], ["Visitez", "page\nmodifiée", "et lancez"],
-            ["Visitez", "page [https://srcery.computer/grimoire]", "et lancez"],
-            ["Visitez", "[page](https://other.test)", "et lancez"],
-            ["Visitez", "**page**", "et lancez"], ["Visitez", "`page`", "et lancez"],
-            ["Visitez", "https://other.test", "et lancez"], ["Visitez", "...", "et lancez"],
+        for text in [
+            "", "page\nmodifiée", "page [https://srcery.computer/grimoire]", "[page](https://other.test)",
+            "**page**", "`page`", "https://other.test", "...",
         ] {
-            let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["pieces": pieces]))
-            #expect(throws: IntelligenceError.invalidTranslation) { try result.markdown(source: source) }
+            let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": text]))
+            #expect(throws: IntelligenceError.invalidTranslation) {
+                try result.markdown(source: source, preceding: ["Visitez"])
+            }
         }
         let partial = try GeneratedTranslation.PartiallyGenerated(
-            GeneratedContent(properties: ["pieces": ["Visitez", "page", "et lanc"]]))
+            GeneratedContent(properties: ["text": "et lanc"]))
         #expect(
-            try partial.markdown(source: source)
+            try partial.markdown(source: source, preceding: ["Visitez", "page"])
                 == "Visitez [page](https://srcery.computer/grimoire) et lanc `build.sh`.")
+        #expect(throws: IntelligenceError.invalidTranslation) {
+            try partial.markdown(source: source, preceding: ["Visitez", "page", "et lancez"])
+        }
     }
 
     @Test func protectedOnlySelectionsNeedNoGenerationAndPreCancelledRequestsDeliverNothing() async throws {
@@ -125,9 +137,7 @@ import GrimoireEditor
     @Test(arguments: [true, false])
     func cancellationAndInvalidResultsRestoreSourceAfterAPartialPreview(failing: Bool) async throws {
         let source = "Read [page](https://x.test) with `build.sh`."
-        let result = try GeneratedTranslation.PartiallyGenerated(
-            GeneratedContent(properties: ["pieces": ["Lisez", "pa", "avec"]]))
-        let partial = try result.markdown(source: source)
+        let partial = try renderTranslation(["Lisez", "pa", "avec"], source: source)
         let controller = EditorController()
         controller.load(source, flavor: .markdown)
         let (stream, producer) = AsyncThrowingStream<String, Error>.makeStream()
@@ -144,9 +154,9 @@ import GrimoireEditor
         #expect(controller.text == partial)
         if failing {
             let damaged = try GeneratedTranslation.PartiallyGenerated(
-                GeneratedContent(properties: ["pieces": ["Lisez", "[https://x.test]", "avec"]]))
+                GeneratedContent(properties: ["text": "[https://x.test]"]))
             do {
-                producer.yield(try damaged.markdown(source: source))
+                producer.yield(try damaged.markdown(source: source, preceding: ["Lisez"]))
                 Issue.record("Damaged model output was accepted")
                 producer.finish()
             } catch { producer.finish(throwing: error) }
@@ -170,9 +180,7 @@ import GrimoireEditor
         controller.scrollView.frame = window.contentView?.bounds ?? .zero
         window.contentView?.addSubview(controller.scrollView)
         controller.load(source, flavor: .markdown)
-        let result = try GeneratedTranslation.PartiallyGenerated(
-            GeneratedContent(properties: ["pieces": ["Visitez", "page de téléchargement", "et lancez"]]))
-        let translated = try result.markdown(source: source)
+        let translated = try renderTranslation(["Visitez", "page de téléchargement", "et lancez"], source: source)
         let range = NSRange(location: 0, length: source.utf16.count)
         for keep in [true, false] {
             controller.streamInsertion(

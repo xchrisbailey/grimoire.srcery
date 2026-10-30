@@ -2,20 +2,22 @@ import Foundation
 import FoundationModels
 import GrimoireCore
 
-@Generable(description: "Translated prose pieces, in the same order as the input pieces")
+@Generable(description: "The translation of one prose fragment")
 struct GeneratedTranslation {
-    @Guide(description: "One plain prose translation per input piece, with no Markdown or added commentary")
-    var pieces: [String]
+    @Guide(description: "Only the translated prose fragment, with no Markdown or added commentary")
+    var text: String
 }
 
 extension GeneratedTranslation.PartiallyGenerated {
-    func markdown(source: String) throws -> String {
-        try markdown(in: TranslationSource(source))
+    func markdown(source: String, preceding: [String] = []) throws -> String {
+        try markdown(in: TranslationSource(source), preceding: preceding)
     }
 
-    func markdown(in source: TranslationSource) throws -> String {
-        guard let pieces, pieces.count == source.ranges.count else { throw IntelligenceError.invalidTranslation }
-        let translated = try pieces.map { piece in
+    func markdown(in source: TranslationSource, preceding: [String]) throws -> String {
+        guard let text, preceding.count < source.ranges.count else {
+            throw IntelligenceError.invalidTranslation
+        }
+        let translated = try (preceding + [text]).map { piece in
             let text = piece.trimmingCharacters(in: .whitespaces)
             guard text.contains(where: \.isLetter), !text.contains(where: \.isNewline),
                 !text.contains(where: { "[]`*_~<>|#\\".contains($0) }), InlineScanner.scan(text).isEmpty
@@ -194,26 +196,16 @@ extension IntelligenceService {
         let task = Task { @MainActor in
             do {
                 try Task.checkCancellation()
-                let pieces = try String(decoding: JSONEncoder().encode(projection.pieces), as: UTF8.self)
-                let request = IntelligenceRequest(
-                    instructions: Prompts.translate(into: language),
-                    text:
-                        "Original passage (context only):\n\(source)\n\nProse pieces to translate in order:\n\(pieces)")
-                var lastSafe = source
-                var failure: Error? = IntelligenceError.invalidTranslation
-                let generated = streamGenerated(GeneratedTranslation.self, for: request) { snapshot in
-                    do {
-                        lastSafe = try snapshot.markdown(in: projection)
-                        failure = nil
-                    } catch { failure = error }
-                    return lastSafe
-                }
-                for try await snapshot in generated {
+                var completed: [String] = []
+                // Source order owns cardinality. One request per prose range avoids asking
+                // the model to invent an array shape, at the cost of sequential model calls.
+                for piece in projection.pieces {
                     try Task.checkCancellation()
-                    continuation.yield(snapshot)
+                    let text = try await translatedPiece(
+                        piece, into: language, projection: projection, preceding: completed, continuation: continuation)
+                    completed.append(text)
                 }
                 try Task.checkCancellation()
-                if let failure { throw failure }
                 continuation.finish()
             } catch is CancellationError {
                 continuation.finish()
@@ -221,5 +213,31 @@ extension IntelligenceService {
         }
         continuation.onTermination = { _ in task.cancel() }
         return stream
+    }
+
+    private func translatedPiece(
+        _ piece: String, into language: String, projection: TranslationSource, preceding: [String],
+        continuation: AsyncThrowingStream<String, Error>.Continuation
+    ) async throws -> String {
+        let request = IntelligenceRequest(instructions: Prompts.translate(into: language), text: piece)
+        var lastSafe: String?
+        var translated: String?
+        var failure: Error? = IntelligenceError.invalidTranslation
+        let generated = streamGenerated(GeneratedTranslation.self, for: request) { snapshot in
+            do {
+                lastSafe = try snapshot.markdown(in: projection, preceding: preceding)
+                translated = snapshot.text
+                failure = nil
+            } catch { failure = error }
+            return lastSafe ?? ""
+        }
+        for try await snapshot in generated {
+            try Task.checkCancellation()
+            if !snapshot.isEmpty { continuation.yield(snapshot) }
+        }
+        try Task.checkCancellation()
+        if let failure { throw failure }
+        guard let translated else { throw IntelligenceError.invalidTranslation }
+        return translated
     }
 }
