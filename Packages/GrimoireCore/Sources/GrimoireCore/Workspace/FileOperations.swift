@@ -7,11 +7,7 @@ public enum FileOperations {
     public static func createDocument(in folder: URL, named baseName: String = "Untitled", extension ext: String = "md")
         throws -> URL
     {
-        let url = uniqueURL(in: folder, baseName: baseName, extension: ext)
-        guard FileManager.default.createFile(atPath: url.path(percentEncoded: false), contents: Data()) else {
-            throw FileOperationError.couldNotCreate(url.lastPathComponent)
-        }
-        return url
+        try createDocument(in: folder, named: baseName, extension: ext, operations: DocumentCreationOperations())
     }
 
     @discardableResult
