@@ -10,25 +10,44 @@ import Testing
 
 final class EditorTestDefaults: UserDefaults, @unchecked Sendable {
     let suiteName: String
+    private let lock = NSLock()
+    private var values: [String: Any] = [:]
 
     init() {
         suiteName = "grimoire-tests-\(UUID())"
         super.init(suiteName: suiteName)!
     }
+
+    func cleanUp() {
+        lock.withLock { values.removeAll() }
+    }
+
+    override func set(_ value: Any?, forKey key: String) {
+        // Persistent domains leave plists; the argument domain is shared across fixtures.
+        lock.withLock { values[key] = value }
+    }
+
+    override func object(forKey key: String) -> Any? {
+        lock.withLock { values[key] } ?? super.object(forKey: key)
+    }
+
+    override func removeObject(forKey key: String) {
+        set(nil, forKey: key)
+    }
 }
 
 final class EditorTestPreferences: @unchecked Sendable {
     private let lock = NSLock()
-    private var suites: [String] = []
+    private var defaults: [EditorTestDefaults] = []
 
     func register(_ defaults: EditorTestDefaults) {
-        lock.withLock { suites.append(defaults.suiteName) }
+        lock.withLock { self.defaults.append(defaults) }
     }
 
     func cleanUp() {
         // Editors can outlive their test through AppKit; teardown owns only this scope's UUID domains.
-        for suite in lock.withLock({ suites }) {
-            UserDefaults.standard.removePersistentDomain(forName: suite)
+        for defaults in lock.withLock({ defaults }) {
+            defaults.cleanUp()
         }
     }
 }

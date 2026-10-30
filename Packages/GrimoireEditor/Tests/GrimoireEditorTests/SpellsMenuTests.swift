@@ -19,18 +19,18 @@ import Testing
                 controller.press(#selector(NSResponder.insertNewline(_:)))
                 #expect(controller.recentSpells == ["h2"])
                 #expect(makeEditor("", freshDefaults: true).recentSpells.isEmpty)
-                #expect(defaults.persistentDomain(forName: defaults.suiteName)?["grimoire.recentSpells"] != nil)
+                #expect(defaults.persistentDomain(forName: defaults.suiteName)?.isEmpty != false)
                 if interrupted { throw FixtureError.interrupted }
             }
         } catch FixtureError.interrupted {
             #expect(interrupted)
         }
         let (controller, suite) = try #require(retained)
-        defer {
-            UserDefaults.standard.removePersistentDomain(forName: suite)
-        }
         #expect(controller.recentSpells.isEmpty)
         #expect(UserDefaults.standard.persistentDomain(forName: suite)?.isEmpty != false)
+        let library = try FileManager.default.url(
+            for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+        #expect(!FileManager.default.fileExists(atPath: library.appending(path: "Preferences/\(suite).plist").path))
     }
 
     func editorAtEnd(_ text: String = "") -> EditorController {
