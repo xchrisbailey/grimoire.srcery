@@ -12,6 +12,27 @@ struct FileTreeView: View {
 
     var body: some View {
         List(selection: $selectedFile) {
+            if workspace.hasPendingLifecycleOperations {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(LifecycleError.pendingRepair.localizedDescription)
+                            .fixedSize(horizontal: false, vertical: true)
+                        ForEach(workspace.lifecycleRepairURLs, id: \.self) { url in
+                            Text(url.path).textSelection(.enabled)
+                        }
+                        Button("Retry Reconciliation") {
+                            workspace.reconcileLifecycleOperations()
+                            actions.error = workspace.lastError
+                        }
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting(
+                                workspace.lifecycleRepairURLs.map { $0.deletingLastPathComponent() })
+                        }
+                    }
+                    .brandFont(.chrome)
+                    .controlSize(.small)
+                }
+            }
             if !workspace.looseFiles.isEmpty {
                 Section {
                     ForEach(workspace.looseFiles) { LooseFileRow(file: $0, workspace: workspace, actions: actions) }

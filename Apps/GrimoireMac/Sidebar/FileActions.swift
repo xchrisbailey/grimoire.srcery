@@ -182,7 +182,6 @@ final class FileActions {
     }
 
 }
-
 extension FileActions {
     private func showSourceFailure(_ plan: DocumentCreationPlan, failure: Error, workspace: Workspace) {
         creationPlan = plan
@@ -214,13 +213,15 @@ extension FileActions {
         guard let url = renaming else { return }
         renaming = nil
         perform(workspace, near: url) {
-            let renamed = try FileOperations.rename(url, to: newName)
-            if renamed != url { didMove?(url, renamed) }
+            let result = workspace.rename(url, to: newName)
+            if let renamed = result.movedURL, renamed != url { didMove?(url, renamed) }
+            if let error = result.error { throw error }
         }
     }
 
     func banish(_ url: URL, workspace: Workspace) {
         perform(workspace, near: url) {
+            try workspace.requireUnconfiguredLifecycleItem(url)
             try FileOperations.moveToTrash(url)
             didTrash?(url)
         }
@@ -232,8 +233,9 @@ extension FileActions {
         guard !inside.isEmpty else { return false }
         for url in inside {
             perform(workspace, near: url) {
-                let moved = try FileOperations.move(url, into: folder)
-                if moved != url { didMove?(url, moved) }
+                let result = workspace.move(url, into: folder)
+                if let moved = result.movedURL, moved != url { didMove?(url, moved) }
+                if let error = result.error { throw error }
             }
         }
         workspace.refresh(of: folder)
@@ -307,14 +309,12 @@ extension FileActions {
         workspace.refresh(of: url)
     }
 }
-
 extension Workspace {
     /// Rescans the root holding `url`.
     func refresh(of url: URL) {
         if let reference = reference(for: url) { refresh(reference.rootID) }
     }
 }
-
 extension View {
     /// The rename and alias prompts, banish confirmation and error alert for a window's file actions.
     func fileActionPrompts(_ actions: FileActions, workspace: Workspace?, select: @escaping (URL) -> Void) -> some View

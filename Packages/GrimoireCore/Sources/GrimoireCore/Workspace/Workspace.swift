@@ -14,7 +14,7 @@ public final class Workspace {
     public private(set) var looseFiles: [BoundFile] = []
     public var lastError: Error?
 
-    private let library: ProjectLibrary
+    let library: ProjectLibrary
     private var scanner: FileScanner
     private var accessed: [FolderRoot.ID: URL] = [:]
     private var accessedFiles: [LooseFile.ID: URL] = [:]
@@ -27,6 +27,7 @@ public final class Workspace {
     @ObservationIgnored var publishedCreations: [UUID: PublishedDocument] = [:]
     @ObservationIgnored var emptyOnceCreations: Set<UUID> = []
     @ObservationIgnored var templateAuthoringResults: [UUID: TemplateAuthoringResult] = [:]
+    @ObservationIgnored var lifecycleOperations = LifecycleOperations()
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
@@ -36,24 +37,12 @@ public final class Workspace {
 
     public var project: Project? { library.project(projectID) }
 
-    func saveTemplateAssignment(_ assignment: FolderTemplateAssignment) throws {
-        try library.update(projectID) { project in
-            project.templateAssignments.removeAll { $0.owner == assignment.owner }
-            project.templateAssignments.append(assignment)
-        }
-    }
-
-    func removeTemplateAssignment(ownedBy owner: FileReference) throws {
-        try library.update(projectID) { project in
-            project.templateAssignments.removeAll { $0.owner == owner }
-        }
-    }
-
     /// Resolves every root, starts watching, and scans. Calling it again picks up roots
     /// bound since the last call.
     public func activate() {
         isActive = true
         sync()
+        reconcileLifecycleOperations()
     }
 
     /// Stops watchers and gives up folder access.

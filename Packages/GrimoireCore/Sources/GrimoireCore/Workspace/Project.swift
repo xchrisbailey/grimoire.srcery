@@ -23,6 +23,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     /// dictionary.
     public var dictionary: [String]
     public var templateAssignments: [FolderTemplateAssignment]
+    var pendingLifecycleOperations: [PendingLifecycleOperation] = []
 
     public init(
         id: UUID = UUID(),
@@ -54,7 +55,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, icon, color, roots, looseFiles, kind, lastOpenedFile, expandedFolders, overrides, dictionary
-        case templateAssignments
+        case templateAssignments, pendingLifecycleOperations
     }
 
     public init(from decoder: Decoder) throws {
@@ -76,6 +77,10 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
             container.contains(.templateAssignments)
             ? try container.decode([FolderTemplateAssignment].self, forKey: .templateAssignments) : []
         try FolderTemplateAssignment.validate(templateAssignments)
+        pendingLifecycleOperations =
+            container.contains(.pendingLifecycleOperations)
+            ? try container.decode([PendingLifecycleOperation].self, forKey: .pendingLifecycleOperations) : []
+        try validateLifecycleOperations()
     }
 
     public func root(_ id: UUID) -> FolderRoot? {

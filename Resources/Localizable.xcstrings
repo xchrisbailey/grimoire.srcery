@@ -1,6 +1,30 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Template choices or source references block this operation. Files and settings are unchanged." : {
+      "extractionState" : "manual"
+    },
+    "Retry Reconciliation" : {
+      "comment" : "plain: reconcile an observed folder move without replay or rollback"
+    },
+    "The item moved, but its project changes are still pending." : {
+      "extractionState" : "manual"
+    },
+    "The destination has folder template choices. Resolve the conflict before moving." : {
+      "extractionState" : "manual"
+    },
+    "A move needs repair. Restore the original at its shown source or destination, then retry." : {
+      "extractionState" : "manual"
+    },
+    "Retry only checks the filesystem; it never moves or reverses files." : {
+      "extractionState" : "manual"
+    },
+    "Move within one bound folder, not across bindings or a bound root. Nothing changed." : {
+      "extractionState" : "manual"
+    },
+    "Invalid folder move recovery record. Repair the project settings before retrying." : {
+      "extractionState" : "manual"
+    },
     "The replacement was saved, but creation details are unavailable." : {
       "comment" : "plain: successful settings repair with unavailable pending creation context"
     },

@@ -109,6 +109,7 @@ extension Workspace {
     ) throws -> DocumentCreationPlan {
         // Other windows can replace a bookmark without this workspace having received its UI update yet.
         sync()
+        try requireNoPendingLifecycle(at: destination)
         guard let owner = try templateReference(for: destination) else {
             throw TemplateAssignmentError.unavailableFolder
         }

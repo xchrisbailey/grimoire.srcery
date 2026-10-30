@@ -52,6 +52,7 @@ public final class ProjectLibrary {
 
     public func deleteProject(_ id: Project.ID) throws {
         guard project(id) != nil else { throw LibraryError.unknownProject }
+        guard project(id)?.pendingLifecycleOperations.isEmpty == true else { throw LifecycleError.pendingRepair }
         try commit(projects.filter { $0.id != id })
     }
 
@@ -61,6 +62,7 @@ public final class ProjectLibrary {
         guard let index = projects.firstIndex(where: { $0.id == id }) else { throw LibraryError.unknownProject }
         var candidate = projects
         change(&candidate[index])
+        try validatePendingLifecycleEdits(from: projects[index], to: candidate[index])
         try commit(candidate)
     }
 
@@ -81,6 +83,7 @@ public final class ProjectLibrary {
 
     public func unbindFolder(_ rootID: FolderRoot.ID, from projectID: Project.ID) throws {
         try requireRoot(rootID, in: projectID)
+        try requireUnconfiguredRoot(rootID, in: projectID)
         try update(projectID) { project in
             project.roots.removeAll { $0.id == rootID }
             project.expandedFolders = project.expandedFolders.filter { $0.rootID != rootID }
@@ -103,6 +106,7 @@ public final class ProjectLibrary {
     /// stale bookmark was recreated.
     public func replaceBookmark(of rootID: FolderRoot.ID, in projectID: Project.ID, with url: URL) throws {
         try requireRoot(rootID, in: projectID)
+        try requireSameConfiguredRoot(rootID, in: projectID, as: url)
         let bookmark = try FolderBookmark.make(for: url)
         try update(projectID) { project in
             guard let index = project.roots.firstIndex(where: { $0.id == rootID }) else { return }

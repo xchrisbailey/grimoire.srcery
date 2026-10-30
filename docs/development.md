@@ -147,6 +147,31 @@ Also recheck Create Template/Edit Template handoff and ordinary untemplated crea
 Package integration tests cover Core results and persisted bytes, not these native
 picker, action-label, scope-confirmation, name-preservation, or focus interactions.
 
+### Recoverable same-root rename and drag/move
+
+Native rename, drag/drop, selected-document following, and restart/repair acceptance
+remain **UNVERIFIED**. Both sidebar routes use the Core Workspace lifecycle coordinator;
+package tests exercise real folders and isolated stores, not native gestures or alerts.
+Rename and drag a configured subtree with descendant overrides/opt-outs and a source
+used by several folders (including another binding in the same project). Check that
+explicit choices follow, inherited content follows the new destination, every source
+reference follows, and existing document/source bytes stay unchanged. Check open
+documents inside the subtree still save at their actual new paths.
+
+Check destination-record conflicts, failed intent saves, filesystem failures, and
+failed final saves separately. A successful filesystem move with failed final save
+must still follow the open document while reporting pending project changes. Restart
+before and after the move; only the observable original item at exactly one recorded
+location with unchanged root/parent identities may reconcile. Replaced items/parents,
+both locations occupied, or unavailable root access must retain the record and choices.
+The sidebar retains the recorded paths and **Retry Reconciliation** / **Show in Finder**.
+Manually restore the original item to an unambiguous recorded location, restore store
+access, then retry; retry never moves, reverses, or discards files. Verify conflicting
+assignment/source/binding operations remain blocked while unrelated name/theme edits
+remain available. Configured cross-root moves, root relocation, unbind, and trash
+policies are not implemented by this slice; unsupported destructive operations fail
+closed rather than silently dropping configuration. The full feature is not shipped.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.

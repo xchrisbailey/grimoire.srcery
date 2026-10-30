@@ -2,6 +2,24 @@ import Darwin
 import Foundation
 
 extension Workspace {
+    func saveTemplateAssignment(_ assignment: FolderTemplateAssignment) throws {
+        if let owner = url(for: assignment.owner) { try requireNoPendingLifecycle(at: owner) }
+        if case .useSource(let reference) = assignment.choice, let source = url(for: reference) {
+            try requireNoPendingLifecycle(at: source)
+        }
+        try library.update(projectID) { project in
+            project.templateAssignments.removeAll { $0.owner == assignment.owner }
+            project.templateAssignments.append(assignment)
+        }
+    }
+
+    func removeTemplateAssignment(ownedBy owner: FileReference) throws {
+        if let url = url(for: owner) { try requireNoPendingLifecycle(at: url) }
+        try library.update(projectID) { project in
+            project.templateAssignments.removeAll { $0.owner == owner }
+        }
+    }
+
     /// Inspects only this folder's saved choice, including an inactive unresolved record.
     public func templateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
         sync()
@@ -76,7 +94,7 @@ extension Workspace {
         }
     }
 
-    private func validateActiveTemplateOwners() throws {
+    func validateActiveTemplateOwners() throws {
         let roots = templateRoots
         for assignment in project?.templateAssignments ?? [] where assignment.state == .active {
             try assignment.validate()
