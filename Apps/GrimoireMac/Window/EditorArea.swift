@@ -91,7 +91,11 @@ private struct DocumentEditor: View {
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }
-            window.library.learnWord(word, in: id)
+            do {
+                try window.library.learnWord(word, in: id)
+            } catch {
+                window.actions.error = error
+            }
         }
         .onEscape {
             guard window.focusMode else { return false }

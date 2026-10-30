@@ -99,8 +99,9 @@ public final class Workspace {
     }
 
     /// Takes a loose file off the project's list. Nothing on disk changes.
-    public func removeLooseFile(_ fileID: LooseFile.ID) {
-        library.removeLooseFile(fileID, from: projectID)
+    public func removeLooseFile(_ fileID: LooseFile.ID) throws {
+        try library.removeLooseFile(fileID, from: projectID)
+        lastError = nil
         sync()
     }
 
@@ -118,6 +119,7 @@ public final class Workspace {
         }
         do {
             try library.replaceBookmark(ofLooseFile: bound.id, in: projectID, with: url)
+            lastError = nil
         } catch {
             lastError = error
             return
@@ -165,27 +167,27 @@ public final class Workspace {
     }
 
     /// Stores access to a folder the user picked again after its bookmark stopped working.
-    public func regrantAccess(to rootID: FolderRoot.ID, with url: URL) {
-        do {
-            try library.replaceBookmark(of: rootID, in: projectID, with: url)
-            release(rootID)
-            if let index = folders.firstIndex(where: { $0.id == rootID }), let root = project?.root(rootID) {
-                folders[index] = open(root)
-            }
-        } catch {
-            lastError = error
+    public func regrantAccess(to rootID: FolderRoot.ID, with url: URL) throws {
+        try library.replaceBookmark(of: rootID, in: projectID, with: url)
+        lastError = nil
+        release(rootID)
+        if let index = folders.firstIndex(where: { $0.id == rootID }), let root = project?.root(rootID) {
+            folders[index] = open(root)
         }
     }
 
     /// Removes a folder from the project. Nothing on disk changes.
-    public func unbind(_ rootID: FolderRoot.ID) {
-        library.unbindFolder(rootID, from: projectID)
+    public func unbind(_ rootID: FolderRoot.ID) throws {
+        // A failed commit must leave watchers and security-scoped access alive.
+        try library.unbindFolder(rootID, from: projectID)
+        lastError = nil
         sync()
     }
 
     /// Shows the folder under `alias` instead of its name. Empty clears it.
-    public func setAlias(_ alias: String, of rootID: FolderRoot.ID) {
-        library.setAlias(alias, of: rootID, in: projectID)
+    public func setAlias(_ alias: String, of rootID: FolderRoot.ID) throws {
+        try library.setAlias(alias, of: rootID, in: projectID)
+        lastError = nil
         sync()
     }
 
@@ -220,12 +222,17 @@ public final class Workspace {
 
     public func setExpanded(_ url: URL, _ expanded: Bool) {
         guard let reference = reference(for: url), isExpanded(url) != expanded else { return }
-        library.update(projectID) { project in
-            if expanded {
-                project.expandedFolders.insert(reference)
-            } else {
-                project.expandedFolders.remove(reference)
+        do {
+            try library.update(projectID) { project in
+                if expanded {
+                    project.expandedFolders.insert(reference)
+                } else {
+                    project.expandedFolders.remove(reference)
+                }
             }
+            lastError = nil
+        } catch {
+            lastError = error
         }
     }
 
@@ -245,7 +252,12 @@ public final class Workspace {
         }
         if accessing { accessed[root.id] = url }
         if resolved.isStale {
-            try? library.replaceBookmark(of: root.id, in: projectID, with: url)
+            do {
+                try library.replaceBookmark(of: root.id, in: projectID, with: url)
+                lastError = nil
+            } catch {
+                lastError = error
+            }
             folder.root = project?.root(root.id) ?? root
         }
         folder.url = url

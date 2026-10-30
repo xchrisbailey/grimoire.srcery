@@ -44,7 +44,7 @@ extension Scratch {
         let root = try self.folder(folder)
         for (path, text) in files { try file(folder + "/" + path, text) }
         let library = ProjectLibrary(store: ProjectStore(fileURL: url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Notes")
+        let project = try library.createProject(named: "Notes")
         try library.bindFolder(root, to: project.id)
         let workspace = Workspace(projectID: project.id, library: library)
         workspace.activate()
@@ -260,7 +260,8 @@ func firstEvent<T: Sendable>(
         #expect(library.lastError != nil)
         #expect(library.loadError != nil)
         library.lastError = nil
-        if library.projects.isEmpty { library.createProject(named: "Grimoire") }
+        #expect(throws: (any Error).self) { try library.createProject(named: "Grimoire") }
+        #expect(library.projects.isEmpty)
         #expect(try Data(contentsOf: file) == original)
 
         library.retryLoad()
@@ -274,7 +275,7 @@ func firstEvent<T: Sendable>(
         #expect(library.loadError == nil)
         #expect(library.lastError == nil)
         #expect(library.projects == [restored])
-        library.update(restored.id) { $0.name = "Renamed" }
+        try library.update(restored.id) { $0.name = "Renamed" }
         #expect(try ProjectStore(fileURL: file).load().first?.name == "Renamed")
         #expect(try ProjectStore(fileURL: file).load().first?.roots == [root])
     }
@@ -285,7 +286,7 @@ func firstEvent<T: Sendable>(
         let marker = try scratch.file("projects.json/preserved", "original bytes")
         let library = ProjectLibrary(store: ProjectStore(fileURL: directory))
         #expect(library.loadError != nil)
-        library.createProject(named: "Grimoire")
+        #expect(throws: (any Error).self) { try library.createProject(named: "Grimoire") }
         #expect(try String(contentsOf: marker, encoding: .utf8) == "original bytes")
         #expect(library.loadError != nil)
     }
@@ -295,7 +296,7 @@ func firstEvent<T: Sendable>(
         let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
         let library = ProjectLibrary(store: store)
         #expect(library.loadError == nil)
-        if library.projects.isEmpty { library.createProject(named: "Grimoire") }
+        if library.projects.isEmpty { try library.createProject(named: "Grimoire") }
         #expect(try store.load() == library.projects)
         #expect(library.lastError == nil)
     }
@@ -312,7 +313,7 @@ func firstEvent<T: Sendable>(
         let store = ProjectStore(fileURL: scratch.url.appending(path: "support/projects.json"))
 
         let library = ProjectLibrary(store: store)
-        let project = library.createProject(named: "Grimoire")
+        let project = try library.createProject(named: "Grimoire")
         try library.bindFolder(notes, to: project.id)
         try library.bindFolder(blog, to: project.id)
         try library.bindFolder(notes, to: project.id)
@@ -340,14 +341,14 @@ func firstEvent<T: Sendable>(
         let content = try scratch.folder("somewhere/content")
         let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
         let library = ProjectLibrary(store: store)
-        let project = library.createProject(named: "Site")
+        let project = try library.createProject(named: "Site")
         let root = try library.bindFolder(content, to: project.id)
         #expect(root.displayName == "content")
 
-        library.setAlias("  srcery.computer ", of: root.id, in: project.id)
+        try library.setAlias("  srcery.computer ", of: root.id, in: project.id)
         #expect(ProjectLibrary(store: store).project(project.id)?.roots.first?.displayName == "srcery.computer")
 
-        library.setAlias(" ", of: root.id, in: project.id)
+        try library.setAlias(" ", of: root.id, in: project.id)
         #expect(library.project(project.id)?.roots.first?.alias == nil)
         #expect(library.project(project.id)?.roots.first?.displayName == "content")
     }
@@ -379,7 +380,7 @@ func firstEvent<T: Sendable>(
         let scratch = try Scratch()
         let gone = try scratch.folder("gone")
         let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Lost")
+        let project = try library.createProject(named: "Lost")
         try library.bindFolder(gone, to: project.id)
         try FileManager.default.removeItem(at: gone)
 
@@ -390,7 +391,7 @@ func firstEvent<T: Sendable>(
 
         let found = try scratch.folder("found")
         try scratch.file("found/page.md")
-        workspace.regrantAccess(to: workspace.folders[0].id, with: found)
+        try workspace.regrantAccess(to: workspace.folders[0].id, with: found)
         try await until { workspace.folders.first?.status == .available }
         #expect(library.project(project.id)?.roots.first?.name == "found")
     }

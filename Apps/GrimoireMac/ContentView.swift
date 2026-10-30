@@ -84,7 +84,13 @@ private struct WindowContent: View {
         .onAppear {
             let stored = (project: storedProject, file: storedFile, fallback: lastProject)
             ExternalOpens.shared.whenLaunched {
-                if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
+                if library.projects.isEmpty {
+                    do {
+                        try library.createProject(named: String(localized: "Grimoire"))
+                    } catch {
+                        window.actions.error = error
+                    }
+                }
                 window.restore(projectID: stored.project, file: stored.file, fallbackProject: stored.fallback)
             }
         }
@@ -148,6 +154,7 @@ private struct FollowsProject: ViewModifier {
             .onChange(of: window.project?.roots) { window.projectRootsChanged() }
             .onChange(of: window.project?.looseFiles) { window.projectRootsChanged() }
             .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
+            .onChange(of: window.workspace?.lastError != nil) { window.reportWorkspaceError() }
             .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
             .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
             .onChange(of: Preferences.shared.fileListing) { window.preferencesChanged() }

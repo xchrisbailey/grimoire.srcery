@@ -15,7 +15,7 @@ import Testing
         let file = scratch.url.appending(path: "projects.json")
         let store = ProjectStore(fileURL: file)
         let original = ProjectLibrary(store: store)
-        let project = original.createProject(named: "Recovered")
+        let project = try original.createProject(named: "Recovered")
         try original.bindFolder(folder, to: project.id)
         let savedProjects = try store.load()
         let backup = try Data(contentsOf: file)

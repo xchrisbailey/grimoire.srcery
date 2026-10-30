@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Project changes weren’t saved. Check access to the projects file and try again." : {
+      "comment" : "plain: an atomic project commit failed; the underlying error follows on a new line",
+      "extractionState" : "manual"
+    },
+    "Project changes couldn’t be saved" : {
+      "comment" : "plain: project settings persistence failure heading"
+    },
+    "Your project changes were not saved. Check access to the projects file, then try the change again." : {
+      "comment" : "plain: recovery instructions after a project settings save failure"
+    },
+    "That bound folder no longer exists in the project." : {
+      "comment" : "plain: a project edit refers to a removed bound root",
+      "extractionState" : "manual"
+    },
+    "That loose file no longer exists in the project." : {
+      "comment" : "plain: a project edit refers to a removed loose file",
+      "extractionState" : "manual"
+    },
     "Projects couldn’t be loaded" : {
       "comment" : "plain: project storage load failure heading"
     },

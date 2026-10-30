@@ -168,7 +168,11 @@ final class WindowState {
             }
             openError = nil
             if let projectID, let reference = workspace?.reference(for: url) {
-                library.update(projectID) { $0.lastOpenedFile = reference }
+                do {
+                    try library.update(projectID) { $0.lastOpenedFile = reference }
+                } catch {
+                    actions.error = error
+                }
             }
         } catch {
             openError = error
@@ -303,7 +307,11 @@ final class WindowState {
         FileModes.remember(editorMode, for: newURL)
         document?.moved(to: newURL)
         if let projectID, let reference = workspace?.reference(for: newURL) {
-            library.update(projectID) { $0.lastOpenedFile = reference }
+            do {
+                try library.update(projectID) { $0.lastOpenedFile = reference }
+            } catch {
+                actions.error = error
+            }
         }
     }
 

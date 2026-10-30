@@ -98,7 +98,11 @@ final class FileActions {
 
     func finishAlias(workspace: Workspace) {
         guard let aliasing else { return }
-        workspace.setAlias(newAlias, of: aliasing.id)
+        do {
+            try workspace.setAlias(newAlias, of: aliasing.id)
+        } catch {
+            self.error = error
+        }
     }
 
     /// The alias prompt closed: shows the next queued folder once it's gone.
@@ -119,13 +123,23 @@ final class FileActions {
     }
 
     func unbind(_ folder: BoundFolder, from workspace: Workspace) {
+        // Save the open document while access is held; only a committed removal may
+        // release that access. Saving can refresh bookmarks, so it precedes staging.
         willRelease?()
-        workspace.unbind(folder.id)
+        do {
+            try workspace.unbind(folder.id)
+        } catch {
+            self.error = error
+        }
     }
 
     func removeLooseFile(_ file: BoundFile, from workspace: Workspace) {
         willRelease?()
-        workspace.removeLooseFile(file.id)
+        do {
+            try workspace.removeLooseFile(file.id)
+        } catch {
+            self.error = error
+        }
     }
 
     private func perform(_ workspace: Workspace, near url: URL, _ operation: () throws -> Void) {

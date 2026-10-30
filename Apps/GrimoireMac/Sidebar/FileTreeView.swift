@@ -73,7 +73,11 @@ struct FileTreeView: View {
         panel.message = String(localized: "Choose “\(folder.root.name)” to keep using it in this project.")
         panel.prompt = String(localized: "Grant Access")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        workspace.regrantAccess(to: folder.id, with: url)
+        do {
+            try workspace.regrantAccess(to: folder.id, with: url)
+        } catch {
+            actions.error = error
+        }
     }
 }
 
@@ -110,7 +114,13 @@ private struct RootHeader: View {
                 Button("Set Alias…") { actions.startAlias(folder.root) }
             } else {
                 Button("Rename Alias…") { actions.startAlias(folder.root) }
-                Button("Remove Alias") { workspace.setAlias("", of: folder.id) }
+                Button("Remove Alias") {
+                    do {
+                        try workspace.setAlias("", of: folder.id)
+                    } catch {
+                        actions.error = error
+                    }
+                }
             }
             Divider()
             Button("Unbind Folder") { actions.unbind(folder, from: workspace) }
