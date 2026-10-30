@@ -8,6 +8,10 @@ Grimoire is a Markdown writing app. This glossary records its agreed domain lang
 Reusable initial content for a newly created document, optionally containing placeholders.
 _Avoid_: Filename template, frontmatter rule
 
+**Content placeholder**:
+A named insertion point in a content template for a new document's initial title, filename, or creation date and time.
+_Avoid_: Script, expression
+
 **Template source**:
 An ordinary Markdown file whose saved contents define a content template, reusable across folder template assignments.
 _Avoid_: Template snapshot
