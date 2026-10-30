@@ -51,7 +51,10 @@ struct DocumentCreationSheet: View {
                     }
                     .disabled(validation != nil)
                 }
-                Button(actions.creationSourceFailed || actions.creationAttemptFailed ? "Retry" : "Create") { confirm() }
+                Button(
+                    actions.creationSourceFailed || actions.creationAttemptFailed
+                        ? String(localized: "Retry") : String(localized: "Create")
+                ) { confirm() }
                     .keyboardShortcut(.defaultAction).disabled(validation != nil)
             }
         }
