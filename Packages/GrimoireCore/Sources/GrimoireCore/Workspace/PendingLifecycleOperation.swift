@@ -74,6 +74,12 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     }
 
     func relocated(_ reference: FileReference) -> FileReference {
+        Self.relocated(reference, from: source, to: destination)
+    }
+
+    static func relocated(_ reference: FileReference, from source: FileReference, to destination: FileReference)
+        -> FileReference
+    {
         let parts = reference.relativePath.split(separator: "/")
         let prefix = source.relativePath.split(separator: "/")
         guard reference.rootID == source.rootID, parts.starts(with: prefix) else { return reference }

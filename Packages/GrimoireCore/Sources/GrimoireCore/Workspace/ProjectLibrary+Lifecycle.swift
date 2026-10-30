@@ -15,15 +15,57 @@ extension ProjectLibrary {
                 guard let root = new.root(reference.rootID),
                     root.lastKnownPath == old.root(reference.rootID)?.lastKnownPath
                 else { throw LifecycleError.pendingRepair }
+                if let previous = old.root(reference.rootID), previous.bookmark != root.bookmark {
+                    try requireSameRootIdentity(previous, replacement: root)
+                }
             }
             let changed =
                 old.templateAssignments.filter { !new.templateAssignments.contains($0) }
                 + new.templateAssignments.filter { !old.templateAssignments.contains($0) }
             let owners = Set((operation.before + operation.after).map(\.owner))
-            guard !changed.contains(where: { operation.touches($0) || owners.contains($0.owner) }) else {
+            guard
+                try !changed.contains(where: {
+                    try operation.touches($0) || owners.contains($0.owner)
+                        || touchesPendingPaths($0, operation: operation, in: old)
+                        || touchesPendingPaths($0, operation: operation, in: new)
+                })
+            else {
                 throw LifecycleError.pendingRepair
             }
         }
+    }
+
+    private func touchesPendingPaths(
+        _ assignment: FolderTemplateAssignment, operation: PendingLifecycleOperation,
+        in project: Project
+    ) throws -> Bool {
+        guard let root = project.root(operation.source.rootID) else { throw LifecycleError.pendingRepair }
+        // Last-known paths are conservative mutation guards only, never evidence for completing intent.
+        let rootURL = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
+        var references = [assignment.owner]
+        if case .useSource(let source) = assignment.choice { references.append(source) }
+        return try references.contains { reference in
+            guard let bound = project.root(reference.rootID) else { return false }
+            let boundURL = (try? FolderBookmark.resolve(bound.bookmark).url) ?? bound.lastKnownURL
+            guard
+                let canonical = try LifecyclePath.reference(
+                    rootID: root.id, root: rootURL,
+                    url: reference.url(in: boundURL))
+            else { return false }
+            return operation.contains(canonical)
+        }
+    }
+
+    private func requireSameRootIdentity(_ previous: FolderRoot, replacement: FolderRoot) throws {
+        let old = try FolderBookmark.resolve(previous.bookmark).url
+        let new = try FolderBookmark.resolve(replacement.bookmark).url
+        let accessingOld = old.startAccessingSecurityScopedResource()
+        let accessingNew = new.startAccessingSecurityScopedResource()
+        defer {
+            if accessingNew { new.stopAccessingSecurityScopedResource() }
+            if accessingOld { old.stopAccessingSecurityScopedResource() }
+        }
+        guard try LifecycleIdentity(old) == LifecycleIdentity(new) else { throw LifecycleError.pendingRepair }
     }
 
     private func validatePendingRootEdits(_ operation: PendingLifecycleOperation, from old: Project, to new: Project)

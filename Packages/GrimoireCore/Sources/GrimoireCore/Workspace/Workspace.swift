@@ -177,6 +177,7 @@ public final class Workspace {
 
     /// Stores access to a folder the user picked again after its bookmark stopped working.
     public func regrantAccess(to rootID: FolderRoot.ID, with url: URL) throws {
+        try library.requireSameConfiguredRoot(rootID, in: projectID, as: url)
         try library.replaceBookmark(of: rootID, in: projectID, with: url)
         lastError = nil
         release(rootID)

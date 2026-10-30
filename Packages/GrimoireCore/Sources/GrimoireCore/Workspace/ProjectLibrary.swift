@@ -106,7 +106,6 @@ public final class ProjectLibrary {
     /// stale bookmark was recreated.
     public func replaceBookmark(of rootID: FolderRoot.ID, in projectID: Project.ID, with url: URL) throws {
         try requireRoot(rootID, in: projectID)
-        try requireSameConfiguredRoot(rootID, in: projectID, as: url)
         let bookmark = try FolderBookmark.make(for: url)
         try update(projectID) { project in
             guard let index = project.roots.firstIndex(where: { $0.id == rootID }) else { return }

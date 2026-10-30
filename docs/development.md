@@ -171,6 +171,9 @@ assignment/source/binding operations remain blocked while unrelated name/theme e
 remain available. Configured cross-root moves, root relocation, unbind, and trash
 policies are not implemented by this slice; unsupported destructive operations fail
 closed rather than silently dropping configuration. The full feature is not shipped.
+User-facing configured regrant accepts only an observable same-root identity in this
+slice. Authoritative library bookmark updates remain allowed without conflicting
+pending intent; creation must still revalidate them rather than writing through stale access.
 
 ## CI
 

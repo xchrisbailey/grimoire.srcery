@@ -87,7 +87,12 @@ extension Workspace {
         for assignment in project.templateAssignments {
             try assignment.validate()
             var updated = assignment
-            updated.owner = try relocatedReference(assignment.owner, source: source, destination: destination)
+            if assignment.state == .unresolved {
+                // Inactive aliases are stored choices, not evidence of the live target's identity.
+                updated.owner = PendingLifecycleOperation.relocated(assignment.owner, from: from, to: to)
+            } else {
+                updated.owner = try relocatedReference(assignment.owner, source: source, destination: destination)
+            }
             if case .useSource(let reference) = assignment.choice {
                 updated.choice = .useSource(try relocatedReference(reference, source: source, destination: destination))
             }
@@ -129,12 +134,12 @@ extension Workspace {
     private func relocatedReference(_ reference: FileReference, source: URL, destination: URL) throws -> FileReference {
         guard let root = templateRoots.first(where: { $0.id == reference.rootID })?.url else { return reference }
         let url = reference.url(in: root)
-        guard let canonical = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: url),
-            canonical == reference
-        else { throw TemplateAssignmentError.invalidReference }
         guard let suffix = try LifecyclePath.reference(rootID: reference.rootID, root: source, url: url) else {
             return reference
         }
+        guard let canonical = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: url),
+            canonical == reference
+        else { throw TemplateAssignmentError.invalidReference }
         let movedURL = suffix.url(in: destination)
         guard let relocated = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: movedURL),
             try lifecycleReference(for: movedURL)?.rootID == reference.rootID
