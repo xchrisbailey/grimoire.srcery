@@ -1273,6 +1273,9 @@
     "Themes" : {
       "comment" : "plain: heading of the theme list in Settings"
     },
+    "The translation couldn't preserve this selection. Your original text hasn't changed." : {
+      "extractionState" : "manual"
+    },
     "There's no text in this image to read." : {
       "comment" : "plain: error (#20)",
       "extractionState" : "manual"
@@ -1291,6 +1294,9 @@
     },
     "This grimoire is empty. Bind a folder to begin." : {
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
+      "extractionState" : "manual"
+    },
+    "This selection contains Markdown that can't be translated safely. Try a selection with explicit links and plain prose." : {
       "extractionState" : "manual"
     },
     "This is too long for the on-device model. Try a shorter selection, or allow Private Cloud Compute in Settings." : {

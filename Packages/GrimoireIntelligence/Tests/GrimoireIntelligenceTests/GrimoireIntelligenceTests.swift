@@ -8,12 +8,15 @@ import Testing
 let modelIsReady = IntelligenceService.modelStatus == .ready
 
 @MainActor @Suite struct IntelligenceSettingsTests {
+    let fixture = TestPreferences()
+
     func makeService() -> (IntelligenceService, Preferences) {
-        let preferences = Preferences(defaults: UserDefaults(suiteName: "grimoire-tests-\(UUID().uuidString)")!)
+        let preferences = Preferences(defaults: fixture)
         return (IntelligenceService(preferences: preferences), preferences)
     }
 
     @Test func settingsCanTurnItOff() {
+        defer { fixture.cleanUp() }
         let (service, preferences) = makeService()
         preferences.intelligenceEnabled = false
         #expect(service.status(for: nil) == .turnedOff)
@@ -25,6 +28,7 @@ let modelIsReady = IntelligenceService.modelStatus == .ready
     }
 
     @Test func everyStatusButReadyExplainsItself() {
+        defer { fixture.cleanUp() }
         let statuses: [IntelligenceStatus] = [
             .turnedOff, .turnedOffForProject, .deviceNotEligible, .appleIntelligenceOff, .downloading,
         ]
@@ -33,6 +37,7 @@ let modelIsReady = IntelligenceService.modelStatus == .ready
     }
 
     @Test(.enabled(if: modelIsReady)) func longPromptsNeedPermissionForTheCloud() async throws {
+        defer { fixture.cleanUp() }
         let (service, preferences) = makeService()
         #expect(try await service.route(forTokens: 100) == .onDevice)
         await #expect(throws: IntelligenceError.tooLong) { try await service.route(forTokens: 50_000) }
