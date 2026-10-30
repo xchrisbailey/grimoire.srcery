@@ -72,7 +72,7 @@ struct TemplateRecoverySection: View {
     }
 }
 
-func templateRecoveryPath(_ reference: FileReference, workspace: Workspace) -> String {
+@MainActor func templateRecoveryPath(_ reference: FileReference, workspace: Workspace) -> String {
     if let url = workspace.url(for: reference) { return url.path(percentEncoded: false) }
     let root = workspace.project?.root(reference.rootID)?.displayName ?? reference.rootID.uuidString
     return root + " [" + reference.rootID.uuidString + "]/" + reference.relativePath
