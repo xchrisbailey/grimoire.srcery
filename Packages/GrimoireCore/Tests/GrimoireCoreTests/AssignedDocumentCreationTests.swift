@@ -174,7 +174,8 @@ import Testing
             return
         }
         #expect(created.url.lastPathComponent == "Draft 2.md")
-        #expect(try String(contentsOf: created.url, encoding: .utf8) == "first {filename}")
+        #expect(try String(contentsOf: created.url, encoding: .utf8) == "first Draft 2.md")
+        #expect(created.editorCaretUTF16 == 16)
         #expect(try String(contentsOf: folder.appending(path: "Draft.md"), encoding: .utf8) == "Competitor")
         #expect(try String(contentsOf: source, encoding: .utf8) == "live edit")
     }
@@ -258,6 +259,7 @@ extension AssignedDocumentCreationTests {
             return
         }
         #expect(refreshed.url.lastPathComponent == "2026-10-31 0001.md")
+        #expect(try String(contentsOf: refreshed.url, encoding: .utf8) == "2026-10-31 00:01:00")
         let edited = try workspace.prepareDocument(
             in: folder, filenamePattern: "{date}", now: beforeMidnight, calendar: calendar)
         guard
@@ -269,7 +271,7 @@ extension AssignedDocumentCreationTests {
             return
         }
         #expect(literal.url.lastPathComponent == "{date}: a.b.md")
-        #expect(try String(contentsOf: literal.url, encoding: .utf8) == "{date} {time}")
+        #expect(try String(contentsOf: literal.url, encoding: .utf8) == "2026-10-31 00:01:00")
     }
 
     @Test func inheritedLookupNamesDescendantsAndAuthoringBypassesAssignments() async throws {

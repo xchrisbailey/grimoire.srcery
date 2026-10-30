@@ -180,7 +180,9 @@ extension Workspace {
         do {
             bytes = try creationBytes(current)
         } catch { return .sourceFailure(current, error) }
-        return publishDocument(current, named: stem, bytes: bytes, operations: operations)
+        return publishDocument(current, named: stem, operations: operations) { candidate in
+            ContentPlaceholders.expand(bytes, filename: candidate, date: now, calendar: calendar)
+        }
     }
 
     private func creationBytes(_ plan: DocumentCreationPlan) throws -> Data {
@@ -190,18 +192,24 @@ extension Workspace {
     }
 
     private func publishDocument(
-        _ current: DocumentCreationPlan, named stem: String, bytes: Data, operations: DocumentCreationOperations
+        _ current: DocumentCreationPlan, named stem: String, operations: DocumentCreationOperations,
+        content: (String) -> Data
     ) -> DocumentCreationResult {
         do {
             // No suspension: MainActor stages project mutations across the whole publication attempt.
             try validateCreationContext(current)
             try FileManager.default.createDirectory(at: current.destination, withIntermediateDirectories: true)
+            var expanded = Data()
             let url = try FileOperations.createDocument(
-                in: current.destination, named: stem, operations: operations, content: { _ in bytes },
+                in: current.destination, named: stem, operations: operations,
+                content: { candidate in
+                    expanded = content(candidate)
+                    return expanded
+                },
                 validate: { try self.validateCreationContext(current) })
             let caret: Int?
             if current.requiresNaming {
-                guard let text = String(validating: bytes, as: UTF8.self) else {
+                guard let text = String(validating: expanded, as: UTF8.self) else {
                     return .publishedButUnavailable(url)
                 }
                 caret = text.utf16.count

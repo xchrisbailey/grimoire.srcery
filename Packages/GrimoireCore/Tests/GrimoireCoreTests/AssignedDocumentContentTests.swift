@@ -39,7 +39,7 @@ extension AssignedDocumentCreationTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["Keep me.md"])
     }
 
-    @Test func exactAssignmentPublishesSavedStaticBytesAndHandsOffOnce() async throws {
+    @Test func exactAssignmentExpandsSavedBytesAndHandsOffOnce() async throws {
         let scratch = try Scratch()
         let (workspace, _) = try await scratch.workspace(files: ["source.md": "saved"])
         defer { workspace.deactivate() }
@@ -59,8 +59,8 @@ extension AssignedDocumentCreationTests {
             return
         }
         #expect(created.url.lastPathComponent == "Élan!.md")
-        #expect(created.editorCaretUTF16 == 25)
-        #expect(try Data(contentsOf: created.url) == bytes)
+        #expect(created.editorCaretUTF16 == 23)
+        #expect(try Data(contentsOf: created.url) == Data("\u{feff}# 🧙\r\n  Élan!\rLast  \n\n".utf8))
         #expect(try Data(contentsOf: source) == bytes)
         guard case .alreadyPublished = workspace.createDocument(plan, naming: .edited("Élan!")) else {
             Issue.record("A completed creation must not publish twice")
