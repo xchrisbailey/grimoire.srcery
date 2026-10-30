@@ -146,6 +146,18 @@ enum LifecyclePath {
             caseSensitiveNames: caseSensitiveNames)
     }
 
+    static func contains(
+        _ ancestor: FileReference, in ancestorRoot: URL, _ descendant: FileReference, in descendantRoot: URL,
+        caseSensitiveNames: (URL) -> Bool?
+    ) throws -> Bool {
+        try reservationPaths(ancestor, in: ancestorRoot).contains { parent in
+            try reservationPaths(descendant, in: descendantRoot).contains { child in
+                guard child.count >= parent.count else { return false }
+                return try overlaps(parent, child, caseSensitiveNames: caseSensitiveNames)
+            }
+        }
+    }
+
     private static func overlaps(_ left: [[String]], _ right: [[String]], caseSensitiveNames: (URL) -> Bool?) throws
         -> Bool
     {

@@ -1,6 +1,63 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "A trash operation has an unknown outcome. Review its recorded configuration removal." : {
+      "extractionState" : "manual"
+    },
+    "Retry never moves or restores files." : {
+      "extractionState" : "manual"
+    },
+    "The item went to the Trash, but its configuration removal is pending." : {
+      "extractionState" : "manual"
+    },
+    "The trash operation needs repair. Its configuration is unchanged." : {
+      "extractionState" : "manual"
+    },
+    "Finish configuration removal…" : {
+      "extractionState" : "manual"
+    },
+    "This item goes to the Trash." : {
+      "extractionState" : "manual"
+    },
+    "Its explicit and descendant choices are removed only after successful trash." : {
+      "extractionState" : "manual"
+    },
+    "Restoring it requires reassignment." : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments keep broken source references without a fallback." : {
+      "extractionState" : "manual"
+    },
+    "This applies only the recorded configuration removals and clears this trash recovery record." : {
+      "extractionState" : "manual"
+    },
+    "It does not move, delete, or restore any file." : {
+      "extractionState" : "manual"
+    },
+    "The item's trash outcome is unknown, even if it has reappeared." : {
+      "extractionState" : "manual"
+    },
+    "Removed choices require reassignment." : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments retain their source references, which may be broken." : {
+      "extractionState" : "manual"
+    },
+    "The affected configuration changed. Review it, then confirm again." : {
+      "extractionState" : "manual"
+    },
+    "This removes the binding and its owned template assignments and opt-outs." : {
+      "extractionState" : "manual"
+    },
+    "Files on disk stay unchanged. Rebinding starts unconfigured." : {
+      "extractionState" : "manual"
+    },
+    "Choices to remove" : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments with broken sources" : {
+      "extractionState" : "manual"
+    },
     "Folder names may conflict. Restore volume access or resolve the destination choices, then retry." : {
       "extractionState" : "manual"
     },
@@ -1578,7 +1635,8 @@
       "comment" : "plain: label on a loose file that can't be found anymore"
     },
     "Unbind Folder" : {
-      "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
+      "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes",
+      "extractionState" : "manual"
     },
     "Undo" : {
       "comment" : "plain: Edit menu item"

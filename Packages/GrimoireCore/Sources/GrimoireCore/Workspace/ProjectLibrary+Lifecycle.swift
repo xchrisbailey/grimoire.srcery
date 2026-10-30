@@ -52,6 +52,10 @@ extension ProjectLibrary {
             for other in project.pendingLifecycleOperations.dropFirst(index + 1) {
                 guard !operation.conflicts(with: other) else { throw LifecycleError.pendingRepair }
                 let otherRoots = try reservationRoots(other, in: project)
+                try requireNoEndpointRecordConflict(
+                    operation, roots: roots, with: other, in: project, caseSensitiveNames: caseSensitiveNames)
+                try requireNoEndpointRecordConflict(
+                    other, roots: otherRoots, with: operation, in: project, caseSensitiveNames: caseSensitiveNames)
                 if try LifecyclePath.reserves(
                     other.source.url(in: reservationRoot(other.source.rootID, in: project)),
                     operation: operation, roots: roots,
@@ -78,6 +82,23 @@ extension ProjectLibrary {
     private func reservationRoot(_ id: FolderRoot.ID, in project: Project) throws -> URL {
         guard let root = project.root(id) else { throw LifecycleError.invalidRecord }
         return (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
+    }
+
+    private func requireNoEndpointRecordConflict(
+        _ operation: PendingLifecycleOperation, roots: [UUID: URL], with other: PendingLifecycleOperation,
+        in project: Project, caseSensitiveNames: (URL) -> Bool?
+    ) throws {
+        for endpoint in operation.reservedReferences {
+            guard let root = roots[endpoint.rootID] else { throw LifecycleError.pendingRepair }
+            for reference in other.recordReferences where project.root(reference.rootID) != nil {
+                if try LifecyclePath.contains(
+                    endpoint, in: root, reference, in: reservationRoot(reference.rootID, in: project),
+                    caseSensitiveNames: caseSensitiveNames)
+                {
+                    throw LifecycleError.pendingRepair
+                }
+            }
+        }
     }
 
     private func reservationRoots(_ operation: PendingLifecycleOperation, in project: Project) throws -> [UUID: URL] {
@@ -200,8 +221,10 @@ extension ProjectLibrary {
         if completed {
             updated.templateAssignments.removeAll { operation.before.contains($0) }
             updated.templateAssignments += operation.after
-            updated.lastOpenedFile = updated.lastOpenedFile.map(operation.relocated)
-            updated.expandedFolders = Set(updated.expandedFolders.map(operation.relocated))
+            if operation.kind == .relocation {
+                updated.lastOpenedFile = updated.lastOpenedFile.map(operation.relocated)
+                updated.expandedFolders = Set(updated.expandedFolders.map(operation.relocated))
+            }
         }
         updated.pendingLifecycleOperations.removeAll { $0.id == operation.id }
         try commit(projects.map { $0.id == id ? updated : $0 })

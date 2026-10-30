@@ -170,9 +170,10 @@ Manually restore the original item to an unambiguous recorded location, restore 
 access, then retry; retry never moves, reverses, or discards files. Verify conflicting
 assignment/source/binding operations remain blocked while unrelated name/theme edits
 remain available. Same-volume cross-root moves now migrate explicit choices and shared
-source references to the most-specific destination binding. Root relocation, unbind,
-and trash policies are not implemented by this slice; unsupported destructive operations
-fail closed rather than silently dropping configuration. The full feature is not shipped.
+source references to the most-specific destination binding. Root relocation is not
+implemented by this slice; unsupported operations fail closed rather than silently
+dropping configuration. Unbind and trash checks are described below. The full feature
+is not shipped.
 User-facing configured regrant accepts only an observable same-root identity in this
 slice. Authoritative library bookmark updates remain allowed without conflicting
 pending intent; creation must still revalidate them rather than writing through stale access.
@@ -223,6 +224,16 @@ must remain inactive. Unavailable alternative roots or substituted projection pa
 retain repair and both-root/alias save reservations. Malformed projections must report
 settings diagnostics without replacing the original store. Native checks remain
 **UNVERIFIED**; cross-volume completion is still awaiting the user's policy decision.
+
+Recovery records distinguish relocation from trash. An absent operation kind remains
+a legacy relocation; explicit null/unknown kinds or malformed optional fields must
+produce diagnostics without replacing stored settings. Relocation accepts its root-pair
+and source-coordinate fields but no trash scopes; trash accepts its scoped evidence
+but no relocation-only fields, even redundant ones. Restart never observes trash as
+a completed move. Check cross-kind conflicts in either record order and through physical
+aliases/other projects, while unrelated files remain writable and movable. Trash repair
+must remain an explicitly confirmed settings-only action, without document saves,
+access synchronization, or relocation remapping.
 
 After a verified move whose final settings save fails, dirty editors follow the moved
 file but must not atomically replace it until observation and settings finalization
@@ -288,6 +299,54 @@ and access (successful pre-saves are intentional). After a successful commit, al
 states must synchronously leave the deleted project without editable orphan authorizers;
 unrelated project windows stay untouched. A removed Workspace's authorizer remains
 fail-closed. These production-method regressions do not establish native GUI acceptance.
+
+### Unbind, trash, and settings-only trash repair
+
+Native warnings, cancellation, trash, restoration, and repair acceptance remain
+**UNVERIFIED**. Actual trash and unbind prepare their impact through Workspace
+and require confirmation after checking every affected managed buffer, including
+retained windows and another project's editor of the same physical item. A failed
+save vetoes mutation without discarding dirty text. Package integration tests and
+compiled app wiring do not verify native sheets or sandbox Trash behavior.
+
+Unbind a root containing assignments, opt-outs, and sources referenced by another
+binding. Review the owned choices to remove and remaining dependencies. Cancel must
+change neither settings nor files. A failed settings commit must preserve access,
+watchers, and configuration; success releases access only after one atomic settings
+commit. Sources and other disk files stay untouched. Rebinding starts unconfigured.
+Remove an inner overlapping binding and check retained outer choices become effective;
+rebind it and check its deleted inner choices do not return. Remaining assignments
+keep broken source references even when their source's root UUID no longer exists.
+
+Trash a configured folder with descendant choices, then a source used by other
+folders/bindings. Review every owned choice and source dependency before confirming.
+Preparation failure changes nothing. A failed filesystem call with the original
+identities unchanged preserves choices. Actual successful trash removes only the
+recorded owned subtree choices; remaining dependencies stay explicit and broken,
+never falling back to an ancestor or empty content. Restoring the item does not
+restore deleted choices. Actual-success selection cleanup does not open a replacement.
+
+Fail final settings persistence after actual trash. The UI must distinguish actual
+filesystem success from pending configuration removal. Restart with the item absent,
+restored, or replaced: none alone proves an interrupted trash outcome. Retry never
+searches Trash, replays, or reverses anything. Pending intent still guards own/foreign
+physical writes, case aliases, and substituted-parent symlinks. Restore original root
+and parent access/identity before attempting settings-only repair.
+
+Use **Finish configuration removal…** to inspect the recorded item, owned choices,
+and retained source dependencies. Confirm that it only applies the recorded settings
+removals and clears that one intent: it never moves, deletes, or restores files.
+Unlike actual trash/unbind, this settings-only repair must not save or release any
+document first: the pending reservation deliberately denies those writes. Open a
+restored document and edit it in same-project and foreign-project windows, including
+a strongly retained state. Check that cancel, failed settings persistence, and
+successful repair preserve the exact dirty buffers, selections, watchers, workspaces,
+access, and on-disk inode/bytes, without a trash callback. After repair clears its
+own reservation, retry a normal save; unrelated pending intent must remain untouched.
+Cancel and failed persistence preserve intent and choices. Relevant scope changes
+require renewed review; unavailable/replaced roots or parents block repair. A successful
+repair preserves unrelated choices and pending records. Any removed choices still
+require reassignment if the item is later restored.
 
 ## CI
 

@@ -15,6 +15,17 @@ struct CreatedDocumentsOpenError: LocalizedError {
 }
 
 extension WindowState {
+    func configureDestructiveActions() {
+        actions.didUnbind = { [weak self] in
+            guard let self else { return }
+            ExternalOpens.shared.rootsRemoved(in: projectID)
+        }
+        actions.willPerformDestructiveOperation = { [weak self] plan in
+            guard let self else { return false }
+            return ExternalOpens.shared.prepareDestructiveOperation(plan, in: projectID)
+        }
+    }
+
     func prepareProjectDeletion() -> Bool {
         // Publication handoffs are resolved separately, without changing selection during a staged deletion.
         guard deferredDocuments.isEmpty else { return false }

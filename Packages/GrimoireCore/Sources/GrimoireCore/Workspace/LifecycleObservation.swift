@@ -24,7 +24,8 @@ struct LifecycleObservation {
     }
 
     init(operation: PendingLifecycleOperation, roots: [UUID: URL]) throws {
-        guard let sourceRoot = roots[operation.source.rootID], let destinationRoot = roots[operation.destination.rootID]
+        guard operation.kind == .relocation,
+            let sourceRoot = roots[operation.source.rootID], let destinationRoot = roots[operation.destination.rootID]
         else { throw LifecycleError.pendingRepair }
         source = operation.source.url(in: sourceRoot)
         destination = operation.destination.url(in: destinationRoot)

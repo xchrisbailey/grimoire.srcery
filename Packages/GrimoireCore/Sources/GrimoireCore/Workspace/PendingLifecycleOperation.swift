@@ -49,6 +49,9 @@ extension FolderTemplateAssignment {
 }
 
 struct PendingLifecycleOperation: Codable, Hashable, Sendable {
+    enum Kind: String, Codable, Sendable { case relocation, trash }
+    var kind: Kind = .relocation
+    var trashRoots: [DestructiveRootScope]?
     let id: UUID
     let projectID: UUID
     let source: FileReference
@@ -62,15 +65,91 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     let destinationRootIdentity: LifecycleIdentity?
     let sourceProjections: [LifecycleSourceProjection]?
 
-    var sourceCoordinates: [FileReference] { [source] + (sourceProjections ?? []).map(\.source) }
+    var sourceCoordinates: [FileReference] {
+        if kind == .trash { return trashCoordinates }
+        return [source] + (sourceProjections ?? []).map(\.source)
+    }
 
-    var reservedReferences: [FileReference] { sourceCoordinates + [destination] }
+    var reservedReferences: [FileReference] { sourceCoordinates + (kind == .relocation ? [destination] : []) }
+
+    var recordReferences: [FileReference] { (before + after).flatMap { [$0.owner] + $0.sourceReferences } }
 
     var rootIdentities: [UUID: LifecycleIdentity] {
         var identities = [source.rootID: rootIdentity]
+        if kind == .trash {
+            for scope in trashRoots ?? [] { if let identity = scope.identity { identities[scope.id] = identity } }
+            return identities
+        }
         identities[destination.rootID] = destinationRootIdentity ?? rootIdentity
         for projection in sourceProjections ?? [] { identities[projection.source.rootID] = projection.rootIdentity }
         return identities
+    }
+
+    private var trashCoordinates: [FileReference] {
+        guard let originalRoot = trashRoots?.first(where: { $0.id == source.rootID }) else { return [source] }
+        let parts =
+            URL(filePath: originalRoot.resolvedPath).pathComponents
+            + source.relativePath.split(separator: "/").map(String.init)
+        // Scoped paths only deny conflicting mutations. They never prove a trash
+        // outcome, grant access, or become relocation/source-ownership evidence.
+        return (trashRoots ?? []).compactMap { scope in
+            let rootParts = URL(filePath: scope.resolvedPath).pathComponents
+            guard parts.starts(with: rootParts) else { return nil }
+            return FileReference(
+                rootID: scope.id, relativePath: parts.dropFirst(rootParts.count).joined(separator: "/"))
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, trashRoots, id, projectID, source, destination, rootIdentity, itemIdentity
+        case sourceParentIdentity, destinationParentIdentity, before, after, destinationRootIdentity, sourceProjections
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        kind = values.contains(.kind) ? try values.decode(Kind.self, forKey: .kind) : .relocation
+        trashRoots =
+            values.contains(.trashRoots) ? try values.decode([DestructiveRootScope].self, forKey: .trashRoots) : nil
+        id = try values.decode(UUID.self, forKey: .id)
+        projectID = try values.decode(UUID.self, forKey: .projectID)
+        source = try values.decode(FileReference.self, forKey: .source)
+        destination = try values.decode(FileReference.self, forKey: .destination)
+        rootIdentity = try values.decode(LifecycleIdentity.self, forKey: .rootIdentity)
+        itemIdentity = try values.decode(LifecycleIdentity.self, forKey: .itemIdentity)
+        sourceParentIdentity = try values.decode(LifecycleIdentity.self, forKey: .sourceParentIdentity)
+        destinationParentIdentity = try values.decode(LifecycleIdentity.self, forKey: .destinationParentIdentity)
+        before = try values.decode([FolderTemplateAssignment].self, forKey: .before)
+        after = try values.decode([FolderTemplateAssignment].self, forKey: .after)
+        destinationRootIdentity =
+            values.contains(.destinationRootIdentity)
+            ? try values.decode(LifecycleIdentity.self, forKey: .destinationRootIdentity) : nil
+        sourceProjections =
+            values.contains(.sourceProjections)
+            ? try values.decode([LifecycleSourceProjection].self, forKey: .sourceProjections) : nil
+    }
+
+    init(
+        kind: Kind = .relocation, trashRoots: [DestructiveRootScope]? = nil,
+        id: UUID, projectID: UUID, source: FileReference, destination: FileReference,
+        rootIdentity: LifecycleIdentity, itemIdentity: LifecycleIdentity,
+        sourceParentIdentity: LifecycleIdentity, destinationParentIdentity: LifecycleIdentity,
+        before: [FolderTemplateAssignment], after: [FolderTemplateAssignment],
+        destinationRootIdentity: LifecycleIdentity? = nil, sourceProjections: [LifecycleSourceProjection]? = nil
+    ) {
+        self.kind = kind
+        self.trashRoots = trashRoots
+        self.id = id
+        self.projectID = projectID
+        self.source = source
+        self.destination = destination
+        self.rootIdentity = rootIdentity
+        self.itemIdentity = itemIdentity
+        self.sourceParentIdentity = sourceParentIdentity
+        self.destinationParentIdentity = destinationParentIdentity
+        self.before = before
+        self.after = after
+        self.destinationRootIdentity = destinationRootIdentity
+        self.sourceProjections = sourceProjections
     }
 
     func contains(_ reference: FileReference) -> Bool {
@@ -93,8 +172,18 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
 
     func conflicts(with other: Self) -> Bool {
         let owners = Set((before + after).map(\.owner))
-        return other.reservedReferences.contains(where: contains)
+        return itemIdentity == other.itemIdentity || other.reservedReferences.contains(where: contains)
             || !(owners.isDisjoint(with: (other.before + other.after).map(\.owner)))
+            || recordReferences.contains(where: other.reservesRecord)
+            || other.recordReferences.contains(where: reservesRecord)
+    }
+
+    private func reservesRecord(_ reference: FileReference) -> Bool {
+        reservedReferences.contains { endpoint in
+            reference.rootID == endpoint.rootID
+                && reference.relativePath.split(separator: "/").starts(
+                    with: endpoint.relativePath.split(separator: "/"))
+        }
     }
 
     func validate(in project: Project) throws {
@@ -102,6 +191,11 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         try FolderTemplateAssignment.validate(destination.relativePath, allowsRoot: false)
         try FolderTemplateAssignment.validate(before)
         try FolderTemplateAssignment.validate(after)
+        if kind == .trash {
+            try validateTrash(in: project)
+            return
+        }
+        guard trashRoots == nil else { throw LifecycleError.invalidRecord }
         try validateSourceProjections(in: project)
         guard projectID == project.id, project.root(source.rootID) != nil, project.root(destination.rootID) != nil,
             source != destination,
@@ -129,7 +223,42 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         try FolderTemplateAssignment.validate(project.templateAssignments.filter { !before.contains($0) } + after)
     }
 
+    private func validateTrash(in project: Project) throws {
+        guard destinationRootIdentity == nil, sourceProjections == nil,
+            projectID == project.id, source == destination, project.root(source.rootID) != nil,
+            rootIdentity.type == S_IFDIR, sourceParentIdentity.type == S_IFDIR,
+            destinationParentIdentity == sourceParentIdentity,
+            itemIdentity.type == S_IFREG || itemIdentity.type == S_IFDIR,
+            !before.isEmpty, Set(before.map(\.owner)).count == before.count,
+            Set(after.map(\.owner)).count == after.count,
+            before.allSatisfy({ project.templateAssignments.contains($0) }),
+            after.allSatisfy({ before.contains($0) }),
+            let trashRoots, !trashRoots.isEmpty,
+            Set(trashRoots.map(\.id)).count == trashRoots.count,
+            trashRoots.contains(where: { $0.id == source.rootID && $0.identity == rootIdentity }),
+            trashRoots.allSatisfy({ scope in
+                guard let root = project.root(scope.id) else { return false }
+                return root.bookmark == scope.bookmark && root.lastKnownPath == scope.path
+                    && scope.identity?.type == S_IFDIR && scope.resolvedPath.hasPrefix("/")
+            })
+        else { throw LifecycleError.invalidRecord }
+        func parts(_ reference: FileReference) -> [String]? {
+            guard let scope = trashRoots.first(where: { $0.id == reference.rootID }) else { return nil }
+            return URL(filePath: scope.resolvedPath).pathComponents
+                + reference.relativePath.split(separator: "/").map(String.init)
+        }
+        guard let sourceParts = parts(source) else { throw LifecycleError.invalidRecord }
+        func inside(_ reference: FileReference) -> Bool { parts(reference)?.starts(with: sourceParts) == true }
+        guard before.filter({ !after.contains($0) }).allSatisfy({ inside($0.owner) }),
+            after.allSatisfy({ assignment in
+                guard !inside(assignment.owner), case .useSource(let source) = assignment.choice else { return false }
+                return inside(source)
+            })
+        else { throw LifecycleError.invalidRecord }
+    }
+
     func relocated(_ reference: FileReference) -> FileReference {
+        guard kind == .relocation else { return reference }
         guard let coordinate = sourceCoordinates.first(where: { $0.rootID == reference.rootID }) else {
             return reference
         }
@@ -161,34 +290,6 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
             rootID: destination.rootID,
             relativePath: (destination.relativePath.split(separator: "/") + parts.dropFirst(prefix.count)).joined(
                 separator: "/"))
-    }
-}
-
-extension PendingLifecycleOperation {
-    private enum CodingKeys: String, CodingKey {
-        case id, projectID, source, destination, rootIdentity, itemIdentity
-        case sourceParentIdentity, destinationParentIdentity, before, after, destinationRootIdentity, sourceProjections
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        projectID = try container.decode(UUID.self, forKey: .projectID)
-        source = try container.decode(FileReference.self, forKey: .source)
-        destination = try container.decode(FileReference.self, forKey: .destination)
-        rootIdentity = try container.decode(LifecycleIdentity.self, forKey: .rootIdentity)
-        itemIdentity = try container.decode(LifecycleIdentity.self, forKey: .itemIdentity)
-        sourceParentIdentity = try container.decode(LifecycleIdentity.self, forKey: .sourceParentIdentity)
-        destinationParentIdentity = try container.decode(LifecycleIdentity.self, forKey: .destinationParentIdentity)
-        before = try container.decode([FolderTemplateAssignment].self, forKey: .before)
-        after = try container.decode([FolderTemplateAssignment].self, forKey: .after)
-        // Only a missing field is legacy. Explicit null or malformed identity is not a default.
-        destinationRootIdentity =
-            container.contains(.destinationRootIdentity)
-            ? try container.decode(LifecycleIdentity.self, forKey: .destinationRootIdentity) : nil
-        sourceProjections =
-            container.contains(.sourceProjections)
-            ? try container.decode([LifecycleSourceProjection].self, forKey: .sourceProjections) : nil
     }
 }
 
@@ -247,6 +348,15 @@ struct LifecycleRecoveryError: LocalizedError {
     let cause: any Error
 
     var errorDescription: String? {
+        if operation.kind == .trash {
+            return String(
+                localized:
+                    "A trash operation has an unknown outcome. Review its recorded configuration removal."
+            )
+                + "\n" + String(localized: "Retry never moves or restores files.")
+                + "\n[" + operation.source.rootID.uuidString + "]/" + operation.source.relativePath
+                + "\n" + cause.localizedDescription
+        }
         let status =
             moved
             ? String(localized: "The item moved, but its project changes are still pending.")

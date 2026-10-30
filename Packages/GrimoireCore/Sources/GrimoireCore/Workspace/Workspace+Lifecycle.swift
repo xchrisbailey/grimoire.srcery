@@ -16,6 +16,7 @@ public struct LifecycleResult {
 }
 
 struct LifecycleOperations {
+    var trash: (URL) throws -> URL? = FileOperations.moveToTrash
     var rename: (URL, String) throws -> URL = { try FileOperations.rename($0, to: $1) }
     var move: (URL, URL) throws -> URL = { try FileOperations.move($0, into: $1) }
     var caseSensitiveNames: (URL) -> Bool? = LifecyclePath.volumeCaseSensitiveNames
@@ -30,7 +31,8 @@ extension Workspace {
     public var lifecycleRepairURLs: [URL] {
         (project?.pendingLifecycleOperations ?? []).flatMap { operation in
             // Last-known paths are only hints for manual repair in Finder, never reconciliation evidence.
-            [operation.source, operation.destination].compactMap { reference in
+            let references = operation.kind == .trash ? [operation.source] : [operation.source, operation.destination]
+            return references.compactMap { reference in
                 let root =
                     folders.first { $0.id == reference.rootID }?.url
                     ?? project?.root(reference.rootID)?.lastKnownURL
@@ -279,6 +281,9 @@ extension Workspace {
     }
 
     private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
+        // A restarted trash has no durable destination receipt. Neither absence nor a
+        // restored original proves its outcome; only scoped settings-only repair can retire it.
+        guard operation.kind != .trash else { throw LifecycleError.pendingRepair }
         let roots = try Dictionary(uniqueKeysWithValues: operation.rootIdentities.keys.map { ($0, try rootURL($0)) })
         return try LifecycleObservation(operation: operation, roots: roots)
             .completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
@@ -289,6 +294,9 @@ extension Workspace {
     }
 
     func requireNoPendingLifecycle(at url: URL) throws {
+        try library.requireNoForeignPendingSave(
+            at: url, requesting: projectID, accessibleRoots: folders.compactMap(\.url),
+            caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
         for operation in project?.pendingLifecycleOperations ?? []
         where try LifecyclePath.reserves(
             url, operation: operation, roots: reservationRoots(for: operation),
