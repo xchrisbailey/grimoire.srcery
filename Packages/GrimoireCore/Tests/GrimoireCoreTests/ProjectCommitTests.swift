@@ -154,6 +154,11 @@ import Testing
         let bytes = try Data(contentsOf: isolated.fileURL)
         let replacement = try scratch.folder("replacement")
 
+        #expect(throws: (any Error).self) { try windows[0].unbind(UUID()) }
+        #expect(throws: (any Error).self) { try windows[0].regrantAccess(to: UUID(), with: replacement) }
+        #expect(windows[0].folders.first?.root == root)
+        #expect(try Data(contentsOf: isolated.fileURL) == bytes)
+
         try withBlockedWrites(to: isolated) { () throws in
             #expect(throws: (any Error).self) { try windows[0].unbind(root.id) }
             #expect(throws: (any Error).self) { try windows[0].regrantAccess(to: root.id, with: replacement) }

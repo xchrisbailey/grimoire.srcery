@@ -213,29 +213,6 @@ public final class Workspace {
         folders.first { $0.id == reference.rootID }?.url.map(reference.url(in:))
     }
 
-    // MARK: - Tree state
-
-    public func isExpanded(_ url: URL) -> Bool {
-        guard let reference = reference(for: url) else { return false }
-        return project?.expandedFolders.contains(reference) ?? false
-    }
-
-    public func setExpanded(_ url: URL, _ expanded: Bool) {
-        guard let reference = reference(for: url), isExpanded(url) != expanded else { return }
-        do {
-            try library.update(projectID) { project in
-                if expanded {
-                    project.expandedFolders.insert(reference)
-                } else {
-                    project.expandedFolders.remove(reference)
-                }
-            }
-            lastError = nil
-        } catch {
-            lastError = error
-        }
-    }
-
     // MARK: - Access
 
     private func open(_ root: FolderRoot) -> BoundFolder {
@@ -325,6 +302,31 @@ public final class Workspace {
         scans.removeValue(forKey: rootID)?.cancel()
         watchers.removeValue(forKey: rootID)?.stop()
         accessed.removeValue(forKey: rootID)?.stopAccessingSecurityScopedResource()
+    }
+}
+
+// MARK: - Tree state
+
+extension Workspace {
+    public func isExpanded(_ url: URL) -> Bool {
+        guard let reference = reference(for: url) else { return false }
+        return project?.expandedFolders.contains(reference) ?? false
+    }
+
+    public func setExpanded(_ url: URL, _ expanded: Bool) {
+        guard let reference = reference(for: url), isExpanded(url) != expanded else { return }
+        do {
+            try library.update(projectID) { project in
+                if expanded {
+                    project.expandedFolders.insert(reference)
+                } else {
+                    project.expandedFolders.remove(reference)
+                }
+            }
+            lastError = nil
+        } catch {
+            lastError = error
+        }
     }
 }
 

@@ -167,13 +167,7 @@ final class WindowState {
                 reportWorkspaceError()
             }
             openError = nil
-            if let projectID, let reference = workspace?.reference(for: url) {
-                do {
-                    try library.update(projectID) { $0.lastOpenedFile = reference }
-                } catch {
-                    actions.error = error
-                }
-            }
+            rememberLastOpenedFile(url)
         } catch {
             openError = error
         }
@@ -306,13 +300,7 @@ final class WindowState {
         selectedFile = newURL
         FileModes.remember(editorMode, for: newURL)
         document?.moved(to: newURL)
-        if let projectID, let reference = workspace?.reference(for: newURL) {
-            do {
-                try library.update(projectID) { $0.lastOpenedFile = reference }
-            } catch {
-                actions.error = error
-            }
-        }
+        rememberLastOpenedFile(newURL)
     }
 
     private func itemTrashed(_ url: URL) {
@@ -323,6 +311,17 @@ final class WindowState {
         document?.discard()
         document = nil
         selectedFile = nil
+    }
+}
+
+extension WindowState {
+    private func rememberLastOpenedFile(_ url: URL) {
+        guard let projectID, let reference = workspace?.reference(for: url) else { return }
+        do {
+            try library.update(projectID) { $0.lastOpenedFile = reference }
+        } catch {
+            actions.error = error
+        }
     }
 }
 
