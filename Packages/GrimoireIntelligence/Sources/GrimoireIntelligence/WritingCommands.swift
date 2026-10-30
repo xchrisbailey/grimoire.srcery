@@ -55,6 +55,9 @@ extension IntelligenceService {
             let request = IntelligenceRequest(instructions: Prompts.todo, text: source)
             return streamGenerated(GeneratedTasks.self, for: request) { $0.markdown }
         case .translate(let language):
+            do { try TranslationSource.validateReferences(in: source) } catch {
+                return AsyncThrowingStream { $0.finish(throwing: error) }
+            }
             return stream(IntelligenceRequest(instructions: Prompts.translate(into: language), text: source))
         case .rewrite, .shorten, .expand:
             return stream(IntelligenceRequest(instructions: Self.editInstructions(command), text: source))
