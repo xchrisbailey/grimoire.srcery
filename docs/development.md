@@ -225,6 +225,9 @@ evidence or access grants. Repair/reconcile through A's own workspace, then retr
 save and restart. No assignments migrate to B; unrelated physical paths remain writable.
 
 Delete or replace a queued published target before repairing the old dirty editor.
+Also replace its parent directory with a regular file: `ENOTDIR`, like `ENOENT`,
+is a terminal missing publication path, not a retryable access failure. Keep that
+replacement parent untouched and continue any valid neighboring queued handoff.
 After that buffer saves, the missing/mismatched handoff must report its original URL
 and leave the queue, without opening/deleting the replacement or publishing again.
 Several failures must be reported together while valid queued handoffs still run.

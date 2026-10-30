@@ -90,7 +90,7 @@ extension WindowState {
     }
 
     private static func isMissingPublishedFile(_ error: any Error) -> Bool {
-        if let error = error as? POSIXError { return error.code == .ENOENT }
+        if let error = error as? POSIXError { return error.code == .ENOENT || error.code == .ENOTDIR }
         guard let error = error as? CocoaError else { return false }
         return error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile
     }
