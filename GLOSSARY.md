@@ -27,3 +27,7 @@ _Avoid_: Folder automation rule
 **Template opt-out**:
 An explicit folder choice to use no content template, inherited by descendants unless a nearer folder overrides it.
 _Avoid_: Missing assignment
+
+**Unresolved folder template assignment**:
+A folder's inactive template choice or opt-out whose folder can no longer be located and which awaits explicit relinking or removal.
+_Avoid_: No template, missing assignment
