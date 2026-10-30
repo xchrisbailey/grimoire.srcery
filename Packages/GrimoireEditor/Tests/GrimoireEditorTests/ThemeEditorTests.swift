@@ -36,7 +36,7 @@ import Testing
     @Test(arguments: [false, true]) func appearanceKeepsThemeAndRenderingTogether(dark: Bool) throws {
         let controller = makeEditor(Self.sample, dark: dark, mode: .raw)
         let window = try #require(controller.textView.window)
-        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        #expect(controller.textView.isDarkAppearance == dark)
         controller.theme = EditorTheme(light: .latte, dark: Self.neon)
         #expect(controller.styler.theme.isDark == dark)
         #expect(controller.styler.theme.current.id == (dark ? "neon" : Theme.latte.id))

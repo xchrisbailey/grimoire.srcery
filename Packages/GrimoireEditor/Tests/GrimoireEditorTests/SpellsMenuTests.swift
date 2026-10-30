@@ -6,6 +6,28 @@ import Testing
 @testable import GrimoireEditor
 
 @MainActor @Suite(.serialized) struct SpellsMenuTests {
+    @Test func freshEditorPreferencesAreIsolatedAndCleanedUp() throws {
+        var suite: String?
+        defer {
+            if let suite { UserDefaults.standard.removePersistentDomain(forName: suite) }
+        }
+        weak var releasedController: EditorController?
+        try autoreleasepool {
+            let controller = editorAtEnd()
+            releasedController = controller
+            let defaults = try #require(controller.defaults as? EditorTestDefaults)
+            suite = defaults.suiteName
+            controller.type("/h2")
+            controller.press(#selector(NSResponder.insertNewline(_:)))
+            #expect(controller.recentSpells == ["h2"])
+            #expect(editorAtEnd().recentSpells.isEmpty)
+            #expect(defaults.persistentDomain(forName: defaults.suiteName)?["grimoire.recentSpells"] != nil)
+        }
+        #expect(releasedController == nil)
+        let name = try #require(suite)
+        #expect(UserDefaults.standard.persistentDomain(forName: name)?.isEmpty != false)
+    }
+
     func editorAtEnd(_ text: String = "") -> EditorController {
         makeEditor(text, caret: (text as NSString).length, freshDefaults: true)
     }

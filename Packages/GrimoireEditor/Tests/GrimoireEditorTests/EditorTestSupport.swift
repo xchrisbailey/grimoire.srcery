@@ -8,6 +8,20 @@ import Testing
 /// The windows the editors live in, kept for the whole run so hosting never changes mid-test.
 @MainActor private var windows: [NSWindow] = []
 
+final class EditorTestDefaults: UserDefaults, @unchecked Sendable {
+    let suiteName: String
+
+    init() {
+        suiteName = "grimoire-tests-\(UUID())"
+        super.init(suiteName: suiteName)!
+    }
+
+    deinit {
+        // Only this fixture's domain is ours to remove; existing test suites belong to the user.
+        removePersistentDomain(forName: suiteName)
+    }
+}
+
 /// An editor hosted in a window, as in the app, with the repo's fonts registered.
 @MainActor func makeEditor(
     _ text: String = "", height: CGFloat = 700, width: CGFloat = 900, dark: Bool = false,
@@ -17,7 +31,7 @@ import Testing
     BrandFontTests.registerRepoFonts()
     let controller = EditorController()
     if freshDefaults {
-        controller.defaults = UserDefaults(suiteName: "grimoire-tests-\(UUID())") ?? .standard
+        controller.defaults = EditorTestDefaults()
     }
     controller.styler.highlightsSynchronously = synchronousHighlighting
     controller.mode = mode

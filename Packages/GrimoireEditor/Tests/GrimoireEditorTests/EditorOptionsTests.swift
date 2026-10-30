@@ -122,12 +122,13 @@ import Testing
         #expect(first?.location == 0)
     }
 
-    @Test func partsOfSpeechColorWordsButNotCode() {
-        let controller = makeEditor("Ravens fly quickly over `dark` hills.", mode: .preview, caret: 0)
+    @Test(arguments: [false, true]) func partsOfSpeechColorWordsButNotCode(dark: Bool) {
+        let controller = makeEditor("Ravens fly quickly over `dark` hills.", dark: dark, mode: .preview, caret: 0)
         var theme = controller.theme
         theme.partsOfSpeech = Set(PartOfSpeech.allCases)
         controller.theme = theme
-        let palette = controller.styler.theme.current.palette
+        let palette = dark ? BrandPalette.mocha : BrandPalette.latte
+        #expect(controller.styler.theme.current.palette == palette)
         let text = controller.text as NSString
         #expect(controller.color(at: text.range(of: "fly").location) == palette.link)
         #expect(controller.color(at: text.range(of: "quickly").location) == palette.magic)
