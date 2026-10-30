@@ -1,0 +1,78 @@
+import Foundation
+
+extension Workspace {
+    /// Inspects only this folder's saved choice, including an inactive unresolved record.
+    public func templateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
+        let owner = try templateOwner(for: folder)
+        return project?.templateAssignments.first { $0.owner == owner }
+    }
+
+    /// Nil represents a cancelled picker, not removal of the previous choice.
+    public func assignTemplate(_ source: URL?, to folder: URL) throws {
+        guard let source else { return }
+        let owner = try templateOwner(for: folder)
+        let reference = try templateSourceReference(for: source)
+        try saveTemplateAssignment(FolderTemplateAssignment(owner: owner, choice: .useSource(reference)))
+    }
+
+    /// Resolves a stored source using live bound-root access, never last-known paths.
+    public func templateSourceURL(for assignment: FolderTemplateAssignment) throws -> URL? {
+        try assignment.validate()
+        guard case .useSource(let reference) = assignment.choice else { return nil }
+        guard let root = templateRoots.first(where: { $0.id == reference.rootID })?.url else {
+            throw TemplateAssignmentError.ineligibleSource
+        }
+        let url = reference.url(in: root)
+        _ = try templateSourceReference(for: url)
+        return url.resolvingSymlinksInPath()
+    }
+
+    private var templateRoots: [BoundFolder] {
+        guard isActive, let project else { return [] }
+        return project.roots.compactMap { root in
+            folders.first { $0.id == root.id && $0.status != .needsAccess && $0.url != nil }
+        }
+    }
+
+    private func templateReference(for url: URL) throws -> FileReference? {
+        guard url.isFileURL, !url.pathComponents.contains(".."), !url.pathComponents.contains(".") else {
+            throw TemplateAssignmentError.invalidReference
+        }
+        // Sorting is stable by project order for equivalent-depth aliases.
+        let candidates = templateRoots.enumerated().sorted { left, right in
+            let leftDepth = left.element.url?.resolvingSymlinksInPath().pathComponents.count ?? 0
+            let rightDepth = right.element.url?.resolvingSymlinksInPath().pathComponents.count ?? 0
+            return leftDepth == rightDepth ? left.offset < right.offset : leftDepth > rightDepth
+        }
+        for (_, root) in candidates {
+            if let rootURL = root.url,
+                let reference = FileReference(rootID: root.id, rootURL: rootURL, url: url)
+            {
+                return reference
+            }
+        }
+        return nil
+    }
+
+    private func templateOwner(for url: URL) throws -> FileReference {
+        guard let reference = try templateReference(for: url),
+            try url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
+        else { throw TemplateAssignmentError.unavailableFolder }
+        try FolderTemplateAssignment.validate(reference.relativePath, allowsRoot: true)
+        return reference
+    }
+
+    private func templateSourceReference(for url: URL) throws -> FileReference {
+        let resolved = url.resolvingSymlinksInPath()
+        guard let reference = try templateReference(for: url),
+            ["md", "mdx"].contains(resolved.pathExtension.lowercased()),
+            try resolved.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true
+        else { throw TemplateAssignmentError.ineligibleSource }
+        try FolderTemplateAssignment.validate(reference.relativePath, allowsRoot: false)
+        let bytes = try Data(contentsOf: resolved)
+        guard !bytes.contains(0), String(data: bytes, encoding: .utf8) != nil else {
+            throw TemplateAssignmentError.unsupportedText
+        }
+        return reference
+    }
+}

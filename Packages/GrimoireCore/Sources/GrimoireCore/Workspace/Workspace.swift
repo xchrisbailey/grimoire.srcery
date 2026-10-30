@@ -33,6 +33,13 @@ public final class Workspace {
 
     public var project: Project? { library.project(projectID) }
 
+    func saveTemplateAssignment(_ assignment: FolderTemplateAssignment) throws {
+        try library.update(projectID) { project in
+            project.templateAssignments.removeAll { $0.owner == assignment.owner }
+            project.templateAssignments.append(assignment)
+        }
+    }
+
     /// Resolves every root, starts watching, and scans. Calling it again picks up roots
     /// bound since the last call.
     public func activate() {

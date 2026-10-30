@@ -12,6 +12,7 @@ final class FileActions {
     var newAlias = ""
     var banishing: URL?
     var error: Error?
+    var configuringTemplate: URL?
     /// Folders still to be offered an alias after this one, from binding several at once.
     private var aliasQueue: [(id: FolderRoot.ID, name: String)] = []
 
@@ -172,6 +173,15 @@ private struct FileActionPrompts: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .sheet(
+                isPresented: Binding(
+                    get: { actions.configuringTemplate != nil },
+                    set: { if !$0 { actions.configuringTemplate = nil } })
+            ) {
+                if let workspace, let folder = actions.configuringTemplate {
+                    ContentTemplateSheet(folder: folder, workspace: workspace)
+                }
+            }
             .alert(
                 String(localized: "Rename “\(actions.renaming?.lastPathComponent ?? "")”"),
                 isPresented: Binding(get: { actions.renaming != nil }, set: { if !$0 { actions.renaming = nil } })

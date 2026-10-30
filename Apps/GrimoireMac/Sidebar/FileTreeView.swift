@@ -280,6 +280,7 @@ private struct FolderMenu: View {
     var body: some View {
         Button("Conjure a page") { actions.createDocument(in: url, workspace: workspace) }
         Button("New Folder") { actions.createFolder(in: url, workspace: workspace) }
+        Button("Content Template…") { actions.configuringTemplate = url }
         Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
 }

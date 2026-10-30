@@ -36,6 +36,7 @@ public struct ProjectStore: Sendable {
     }
 
     public func save(_ projects: [Project]) throws {
+        for project in projects { try FolderTemplateAssignment.validate(project.templateAssignments) }
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let encoder = JSONEncoder()

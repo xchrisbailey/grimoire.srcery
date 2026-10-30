@@ -22,6 +22,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     /// Words the spell checker accepts in this project's files, besides the system
     /// dictionary.
     public var dictionary: [String]
+    public var templateAssignments: [FolderTemplateAssignment]
 
     public init(
         id: UUID = UUID(),
@@ -34,7 +35,8 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         lastOpenedFile: FileReference? = nil,
         expandedFolders: Set<FileReference> = [],
         overrides: ProjectOverrides = ProjectOverrides(),
-        dictionary: [String] = []
+        dictionary: [String] = [],
+        templateAssignments: [FolderTemplateAssignment] = []
     ) {
         self.id = id
         self.name = name
@@ -47,10 +49,12 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         self.expandedFolders = expandedFolders
         self.overrides = overrides
         self.dictionary = dictionary
+        self.templateAssignments = templateAssignments
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, icon, color, roots, looseFiles, kind, lastOpenedFile, expandedFolders, overrides, dictionary
+        case templateAssignments
     }
 
     public init(from decoder: Decoder) throws {
@@ -68,6 +72,10 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
         // Projects saved before overrides existed have none.
         overrides = try container.decodeIfPresent(ProjectOverrides.self, forKey: .overrides) ?? ProjectOverrides()
         dictionary = try container.decodeIfPresent([String].self, forKey: .dictionary) ?? []
+        templateAssignments =
+            container.contains(.templateAssignments)
+            ? try container.decode([FolderTemplateAssignment].self, forKey: .templateAssignments) : []
+        try FolderTemplateAssignment.validate(templateAssignments)
     }
 
     public func root(_ id: UUID) -> FolderRoot? {
