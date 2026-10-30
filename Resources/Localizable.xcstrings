@@ -25,6 +25,9 @@
     "Move within one bound folder, not across bindings or a bound root. Nothing changed." : {
       "extractionState" : "manual"
     },
+    "This move crosses an unsupported filesystem or bound-root boundary. Nothing changed." : {
+      "extractionState" : "manual"
+    },
     "Invalid folder move recovery record. Repair the project settings before retrying." : {
       "extractionState" : "manual"
     },

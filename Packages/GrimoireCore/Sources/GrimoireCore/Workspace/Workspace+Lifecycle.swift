@@ -261,8 +261,17 @@ extension Workspace {
     }
 
     private func lifecycleReference(for url: URL) throws -> FileReference? {
+        let roots = templateRoots
+        for root in project?.roots ?? [] where !roots.contains(where: { $0.id == root.id }) {
+            // Inaccessible bindings can deny an ambiguous boundary, never grant ownership
+            // through their last-known paths or let an outer binding silently take over.
+            let hint = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
+            if try LifecyclePath.overlaps(url, hint, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) {
+                throw LifecycleError.pendingRepair
+            }
+        }
         var best: (reference: FileReference, depth: Int)?
-        for folder in templateRoots {
+        for folder in roots {
             guard let root = folder.url,
                 let reference = try LifecyclePath.reference(rootID: folder.id, root: root, url: url)
             else { continue }
@@ -315,13 +324,12 @@ extension Workspace {
     }
 
     func requireNoPendingLifecycle(at url: URL) throws {
-        for operation in project?.pendingLifecycleOperations ?? [] {
-            if try LifecyclePath.reserves(
-                url, operation: operation, roots: reservationRoots(for: operation),
-                caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
-            {
-                throw LifecycleError.pendingRepair
-            }
+        for operation in project?.pendingLifecycleOperations ?? []
+        where try LifecyclePath.reserves(
+            url, operation: operation, roots: reservationRoots(for: operation),
+            caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+        {
+            throw LifecycleError.pendingRepair
         }
     }
 

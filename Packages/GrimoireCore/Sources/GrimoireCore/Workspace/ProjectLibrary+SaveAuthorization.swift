@@ -25,13 +25,12 @@ extension ProjectLibrary {
                         }
                     }
                 }
-                for roots in variants {
-                    if try LifecyclePath.reserves(
-                        url, operation: operation, roots: roots, caseSensitiveNames: caseSensitiveNames)
-                    {
-                        throw LifecycleRecoveryError(
-                            operation: operation, moved: false, cause: LifecycleError.pendingRepair)
-                    }
+                for roots in variants
+                where try LifecyclePath.reserves(
+                    url, operation: operation, roots: roots, caseSensitiveNames: caseSensitiveNames)
+                {
+                    throw LifecycleRecoveryError(
+                        operation: operation, moved: false, cause: LifecycleError.pendingRepair)
                 }
             }
         }

@@ -6,6 +6,28 @@ import Testing
 private enum PendingSaveAttempt: CaseIterable, Sendable { case manual, autosave, keepMine }
 
 @MainActor @Suite struct LifecycleSaveTests {
+    @Test(arguments: [false, true])
+    func crossRootPendingSubtreeProtectsDirtyEditorsInBothProjects(separateProject: Bool) async throws {
+        let fixture = try await PendingSaveFixture(
+            rename: false, subtree: true, separateProject: separateProject, crossRoot: true)
+        defer { fixture.cleanup() }
+        #expect(!fixture.document.save())
+        #expect(!fixture.otherDocument.save())
+        #expect(!fixture.document.close())
+        #expect(!fixture.otherDocument.close())
+        try fixture.assertBlocked()
+        #expect(fixture.otherDocument.isDirty && fixture.otherDocument.savedText == "original")
+        #expect(fixture.otherDocument.text == "other buffer")
+        try fixture.restoreSettingsAccess()
+        fixture.workspace.reconcileLifecycleOperations()
+        #expect(!fixture.workspace.hasPendingLifecycleOperations)
+        #expect(fixture.document.save())
+        #expect(try String(contentsOf: fixture.moved, encoding: .utf8) == "dirty buffer")
+        #expect(
+            ProjectLibrary(store: ProjectStore(fileURL: fixture.library.storageURL)).projects
+                == fixture.library.projects)
+    }
+
     @Test func removedProjectDoesNotAuthorizeAnOrphanDocument() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["page.md": "original"])
@@ -194,17 +216,19 @@ private enum PendingSaveAttempt: CaseIterable, Sendable { case manual, autosave,
     let identity: LifecycleIdentity
     let directory: URL
 
-    init(rename: Bool, subtree: Bool = false, separateProject: Bool = false) async throws {
+    init(rename: Bool, subtree: Bool = false, separateProject: Bool = false, crossRoot: Bool = false) async throws {
         scratch = try Scratch()
         (workspace, library) = try await scratch.workspace(files: ["group/source.md": "original"])
         let source = scratch.url.appending(path: "notes/group/source.md")
         let owner = try scratch.folder("notes/owner")
-        let target = try scratch.folder("notes/target")
+        let target = try scratch.folder(crossRoot ? "destination" : "notes/target")
+        if crossRoot { try library.bindFolder(target, to: workspace.projectID) }
         try workspace.assignTemplate(source, to: owner)
         let otherID: Project.ID
         if separateProject {
             otherID = try library.createProject(named: "Other project").id
             try library.bindFolder(source.deletingLastPathComponent().deletingLastPathComponent(), to: otherID)
+            if crossRoot { try library.bindFolder(target, to: otherID) }
         } else {
             otherID = workspace.projectID
         }

@@ -182,7 +182,7 @@ public enum LifecycleError: Error, LocalizedError {
         case .unsupportedBoundary:
             String(
                 localized:
-                    "Move within one bound folder, not across bindings or a bound root. Nothing changed."
+                    "This move crosses an unsupported filesystem or bound-root boundary. Nothing changed."
             )
         case .invalidRecord:
             String(localized: "Invalid folder move recovery record. Repair the project settings before retrying.")
@@ -201,6 +201,7 @@ struct LifecycleRecoveryError: LocalizedError {
             ? String(localized: "The item moved, but its project changes are still pending.")
             : LifecycleError.pendingRepair.localizedDescription
         return status + "\n[" + operation.source.rootID.uuidString + "]/" + operation.source.relativePath
-            + " → " + operation.destination.relativePath + "\n" + cause.localizedDescription
+            + " → [" + operation.destination.rootID.uuidString + "]/" + operation.destination.relativePath
+            + "\n" + cause.localizedDescription
     }
 }

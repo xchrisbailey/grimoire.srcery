@@ -147,7 +147,7 @@ Also recheck Create Template/Edit Template handoff and ordinary untemplated crea
 Package integration tests cover Core results and persisted bytes, not these native
 picker, action-label, scope-confirmation, name-preservation, or focus interactions.
 
-### Recoverable same-root rename and drag/move
+### Recoverable same-volume rename and drag/move
 
 Native rename, drag/drop, selected-document following, and restart/repair acceptance
 remain **UNVERIFIED**. Both sidebar routes use the Core Workspace lifecycle coordinator;
@@ -169,9 +169,10 @@ The sidebar retains the recorded paths and **Retry Reconciliation** / **Show in 
 Manually restore the original item to an unambiguous recorded location, restore store
 access, then retry; retry never moves, reverses, or discards files. Verify conflicting
 assignment/source/binding operations remain blocked while unrelated name/theme edits
-remain available. Configured cross-root moves, root relocation, unbind, and trash
-policies are not implemented by this slice; unsupported destructive operations fail
-closed rather than silently dropping configuration. The full feature is not shipped.
+remain available. Same-volume cross-root moves now migrate explicit choices and shared
+source references to the most-specific destination binding. Root relocation, unbind,
+and trash policies are not implemented by this slice; unsupported destructive operations
+fail closed rather than silently dropping configuration. The full feature is not shipped.
 User-facing configured regrant accepts only an observable same-root identity in this
 slice. Authoritative library bookmark updates remain allowed without conflicting
 pending intent; creation must still revalidate them rather than writing through stale access.
@@ -197,6 +198,25 @@ legacy result/route, not the identity-verified handoff contract. Source/destinat
 descendants, source references, aliases and pending reservations block legacy admission.
 Same-root moves never fall back to legacy; unsupported identity-preserving semantics fail
 before mutation. Native acceptance of these distinctions is still **UNVERIFIED**.
+
+Same-volume cross-root acceptance is also **UNVERIFIED**. Drag configured subtrees and
+shared sources between roots, including into a separately bound inner destination.
+Explicit choices/descendant opt-outs must migrate to that inner binding, while a folder
+with only inherited behavior must use its new surroundings without acquiring an explicit
+choice. Check shared references in all active-project bindings, unchanged document bytes,
+and source-change review preserving a literal name in an already-open naming sheet.
+Check filesystem and destination-record conflicts before mutation, unavailable access,
+failed intent/final saves, and selected dirty documents following only verified movement.
+Restart with either root unavailable or either parent replaced: retain intent and block
+conflicting own/foreign-project writes at both recorded paths; retry never moves files.
+Both root identities are required to reconcile. Managed cross-volume moves remain blocked
+pending the separately approved copy/publication/source-retirement contract; they must not
+enter the genuinely unconfigured legacy route. This is a #92 implementation checkpoint,
+not completion of its cross-volume acceptance criteria or native GUI verification.
+An outer-root source reference retained after adding an inner source binding currently
+blocks moving that inner-owned source before mutation. Representing those equivalent
+source coordinates durably is still open; the root-pair record does not guess or drop
+the retained outer reference. This also prevents claiming full same-volume acceptance.
 
 After a verified move whose final settings save fails, dirty editors follow the moved
 file but must not atomically replace it until observation and settings finalization
