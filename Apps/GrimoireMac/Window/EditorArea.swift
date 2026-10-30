@@ -145,9 +145,12 @@ private struct DocumentBanners: View {
                 Button("Keep Mine") { document.keepMine() }
                 Button("Load Theirs") { document.loadTheirs() }
             }
-        } else if let error = document.saveError {
+        }
+        if let error = document.saveError {
             banner(saveMessage(error), tint: Color.brand(\.error)) {
-                Button("Try Again") { document.save() }
+                if document.conflict == nil {
+                    Button("Try Again") { document.save() }
+                }
             }
         }
     }

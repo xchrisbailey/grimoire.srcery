@@ -23,15 +23,13 @@ extension WindowState {
     }
 
     func prepareWindowClose() -> Bool {
-        guard prepareForRelease() else { return false }
-        resumePublishedDocuments()
-        return deferredDocuments.isEmpty && prepareForRelease()
+        prepareForRelease()
     }
 
     func retryRecovery() {
         workspace?.reconcileLifecycleOperations()
         actions.error = workspace?.lastError
-        if save() { resumePublishedDocuments() }
+        save()
     }
 
     func deferPublishedDocument(_ created: PublishedDocument) {

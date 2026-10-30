@@ -81,7 +81,7 @@ final class WindowState {
     /// Shows project `id`, reopening the file it last had open unless `openLastFile` is false.
     @discardableResult func selectProject(_ id: Project.ID?, openLastFile: Bool = true) -> Bool {
         guard id != projectID else { return true }
-        guard deferredDocuments.isEmpty, closeDocument() else { return false }
+        guard prepareForRelease(), closeDocument() else { return false }
         workspace?.deactivate()
         projectID = id
         selectedFile = nil
@@ -332,7 +332,7 @@ extension WindowState {
     }
 
     @discardableResult func close() -> Bool {
-        guard deferredDocuments.isEmpty, closeDocument() else {
+        guard prepareForRelease(), closeDocument() else {
             ExternalOpens.shared.retainBlocked(self)
             return false
         }
