@@ -20,6 +20,9 @@ struct DocumentCreationSheet: View {
             if let plan = actions.creationPlan {
                 LabeledContent("Destination", value: plan.destination.path)
                 LabeledContent("Template source", value: plan.source?.path ?? String(localized: "No template"))
+                if let assignment = plan.assignment {
+                    LabeledContent("Owning Folder", value: ownerPath(assignment.owner))
+                }
             }
             HStack {
                 TextField(
@@ -55,6 +58,10 @@ struct DocumentCreationSheet: View {
     private func confirm() {
         guard validation == nil else { return }
         actions.confirmCreation(workspace: workspace)
+    }
+
+    private func ownerPath(_ owner: FileReference) -> String {
+        workspace.url(for: owner)?.path ?? "[" + owner.rootID.uuidString + "]/" + owner.relativePath
     }
 }
 

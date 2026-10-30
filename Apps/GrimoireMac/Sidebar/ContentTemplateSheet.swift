@@ -3,7 +3,6 @@ import GrimoireCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Configuration only: document creation does not consume these choices yet.
 struct ContentTemplateSheet: View {
     let folder: URL
     let workspace: Workspace
@@ -13,15 +12,20 @@ struct ContentTemplateSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Content Template").font(.headline)
-            LabeledContent("Owning Folder") {
+            LabeledContent("Folder") {
                 Text(folder.path(percentEncoded: false)).textSelection(.enabled)
             }
-            choice
-            Text("This choice applies to new documents in this exact folder in this project.")
+            localChoice
+            effectiveChoice
+            Text("This choice applies to this folder and its descendants within this bound root in this project.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             HStack {
-                Button("Choose Existing File…", action: chooseSource)
+                Button("Inherit") { changeChoice { try workspace.inheritTemplate(in: folder) } }
+                Menu("Use a template") {
+                    Button("Choose Existing File…", action: chooseSource)
+                }
+                Button("No template") { changeChoice { try workspace.disableTemplate(in: folder) } }
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
             }
@@ -36,7 +40,7 @@ struct ContentTemplateSheet: View {
         }
     }
 
-    @ViewBuilder private var choice: some View {
+    @ViewBuilder private var localChoice: some View {
         switch Result(catching: { try workspace.templateAssignment(for: folder) }) {
         case .failure(let failure):
             Text(failure.localizedDescription).foregroundStyle(.secondary)
@@ -45,19 +49,46 @@ struct ContentTemplateSheet: View {
                 Text("Unresolved folder template assignment (inactive)")
             }
             switch assignment.choice {
-            case .useSource(let source):
-                LabeledContent("Template Source") {
-                    let root = workspace.project?.root(source.rootID)?.displayName ?? source.rootID.uuidString
-                    let path = workspace.url(for: source)?.path(percentEncoded: false)
-                    Text(path ?? root + " [" + source.rootID.uuidString + "]/" + source.relativePath)
-                        .textSelection(.enabled)
-                }
+            case .useSource:
+                LabeledContent("Folder Choice", value: String(localized: "Use a template"))
             case .noTemplate:
-                Text("No template (explicit choice)")
+                LabeledContent("Folder Choice", value: String(localized: "No template"))
             }
         case .success(.none):
-            Text("No explicit content template choice for this folder.")
+            LabeledContent("Folder Choice", value: String(localized: "Inherit"))
         }
+    }
+
+    @ViewBuilder private var effectiveChoice: some View {
+        switch Result(catching: { try workspace.effectiveTemplateAssignment(for: folder) }) {
+        case .failure(let failure):
+            Text(failure.localizedDescription).foregroundStyle(.secondary)
+        case .success(.some(let assignment)):
+            let local = try? workspace.templateAssignment(for: folder)
+            if local?.owner == assignment.owner {
+                LabeledContent("Owning Folder", value: displayPath(assignment.owner))
+            } else {
+                LabeledContent("Inherited From", value: displayPath(assignment.owner))
+            }
+            switch assignment.choice {
+            case .useSource(let source):
+                LabeledContent("Template Source", value: displayPath(source)).textSelection(.enabled)
+            case .noTemplate:
+                Text("No template (effective choice)")
+            }
+        case .success(.none):
+            Text("No effective content template.")
+        }
+    }
+
+    private func displayPath(_ reference: FileReference) -> String {
+        if let url = workspace.url(for: reference) { return url.path(percentEncoded: false) }
+        let root = workspace.project?.root(reference.rootID)?.displayName ?? reference.rootID.uuidString
+        return root + " [" + reference.rootID.uuidString + "]/" + reference.relativePath
+    }
+
+    private func changeChoice(_ edit: () throws -> Void) {
+        do { try edit() } catch { self.error = error }
     }
 
     private func chooseSource() {

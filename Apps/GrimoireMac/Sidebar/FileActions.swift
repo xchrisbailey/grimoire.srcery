@@ -80,6 +80,9 @@ final class FileActions {
         case .sourceFailure(let plan, let failure):
             creationNotice =
                 String(localized: "Template source: \(plan.source?.path ?? "")")
+                + "\n"
+                + String(
+                    localized: "Owning folder: \(plan.assignment.flatMap { workspace.url(for: $0.owner) }?.path ?? "")")
                 + "\n" + failure.localizedDescription
         case .failed(let failure), .contextUnavailable(let failure):
             creationNotice = failure.localizedDescription

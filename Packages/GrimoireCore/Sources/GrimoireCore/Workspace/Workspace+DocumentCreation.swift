@@ -107,14 +107,7 @@ extension Workspace {
         }
         let assignment: FolderTemplateAssignment?
         if purpose == .document {
-            // Existing owner validation also rejects decoded aliases and references escaping their own root.
-            var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
-                guard isDirectory.boolValue else { throw TemplateAssignmentError.unavailableFolder }
-                assignment = try templateAssignment(for: destination).flatMap { $0.state == .active ? $0 : nil }
-            } else {
-                assignment = project?.templateAssignments.first { $0.owner == owner && $0.state == .active }
-            }
+            assignment = try effectiveTemplateAssignment(for: destination)
         } else {
             assignment = nil
         }

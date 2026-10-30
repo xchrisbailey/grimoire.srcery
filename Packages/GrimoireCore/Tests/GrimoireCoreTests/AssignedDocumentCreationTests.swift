@@ -142,7 +142,7 @@ import Testing
         }
         let missing = folder.appending(path: "not/made")
         let cancelled = try workspace.prepareDocument(in: missing, filenamePattern: "Draft")
-        #expect(!cancelled.requiresNaming)
+        #expect(cancelled.requiresNaming)
         guard case .cancelled = workspace.createDocument(cancelled, naming: .generated, confirmed: false) else {
             Issue.record("Expected cancellation")
             return
@@ -272,7 +272,7 @@ extension AssignedDocumentCreationTests {
         #expect(try String(contentsOf: literal.url, encoding: .utf8) == "{date} {time}")
     }
 
-    @Test func exactOnlyLookupRetainsLegacyFlowAndAuthoringBypassesAssignments() async throws {
+    @Test func inheritedLookupNamesDescendantsAndAuthoringBypassesAssignments() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "saved"])
         defer { workspace.deactivate() }
@@ -280,13 +280,13 @@ extension AssignedDocumentCreationTests {
         try workspace.assignTemplate(folder.appending(path: "source.md"), to: folder)
         let child = try scratch.folder("notes/child")
         let plan = try workspace.prepareDocument(in: child, filenamePattern: "Legacy")
-        #expect(!plan.requiresNaming)
+        #expect(plan.requiresNaming)
         guard case .published(let legacy) = workspace.createDocument(plan, naming: .generated) else {
-            Issue.record("Unassigned descendant must stay empty in this slice")
+            Issue.record("A descendant must inherit its ancestor's saved source")
             return
         }
-        #expect(legacy.editorCaretUTF16 == nil)
-        #expect(try Data(contentsOf: legacy.url).isEmpty)
+        #expect(legacy.editorCaretUTF16 == 5)
+        #expect(try String(contentsOf: legacy.url, encoding: .utf8) == "saved")
         let authoring = try workspace.prepareDocument(in: folder, filenamePattern: "Author", purpose: .templateSource)
         #expect(!authoring.requiresNaming)
         guard case .published(let source) = workspace.createDocument(authoring, naming: .generated) else {
