@@ -18,6 +18,7 @@ final class FileActions {
     var creationNameEdited = false
     var creationNotice: String?
     private var pendingHandoff: PublishedDocument?
+    private var pendingTemplateEdit: URL?
     /// Folders still to be offered an alias after this one, from binding several at once.
     private var aliasQueue: [(id: FolderRoot.ID, name: String)] = []
 
@@ -62,6 +63,25 @@ final class FileActions {
         guard let published = pendingHandoff else { return }
         pendingHandoff = nil
         didCreate?(published)
+    }
+
+    func openTemplateAfterDismissal(_ source: PublishedDocument, workspace: Workspace) {
+        workspace.refresh(of: source.url)
+        workspace.setExpanded(source.url.deletingLastPathComponent(), true)
+        pendingHandoff = source
+    }
+
+    func editTemplateAfterDismissal(_ source: URL) {
+        pendingTemplateEdit = source
+    }
+
+    func templateConfigurationDismissed(select: (URL) -> Void) {
+        configuringTemplate = nil
+        if let source = pendingTemplateEdit {
+            pendingTemplateEdit = nil
+            select(source)
+        }
+        creationDismissed()
     }
 
     private func handleCreation(_ result: DocumentCreationResult, workspace: Workspace, rename: Bool) -> URL? {
@@ -234,14 +254,16 @@ extension Workspace {
 
 extension View {
     /// The rename and alias prompts, banish confirmation and error alert for a window's file actions.
-    func fileActionPrompts(_ actions: FileActions, workspace: Workspace?) -> some View {
-        modifier(FileActionPrompts(actions: actions, workspace: workspace))
+    func fileActionPrompts(_ actions: FileActions, workspace: Workspace?, select: @escaping (URL) -> Void) -> some View
+    {
+        modifier(FileActionPrompts(actions: actions, workspace: workspace, select: select))
     }
 }
 
 private struct FileActionPrompts: ViewModifier {
     @Bindable var actions: FileActions
     let workspace: Workspace?
+    let select: (URL) -> Void
 
     func body(content: Content) -> some View {
         content
@@ -249,7 +271,8 @@ private struct FileActionPrompts: ViewModifier {
             .sheet(
                 isPresented: Binding(
                     get: { actions.configuringTemplate != nil },
-                    set: { if !$0 { actions.configuringTemplate = nil } })
+                    set: { if !$0 { actions.configuringTemplate = nil } }),
+                onDismiss: { actions.templateConfigurationDismissed(select: select) }
             ) {
                 templateSheet
             }
@@ -298,7 +321,7 @@ private struct FileActionPrompts: ViewModifier {
 
     @ViewBuilder private var templateSheet: some View {
         if let workspace, let folder = actions.configuringTemplate {
-            ContentTemplateSheet(folder: folder, workspace: workspace)
+            ContentTemplateSheet(folder: folder, workspace: workspace, actions: actions)
         }
     }
 }

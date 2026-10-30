@@ -35,7 +35,7 @@ struct SidebarView: View {
             }
         }
         .background(Color.brand(\.sidebar))
-        .fileActionPrompts(window.actions, workspace: window.workspace)
+        .fileActionPrompts(window.actions, workspace: window.workspace, select: { window.select($0) })
     }
 
     /// Looks like a search field, as in the brand mockup; opens Summon a page.

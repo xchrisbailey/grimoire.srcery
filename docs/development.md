@@ -32,7 +32,7 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 In the Mac app, bind a folder to a project and save an ordinary Markdown file inside it
 (a separate bound templates folder also works). Right-click a root or subfolder,
-choose **Content Template…**, then **Choose Existing File…**. The sheet shows the
+choose **Content Template…**, then **Use a template → Choose Existing File…**. The sheet shows the
 exact owning folder and saved template source. Close and reopen the sheet, then
 relaunch to check persistence. Several folders can choose the same source.
 
@@ -41,8 +41,25 @@ replacement, choose an invalid or outside-project source, and simulate a setting
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
 starts unconfigured. Source files and content folders must stay untouched. No
-inheritance, opt-out controls, source authoring, placeholder expansion, or recovery
+inheritance, opt-out controls, placeholder expansion, or recovery
 actions are included yet.
+
+**Use a template → Create Template…** asks for a Markdown save location in an
+active project binding. It creates an empty ordinary source even in a templated
+destination, then persists the assignment and opens the editor at the empty end.
+Existing filenames use numbered suffixes, never replacement. Cancelling or failed
+publication keeps the old choice. A settings-save failure preserves the published
+source and old choice, reports the source's path, and offers **Open Created Source**;
+repair settings and use **Choose Existing File…** rather than creating another copy.
+**Edit Template** uses ordinary document selection without rewriting the source.
+This branch currently uses an exact-folder adapter for Edit Template; effective
+inherited editing still needs #87's shared effective-assignment API before #89 is complete.
+
+Native save/open picker, Edit Template selection, post-dismissal editor focus and
+caret acceptance remain **UNVERIFIED**. Check invalid/unbound/symlink destinations,
+cancel, collision protection, assignment persistence failure, and source opening.
+Check reuse across folders, saved versus unsaved edits, and unchanged existing
+documents in the app too; package regressions do not establish native UI acceptance.
 
 New File now uses an exact-folder assignment's saved static contents. Menu/shortcut
 and palette commands resolve their existing destination before joining the same
