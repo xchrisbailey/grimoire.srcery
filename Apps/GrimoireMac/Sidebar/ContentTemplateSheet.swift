@@ -48,7 +48,9 @@ struct ContentTemplateSheet: View {
             case .useSource(let source):
                 LabeledContent("Template Source") {
                     let root = workspace.project?.root(source.rootID)?.displayName ?? source.rootID.uuidString
-                    Text(root + "/" + source.relativePath).textSelection(.enabled)
+                    let path = workspace.url(for: source)?.path(percentEncoded: false)
+                    Text(path ?? root + " [" + source.rootID.uuidString + "]/" + source.relativePath)
+                        .textSelection(.enabled)
                 }
             case .noTemplate:
                 Text("No template (explicit choice)")
@@ -62,7 +64,9 @@ struct ContentTemplateSheet: View {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText, UTType(filenameExtension: "mdx") ?? .text]
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "md") ?? .plainText, UTType(filenameExtension: "mdx") ?? .text,
+        ]
         panel.directoryURL = folder
         panel.message = String(localized: "Choose a Markdown template source inside a folder bound to this project.")
         panel.prompt = String(localized: "Use Template")

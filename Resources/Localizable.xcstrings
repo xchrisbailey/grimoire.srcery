@@ -1,6 +1,63 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Invalid content template reference. Repair the project settings and retry." : {
+      "comment" : "plain: invalid stored folder template path",
+      "extractionState" : "manual"
+    },
+    "Conflicting folder template choices. Repair the project settings and retry." : {
+      "comment" : "plain: conflicting stored choices for one folder",
+      "extractionState" : "manual"
+    },
+    "The owning folder is unavailable. Restore bound-folder access and retry." : {
+      "comment" : "plain: template owner cannot be accessed",
+      "extractionState" : "manual"
+    },
+    "Choose a Markdown file in this project’s accessible bound folders. For links, bind the target." : {
+      "comment" : "plain: template source is outside eligible project roots or is not a Markdown file",
+      "extractionState" : "manual"
+    },
+    "Use UTF-8 text without NUL bytes. Repair the template source or choose another source." : {
+      "comment" : "plain: source text failed strict decoding",
+      "extractionState" : "manual"
+    },
+    "The template source couldn’t be read. Restore access or choose another source." : {
+      "comment" : "plain: source read failed; the underlying error follows",
+      "extractionState" : "manual"
+    },
+    "Content Template…" : {
+      "comment" : "plain: exact-folder template configuration menu entry"
+    },
+    "Content Template" : {
+      "comment" : "plain: folder template configuration sheet title"
+    },
+    "Owning Folder" : {
+      "comment" : "plain: exact folder that owns the displayed choice"
+    },
+    "Template Source" : {
+      "comment" : "plain: saved source file reference"
+    },
+    "This choice belongs to this exact folder in this project. Document creation is not connected yet." : {
+      "comment" : "plain: scope and current configuration-only limitation"
+    },
+    "Choose Existing File…" : {
+      "comment" : "plain: choose an existing template source"
+    },
+    "Unresolved folder template assignment (inactive)" : {
+      "comment" : "plain: persisted choice requires explicit relinking"
+    },
+    "No template (explicit choice)" : {
+      "comment" : "plain: inspect a saved template opt-out"
+    },
+    "No explicit content template choice for this folder." : {
+      "comment" : "plain: this exact folder has no saved choice; not an effective-template lookup"
+    },
+    "Choose a Markdown template source inside a folder bound to this project." : {
+      "comment" : "plain: native source picker instructions"
+    },
+    "Use Template" : {
+      "comment" : "plain: native picker confirmation"
+    },
     "Project changes weren’t saved. Check access to the projects file and try again." : {
       "comment" : "plain: an atomic project commit failed; the underlying error follows on a new line",
       "extractionState" : "manual"

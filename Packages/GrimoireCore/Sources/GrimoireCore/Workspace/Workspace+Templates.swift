@@ -55,8 +55,10 @@ extension Workspace {
     }
 
     private func templateOwner(for url: URL) throws -> FileReference {
+        // Picker URLs may cache directory metadata; query disk again before committing.
+        var isDirectory: ObjCBool = false
         guard let reference = try templateReference(for: url),
-            try url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
+            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue
         else { throw TemplateAssignmentError.unavailableFolder }
         try FolderTemplateAssignment.validate(reference.relativePath, allowsRoot: true)
         return reference
@@ -65,11 +67,20 @@ extension Workspace {
     private func templateSourceReference(for url: URL) throws -> FileReference {
         let resolved = url.resolvingSymlinksInPath()
         guard let reference = try templateReference(for: url),
-            ["md", "mdx"].contains(resolved.pathExtension.lowercased()),
-            try resolved.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true
+            ["md", "mdx"].contains(resolved.pathExtension.lowercased())
         else { throw TemplateAssignmentError.ineligibleSource }
         try FolderTemplateAssignment.validate(reference.relativePath, allowsRoot: false)
-        let bytes = try Data(contentsOf: resolved)
+        let bytes: Data
+        do {
+            guard try resolved.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                throw TemplateAssignmentError.ineligibleSource
+            }
+            bytes = try Data(contentsOf: resolved)
+        } catch let failure as TemplateAssignmentError {
+            throw failure
+        } catch {
+            throw TemplateAssignmentError.sourceUnavailable(error)
+        }
         guard !bytes.contains(0), String(data: bytes, encoding: .utf8) != nil else {
             throw TemplateAssignmentError.unsupportedText
         }

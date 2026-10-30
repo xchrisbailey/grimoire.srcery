@@ -82,19 +82,25 @@ public struct FolderTemplateAssignment: Codable, Hashable, Sendable {
 
 public enum TemplateAssignmentError: Error, LocalizedError {
     case invalidReference, conflictingChoices, unavailableFolder, ineligibleSource, unsupportedText
+    case sourceUnavailable(any Error)
 
     public var errorDescription: String? {
         switch self {
         case .invalidReference:
-            String(localized: "A content template reference is invalid. Repair the project settings before retrying.")
+            String(localized: "Invalid content template reference. Repair the project settings and retry.")
         case .conflictingChoices:
-            String(localized: "A folder has conflicting content template choices. Repair the project settings and retry.")
+            String(localized: "Conflicting folder template choices. Repair the project settings and retry.")
         case .unavailableFolder:
-            String(localized: "The owning folder is unavailable. Restore access to its bound folder and try again.")
+            String(localized: "The owning folder is unavailable. Restore bound-folder access and retry.")
         case .ineligibleSource:
-            String(localized: "Choose a Markdown file inside an accessible folder bound to this project. Bind its target folder if it is a symbolic link.")
+            String(
+                localized:
+                    "Choose a Markdown file in this project’s accessible bound folders. For links, bind the target.")
         case .unsupportedText:
-            String(localized: "The template source must be UTF-8 text without NUL bytes. Repair the file or choose another source.")
+            String(localized: "Use UTF-8 text without NUL bytes. Repair the template source or choose another source.")
+        case .sourceUnavailable(let error):
+            String(localized: "The template source couldn’t be read. Restore access or choose another source.")
+                + "\n" + error.localizedDescription
         }
     }
 }

@@ -178,9 +178,7 @@ private struct FileActionPrompts: ViewModifier {
                     get: { actions.configuringTemplate != nil },
                     set: { if !$0 { actions.configuringTemplate = nil } })
             ) {
-                if let workspace, let folder = actions.configuringTemplate {
-                    ContentTemplateSheet(folder: folder, workspace: workspace)
-                }
+                templateSheet
             }
             .alert(
                 String(localized: "Rename “\(actions.renaming?.lastPathComponent ?? "")”"),
@@ -223,5 +221,11 @@ private struct FileActionPrompts: ViewModifier {
             ) {
                 Button("OK", role: .cancel) {}
             }
+    }
+
+    @ViewBuilder private var templateSheet: some View {
+        if let workspace, let folder = actions.configuringTemplate {
+            ContentTemplateSheet(folder: folder, workspace: workspace)
+        }
     }
 }

@@ -28,6 +28,23 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 `WKWebView` never loads inside `swift test`, so PDF export and print can't be covered there. Check them in the built Mac app.
 
+## Content template configuration demo
+
+This configuration slice does not apply templates when creating documents. In the
+Mac app, bind a folder to a project and save an ordinary Markdown file inside it
+(a separate bound templates folder also works). Right-click a root or subfolder,
+choose **Content Template…**, then **Choose Existing File…**. The sheet shows the
+exact owning folder and saved template source. Close and reopen the sheet, then
+relaunch to check persistence. Several folders can choose the same source.
+
+Manual QA still needs to check the native picker and sandbox access: cancel a
+replacement, choose an invalid or outside-project source, and simulate a settings
+save failure. Each must leave the previous choice unchanged and a failed edit
+must explain how to recover. Check that a second project using the same folder
+starts unconfigured. Source files and content folders must stay untouched. No
+inheritance, opt-out controls, source authoring, or document creation integration
+is included in this slice.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.
