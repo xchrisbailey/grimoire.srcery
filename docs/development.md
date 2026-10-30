@@ -59,6 +59,13 @@ with its caret at the UTF-16 content end (including emoji and a BOM). Check an o
 or last-opened-settings failure after publication separately: preserve the created
 file and do not retry creation. No native GUI automation harness is available.
 
+Also check destination review without a template: prepare creation in an unassigned
+folder, replace that directory before confirmation, review the updated destination,
+then confirm. Success must dismiss the review sheet and hand off once after dismissal,
+even though this output keeps legacy preview behavior. A repeated confirmation must
+not leave a stale sheet, create another document, or open the result twice. Direct
+legacy creation without a sheet must still open immediately and offer its usual rename.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.

@@ -86,8 +86,12 @@ final class FileActions {
             if creationPlan == nil { error = failure }
         case .publishedButUnavailable(let url):
             creationPlan = nil
+            creationNotice = nil
             error = CreatedDocumentOpenError(url: url)
-        case .alreadyPublished, .cancelled:
+        case .alreadyPublished:
+            creationPlan = nil
+            creationNotice = nil
+        case .cancelled:
             break
         }
         return nil
@@ -96,9 +100,12 @@ final class FileActions {
     private func finishCreation(_ published: PublishedDocument, workspace: Workspace, rename: Bool) -> URL {
         workspace.refresh(of: published.url)
         workspace.setExpanded(published.url.deletingLastPathComponent(), true)
-        if published.editorCaretUTF16 != nil {
+        // Destination review can present a sheet even when the output keeps legacy editor behavior.
+        let awaitsDismissal = creationPlan != nil
+        creationPlan = nil
+        creationNotice = nil
+        if awaitsDismissal {
             pendingHandoff = published
-            creationPlan = nil
         } else {
             didCreate?(published)
             if rename { startRename(published.url) }
