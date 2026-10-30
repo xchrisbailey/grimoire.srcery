@@ -119,6 +119,12 @@ configured source, revoke its access, point its saved reference outside the proj
 bound folders, or save invalid UTF-8/NUL bytes. The naming sheet must identify the
 broken source and reason (including its root/reference when no live URL is available),
 without using an ancestor, cached content, or empty content automatically.
+While the workspace stays open, move an entire separately bound source folder out
+of its recorded location without changing its bookmark. After any context review,
+both an already-open naming sheet and a new New File command must reach source
+recovery. The still-valid destination must allow explicit empty-once creation or
+repair to an eligible replacement. Restoring source-root availability requires
+another review; losing the destination root must still block creation and repair.
 
 Check **Retry**, **Choose Replacement…**, **Create Empty Once**, and **Cancel**.
 Retry must preserve an edited name, reread saved bytes, refresh untouched generated

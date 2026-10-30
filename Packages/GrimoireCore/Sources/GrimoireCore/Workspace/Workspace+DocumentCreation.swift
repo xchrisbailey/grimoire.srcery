@@ -92,6 +92,7 @@ struct DocumentCreationContext: Equatable, Sendable {
     let destination: CreationFolderIdentity
     let roots: [CreationFolderIdentity]
     let sourceURL: URL?
+    let sourceRootIdentity: CreationFolderIdentity?
 }
 
 extension Workspace {
@@ -118,17 +119,18 @@ extension Workspace {
             assignment = nil
         }
         var source: URL?
+        var sourceRootIdentity: CreationFolderIdentity?
         var requiresNaming = false
-        var rootIDs = [owner.rootID]
         if case .useSource(let reference) = assignment?.choice {
             requiresNaming = true
             try assignment?.validate()
             if let root = templateRoots.first(where: { $0.id == reference.rootID })?.url {
-                rootIDs.append(reference.rootID)
                 source = reference.url(in: root)
+                // Source availability belongs to recoverable template context, not destination access.
+                sourceRootIdentity = try? CreationFolderIdentity(root)
             }
         }
-        let roots = try rootIDs.map { id in
+        let roots = try [owner.rootID].map { id in
             guard let root = templateRoots.first(where: { $0.id == id })?.url else {
                 throw TemplateAssignmentError.unavailableFolder
             }
@@ -141,7 +143,7 @@ extension Workspace {
         }
         let context = DocumentCreationContext(
             owner: owner, assignment: assignment, destination: try CreationFolderIdentity(ancestor), roots: roots,
-            sourceURL: source)
+            sourceURL: source, sourceRootIdentity: sourceRootIdentity)
         return DocumentCreationPlan(
             id: UUID(), destination: destination, source: source, assignment: assignment,
             suggestedStem: FileNaming.name(from: filenamePattern, date: now, calendar: calendar),
@@ -251,7 +253,8 @@ extension Workspace {
             now: .now, calendar: .current)
         // Once a missing legacy folder has been created its nearest ancestor changes; its root/choice must not.
         guard fresh.context.owner == plan.context.owner, fresh.assignment == plan.assignment,
-            fresh.context.roots == plan.context.roots, fresh.context.sourceURL == plan.context.sourceURL
+            fresh.context.roots == plan.context.roots, fresh.context.sourceURL == plan.context.sourceURL,
+            fresh.context.sourceRootIdentity == plan.context.sourceRootIdentity
         else { throw TemplateAssignmentError.unavailableFolder }
         if plan.usesSource, !emptyOnceCreations.contains(plan.id), let source = plan.source {
             _ = try eligibleTemplateReference(for: source)
