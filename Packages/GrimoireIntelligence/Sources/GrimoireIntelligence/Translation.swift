@@ -28,14 +28,16 @@ extension GeneratedTranslation.PartiallyGenerated {
         }
         let original = source.source as NSString
         var result = ""
+        var edits: [TextEdit] = []
         var cursor = 0
         for (range, text) in zip(source.ranges, translated) {
             result += original.substring(with: NSRange(location: cursor, length: range.lowerBound - cursor))
             result += text
+            edits.append(TextEdit(range: range, replacement: text, selection: 0..<0))
             cursor = range.upperBound
         }
         result += original.substring(from: cursor)
-        guard MarkdownParser.hasSameStructure(source.source, as: result) else {
+        guard MarkdownParser.hasSameStructure(source.source, as: result, replacing: edits) else {
             throw IntelligenceError.invalidTranslation
         }
         return result

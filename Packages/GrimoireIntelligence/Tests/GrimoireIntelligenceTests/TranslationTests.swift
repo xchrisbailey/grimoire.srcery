@@ -12,6 +12,34 @@ private func renderTranslation(_ translations: [String], source: String) throws 
 }
 
 @MainActor @Suite struct TranslationTests {
+    @Test func rejectsReassociatedEmphasisDuringCumulativeProjection() throws {
+        let source = "Use *fast*mode and *safe*path*end"
+        let translations = ["Utilisez", "rapide", "mode et", "sûr!", "chemin", "fin"]
+        for count in 1...translations.count {
+            let prefix = Array(translations.prefix(count))
+            if count < 4 {
+                _ = try renderTranslation(prefix, source: source)
+            } else {
+                #expect(throws: IntelligenceError.invalidTranslation) {
+                    try renderTranslation(prefix, source: source)
+                }
+            }
+        }
+        let safe = ["Utilisez", "rapide", "mode et", "sûr", "chemin", "fin"]
+        for count in 1...safe.count {
+            _ = try renderTranslation(Array(safe.prefix(count)), source: source)
+        }
+        #expect(try renderTranslation(safe, source: source) == "Utilisez *rapide*mode et *sûr*chemin*fin")
+    }
+
+    @Test(arguments: ["\r\n", "\r\n\r\n", "\n", "\r"])
+    func anchorsTranslatedUnicodeAcrossLineEndings(lineEnding: String) throws {
+        let source = "🧪 *café*" + lineEnding + "[page](https://x.test \"Title\")"
+        let expected = "🧪 *rapide🙂*" + lineEnding + "[étiquette](https://x.test \"Title\")"
+        let rendered = try renderTranslation(["rapide🙂", "étiquette"], source: source)
+        #expect(rendered.utf8.elementsEqual(expected.utf8))
+    }
+
     @Test func refusesInlineHTMLInsteadOfProjectingAwayItsTags() throws {
         let source = "Read <em>this</em> [page](https://x.test)."
         let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": "Lisez ceci"]))
