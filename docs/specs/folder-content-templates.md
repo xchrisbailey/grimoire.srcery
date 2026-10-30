@@ -2,9 +2,11 @@
 
 Status: decisions complete; ready for implementation planning. No feature implementation is included.
 
+Published as [Spec: Folder content templates](https://github.com/xchrisbailey/grimoire.srcery/issues/82), labeled `ready-for-agent`.
+
 This is the canonical implementation spec. The completed [Folder content templates map](https://github.com/xchrisbailey/grimoire.srcery/issues/74) and its resolution comments record the decisions and their rationale.
 
-## Problem statement
+## Problem Statement
 
 New documents start empty. A writer creating a blog post must repeatedly insert the same frontmatter and document structure, even though the destination folder identifies the kind of document being written. Existing filename patterns and manual frontmatter insertion do not supply folder-specific initial content.
 
@@ -14,31 +16,87 @@ Let a user assign an ordinary Markdown file as a folder's content template. New 
 
 Assignments belong to a project. The nearest explicit folder choice wins within the most-specific bound root. Users can override inheritance or explicitly disable templates. Sources remain ordinary editable files, reusable by multiple assignments.
 
-### Shipping prerequisite
+## User Stories
 
-Fix [A projects.json that fails to load is overwritten with an empty library](https://github.com/xchrisbailey/grimoire.srcery/issues/68) before shipping. It remains open as of this spec's assembly.
+1. As a blog writer, I want new posts to start with my configured frontmatter, so that I do not repeatedly type required metadata.
+2. As a writer, I want templates to include body structure as well as frontmatter, so that each kind of document starts ready for writing.
+3. As a writer, I want a template source to be an ordinary Markdown file, so that I can edit it with familiar tools.
+4. As a writer, I want several folders to reference the same source, so that I can maintain shared starting content in one place.
+5. As a writer, I want to choose an existing source from a folder's context menu, so that configuration stays near the folder it affects.
+6. As a writer, I want to create and assign a new source from that menu, so that I do not need to set up a source separately first.
+7. As a template author, I want new sources to start empty without applying another template, so that authoring does not accidentally template the template itself.
+8. As a writer, I want to open the effective source for editing from configuration, so that I can update its content without searching for it.
+9. As a writer, I want sources to come from any bound folder in the active project, so that I can keep them in a dedicated templates folder.
+10. As a writer, I want saved source edits to affect future documents, so that I can update my workflow without rebuilding assignments.
+11. As a writer, I want unsaved source edits excluded from creation, so that document contents reflect the source I actually saved.
+12. As a writer, I want existing documents to remain unchanged when a source changes, so that my previous writing is preserved.
+13. As a project owner, I want assignments stored in project settings without hidden folder files, so that configuration does not add files to my content directories.
+14. As a project owner, I want assignments isolated by project, so that the same physical folder can support different writing workflows.
+15. As a writer, I want to see the effective template and its owning folder, so that inherited behavior is understandable.
+16. As a writer, I want descendants to inherit the nearest explicit choice, so that I can configure a whole writing area once.
+17. As a writer, I want a nearer source to replace rather than merge inherited content, so that a folder's starting content is predictable.
+18. As a writer, I want an explicit template opt-out for a folder and descendants, so that archive or utility folders can stay untemplated.
+19. As a writer, I want a deeper folder to override an opt-out, so that exceptions do not require reorganizing my folders.
+20. As a writer, I want to remove an explicit choice and return to inheritance, so that I can undo an override without disabling templates.
+21. As a project owner, I want lookup to stop at the most-specific bound root, so that a separate binding does not unexpectedly inherit outside configuration.
+22. As a writer, I want matching to use the actual creation destination, so that an unrelated selected document does not change my template.
+23. As a writer, I want menu, shortcut, palette, and folder-context creation to behave consistently, so that I can use whichever command is convenient.
+24. As a writer, I want folders without an effective template to keep today's creation experience, so that configuring one area does not disrupt other work.
+25. As a writer, I want to name a templated document before creation, so that its inserted title is meaningful immediately.
+26. As a writer, I want the naming dialog to show the destination and source, so that I know what will be created before confirming.
+27. As a writer, I want the suggested name to use my existing filename pattern, so that templated creation respects my naming preferences.
+28. As a writer, I want invalid typed names explained without silently rewriting them, so that the resulting filename matches my intent.
+29. As a writer, I want cancellation to create no placeholder document, so that abandoning creation does not leave clutter.
+30. As a writer, I want creation to open the editor at the content's end without another preview or rename prompt, so that I can start writing immediately.
+31. As a writer, I want the initial allocated title and filename available as placeholders, so that headings and metadata match the file actually created.
+32. As a writer, I want date and time placeholders from one local creation timestamp, so that related metadata stays consistent.
+33. As a writer, I want untouched date/time name suggestions refreshed when confirmed or retried, so that a dialog left open across midnight does not create mismatched dates.
+34. As a writer, I want an edited name preserved literally through retries, so that recovery does not discard or reinterpret my input.
+35. As a template author, I want explicit YAML-safe string forms, so that punctuation in titles or filenames does not break my frontmatter.
+36. As a template author, I want raw placeholders for ordinary text, so that I control formatting outside YAML.
+37. As a template author, I want literal escapes and unknown or incomplete placeholders preserved, so that template-like text is not unexpectedly removed or evaluated.
+38. As a writer, I want expansion to happen once without later rename or move rewrites, so that created content becomes my own document.
+39. As a writer, I want collisions to select a unique name and update inserted values before publication, so that another file is not overwritten and metadata does not name the wrong file.
+40. As a writer, I want unsupported or unreadable sources reported rather than silently decoded with replacement characters, so that source corruption is not copied into new documents.
+41. As a template author, I want untouched source bytes, including line endings and whitespace, preserved in new content, so that template formatting remains faithful.
+42. As a template author, I want empty sources accepted and YAML left unvalidated, so that templating does not enforce an unrelated document schema.
+43. As a project owner, I want source eligibility checked after symbolic-link resolution, so that a source cannot silently depend on an unbound location.
+44. As a writer, I want broken sources to block with an explanation instead of using an ancestor or empty content, so that missing frontmatter is never an unnoticed fallback.
+45. As a writer, I want to retry after repairing source access, so that I can recover without reentering a name.
+46. As a writer, I want replacement to repair the supplying assignment with its inheritance scope shown, so that I know which folders will change.
+47. As a writer, I want an explicitly confirmed repair to persist even if I cancel creation, so that configuration repair is not tied to producing a document.
+48. As a writer, I want an explicit empty-once choice that covers retries of the pending creation, so that I can bypass a broken source without changing normal assignments.
+49. As a writer, I want failed creation to preserve existing files, sources, and assignments, so that recovery does not put my data at risk.
+50. As a writer, I want only complete documents published and opened, so that partial writes are not presented as successful creation.
+51. As a writer, I want an open failure after successful publication distinguished from creation failure, so that retry does not create duplicates or delete the created document.
+52. As a writer, I want explicit choices to follow in-app folder renames and moves, including descendants and cross-root moves, so that reorganizing folders preserves deliberate configuration.
+53. As a writer, I want inherited behavior recalculated after a move, so that a folder without an explicit choice follows its new surroundings.
+54. As a writer, I want assignment conflicts explained before a move, so that neither side's configuration is silently overwritten.
+55. As a writer, I want source references to follow in-app source moves, so that source reorganization does not break every assignment using it.
+56. As a project owner, I want same-root relocation to preserve references and a different access-recovery target to require confirmation, so that configuration follows the intended folder.
+57. As a project owner, I want overlapping bindings to preserve outer records without copying them inward, so that removing an inner binding restores predictable outer lookup.
+58. As a project owner, I want unbind warnings and fresh configuration on rebinding, so that removal does not silently resurrect old choices.
+59. As a writer, I want trash warnings and removal of choices only after successful trash, so that a failed destructive operation does not erase configuration.
+60. As a writer, I want missing configured folders to become unresolved with locate/remove actions, so that Grimoire does not guess their new identities.
+61. As a writer, I want an unresolved choice to remain inactive when an old path reappears, so that an unrelated replacement folder does not receive stale configuration.
+62. As a project owner, I want warnings when deleting or unbinding referenced sources and broken references retained for repair, so that dependencies are visible instead of silently erased.
+63. As a project owner, I want failed or interrupted lifecycle changes recoverable without blind replay or reversal, so that filesystem changes and assignments can be reconciled safely.
+64. As a project owner, I want malformed settings and failed saves reported without overwriting stored projects or appearing committed, so that my project configuration remains safe.
+65. As a writer, I want relevant configuration changes during naming presented for review while preserving my name, so that another window cannot silently change the document I am about to create.
+66. As a maintainer, I want deterministic integration tests through the shared creation interface, so that collisions, failures, and restart recovery can be verified without testing implementation details.
 
-Failed project loads must preserve the existing file. Assignment changes also require observable save failures and staged commits; they must not appear successfully saved when persistence fails. These requirements are part of the implementation contract, not claims that storage has already been fixed.
+## Implementation Decisions
 
-## Scope
+### Scope and terminology
 
 - Apply templates only to new documents created through Grimoire's Mac menu, shortcut, command palette, or folder context menu.
 - Include folder assignment, inheritance, opt-out, template authoring, simple placeholders, safe creation, recovery, and assignment/source lifecycle handling.
 - Keep Core logic platform-neutral and both apps building. The current iOS app has no creation UI; adding one is outside this effort.
 - Keep untemplated creation's existing user experience.
 
-Out of scope:
+Use the agreed glossary vocabulary: content template, content placeholder, template source, filename pattern, folder template assignment, template opt-out, and unresolved folder template assignment.
 
-- General folder automation, scripts, expressions, custom placeholder definitions, and custom date-format languages.
-- Applying templates to existing, imported, synced, or externally created documents; ongoing frontmatter/schema enforcement.
-- Reapplying content when an existing document is renamed or moved.
-- Automatic correlation of external descendant-folder/source renames or moves, or reliable detection of external folder replacement while the app is closed.
-- Per-placeholder prompts, content previews, a cursor placeholder, smart caret positioning, and automatic YAML parsing or rewriting.
-- Portable folder-side configuration files or automatic assignment transfer to another computer.
-
-Use the terms in [GLOSSARY.md](../../GLOSSARY.md), particularly content template, content placeholder, template source, filename pattern, folder template assignment, template opt-out, and unresolved folder template assignment.
-
-## Authoring and assignment
+### Authoring and assignment
 
 A template source is an ordinary Markdown file inside any folder bound to the active project. A dedicated templates folder is allowed. Assignments reference the source rather than copying a snapshot.
 
@@ -58,7 +116,7 @@ Saving a source changes future documents using it. Existing documents never chan
 
 Sources and assignments have different ownership: copying a folder carries its Markdown sources, but assignments stay in Grimoire's project settings.
 
-## Matching
+### Matching
 
 1. Resolve the actual destination folder using the creation command's existing rules. Do not match against an unrelated current selection.
 2. Consider only the active project's assignments and bound roots.
@@ -77,7 +135,7 @@ Examples:
 - If the project separately binds `blog/drafts`, lookup there starts and stops within that narrower root. Without its own applicable choice, creation is empty even when the outer `blog` binding has a template.
 - Different projects can assign different sources to the same physical folder.
 
-## New-document experience
+### New-document experience
 
 When a template applies, resolve matching and show a naming dialog before creating the document. Display the destination and source. Prefill the name from the existing filename pattern, edit only the stem, and display `.md` separately.
 
@@ -94,7 +152,7 @@ Do not add a preview, another confirmation, or the existing automatic post-creat
 
 The same flow applies to all in-scope creation commands after their destination resolution. With no template or an explicit opt-out, retain today's creation flow. `Create Template…` uses its separate empty-source authoring flow.
 
-## Placeholder expansion
+### Placeholder expansion
 
 | Placeholder | Value |
 | --- | --- |
@@ -109,13 +167,13 @@ All date/time values in one attempt use the same captured instant, including exi
 
 Expansion is case-sensitive and single-pass. Never scan inserted values or escaped text again. Later moves or renames do not update content.
 
-### YAML-safe values
+#### YAML-safe values
 
 Each placeholder also supports a fixed `:yaml` form, such as `{title:yaml}` or `{date:yaml}`. It produces a double-quoted YAML string, with quote, backslash, control-character, and line-break escaping. Date and time values are strings too. Authors use these forms without surrounding quotes.
 
 Ordinary forms insert raw text and do not guarantee valid YAML. Do not infer quoting from surrounding text or parse, validate, restructure, or reserialize the frontmatter.
 
-### Literal text
+#### Literal text
 
 | Source | Result |
 | --- | --- |
@@ -128,35 +186,13 @@ Ordinary forms insert raw text and do not guarantee valid YAML. Do not infer quo
 
 Only the four lowercase names, their exact `:yaml` forms, and doubled-brace escapes receive special treatment. Unknown or incomplete forms are not creation errors. Preserve other text without rewriting it.
 
-### Blog example
+#### Blog walkthrough
 
-Assign a saved source containing:
-
-```markdown
----
-title: {title:yaml}
-date: {date:yaml}
----
-
-# {title}
-
-```
-
-Creating `My first post.md` on local date October 30, 2026 produces:
-
-```markdown
----
-title: "My first post"
-date: "2026-10-30"
----
-
-# My first post
-
-```
+A blog source can contain frontmatter whose title uses `{title:yaml}` and whose date uses `{date:yaml}`, followed by a heading using `{title}` and blank lines for writing. Creating `My first post.md` on local date October 30, 2026 inserts the YAML strings `"My first post"` and `"2026-10-30"`, followed by the heading text `My first post`.
 
 If that filename is taken, the allocated suffix also appears in the heading and frontmatter title. Open the document at the expanded content's end without another rename prompt.
 
-## Source eligibility and preservation
+### Source eligibility and preservation
 
 Read one saved-source snapshot directly from disk per creation attempt. Require a Markdown file containing valid UTF-8 text. Reject NUL-containing binary content and invalid UTF-8 through source recovery; do not use the editor's lossy UTF-8 decoding path. An empty readable source is valid, and unusual or malformed YAML is not a validation failure.
 
@@ -164,7 +200,7 @@ Preserve a UTF-8 BOM, CRLF/LF/lone-CR sequences, whitespace, and final-newline p
 
 Resolve symbolic links when checking source containment. The target must be inside some currently accessible folder bound to the active project. A link into an otherwise unbound location is ineligible; bind that folder or choose another source. Do not borrow another project's access or rely on stale last-known root paths.
 
-## Safe file creation
+### Safe file creation
 
 An existence check followed by ordinary file creation is insufficient. The shared creation module must:
 
@@ -180,7 +216,7 @@ Never expose a partially written final document, overwrite a competing file, or 
 
 `Create Empty Once` uses the same filename and publication protections. A failure to open an already-published document is an open error; do not create another copy or delete the published document as creation rollback.
 
-## Recovery
+### Recovery
 
 A missing, inaccessible, unreadable, ineligible, or unsupported-text source stops normal creation. Identify the source and reason, then offer:
 
@@ -199,7 +235,7 @@ A confirmed repair is a separate persisted settings edit. It survives later canc
 
 Failed destination writes must preserve existing documents, source files, and assignments, apart from intentional confirmed repairs. Report the error, do not open partial content, and never clean up an unrelated file.
 
-## Assignment and source lifecycle
+### Assignment and source lifecycle
 
 | Event | Required behavior |
 | --- | --- |
@@ -220,7 +256,7 @@ Warn before trashing a referenced source or unbinding a folder containing source
 
 External folder deletion follows the unresolved-assignment policy, not automatic removal of configuration. External source deletion/loss of access follows source recovery. Neither rule promises detection of identity changes the current watcher/bookmark system cannot observe while the app is closed.
 
-### Recovery records for filesystem changes
+#### Recovery records for filesystem changes
 
 Moves, renames, and trash operations that also change assignments or source references need a durable recovery record before filesystem mutation. Record the operation, relevant source/destination/root identities, intended before/after configuration, and enough observable identity to reconcile safely. Store it in app/project persistence, not hidden files in user folders.
 
@@ -228,7 +264,7 @@ Preflight ownership and conflicts first. Failed preparation leaves the filesyste
 
 On restart, complete reconciliation only when recorded identities and actual state make the outcome unambiguous. Otherwise surface repair and preserve the record/configuration until explicitly resolved. Do not blindly replay destructive operations or reverse moves. Block further conflicting mutations while reconciliation is pending.
 
-## Project persistence
+### Project persistence
 
 Use additive project-owned assignment records in the existing project envelope. References for owner folders and sources use bound-root UUID plus relative path. Persist explicit use-source/no-template choices and unresolved-folder state; absence of an active choice represents inheritance.
 
@@ -238,7 +274,7 @@ Validate decoded references as well as URL-constructed ones. Reject absolute/tra
 
 Stage settings changes and publish the in-memory snapshot only after successful atomic persistence. Settings-only assignment, replacement, opt-out, and unbind operations use one commit. Report failed saves and release bound-root access only after successful unbind persistence. Serialize relevant in-process mutations across windows to avoid lost updates.
 
-## Module interface and integration
+### Module interface and integration
 
 One deep module in `GrimoireCore` owns matching, saved-source loading, expansion, collision handling, temporary output, and publication. The Mac app owns prompts, localized presentation, selection, and focus. Core must not import UI frameworks, and the feature must not introduce a framework, dependency, or YAML parser.
 
@@ -249,22 +285,26 @@ Expose two creation phases:
 
 Keep clock/calendar, file-operation failures, and isolated project storage as internal test seams. Add adapters only where production and deterministic tests need different behavior. Test principally through the shared interface, not implementation internals.
 
-Existing integration points:
+Existing modules to modify:
 
-| Location | Responsibility |
+| Module | Responsibility |
 | --- | --- |
-| `Apps/GrimoireMac/Window/WindowState.swift` | Global destination resolution, document selection, and editor handoff. |
-| `Apps/GrimoireMac/Sidebar/FileActions.swift` | Shared creation actions, current create/rename flow, and lifecycle callbacks. |
-| `Apps/GrimoireMac/Sidebar/FileTreeView.swift` | Folder-context creation, assignment entry point, and lifecycle warnings. |
-| `Apps/GrimoireMac/Window/GrimoireCommands.swift` and `Apps/GrimoireMac/Palette/Incantations.swift` | Existing menu/shortcut and palette entry points. |
-| `Packages/GrimoireCore/Sources/GrimoireCore/Workspace/FileOperations.swift` | Existing naming/allocation and filesystem operations; current creation is not race-safe. |
-| `Packages/GrimoireCore/Sources/GrimoireCore/Workspace/FileNaming.swift` | Existing deterministic filename-pattern expansion. |
-| `Packages/GrimoireCore/Sources/GrimoireCore/Workspace/Project.swift`, `ProjectLibrary.swift`, and `ProjectStore.swift` | Assignment identities, persistence, and staged/recoverable changes. |
-| `Packages/GrimoireCore/Sources/GrimoireCore/Workspace/Workspace.swift` | Bound-root access and reference resolution; template lookup needs most-specific-root selection rather than unrelated first-root behavior. |
+| WindowState | Global destination resolution, document selection, and editor handoff. |
+| FileActions | Shared creation actions, current create/rename flow, and lifecycle callbacks. |
+| FileTreeView | Folder-context creation, assignment entry point, and lifecycle warnings. |
+| GrimoireCommands and Incantations | Existing menu/shortcut and palette entry points. |
+| FileOperations | Existing naming/allocation and filesystem operations; current creation is not race-safe. |
+| FileNaming | Existing deterministic filename-pattern expansion. |
+| Project, ProjectLibrary, and ProjectStore | Assignment identities, persistence, and staged/recoverable changes. |
+| Workspace | Bound-root access and reference resolution; template lookup needs most-specific-root selection rather than unrelated first-root behavior. |
 
-Follow [CODING_STANDARDS.md](../../CODING_STANDARDS.md), including String Catalog entries for new user-facing strings and UTF-16 editor caret offsets. Do not broaden this work into an unrelated ownership or storage redesign.
+Use String Catalog entries for new user-facing strings and UTF-16 editor caret offsets. Do not broaden this work into an unrelated ownership or storage redesign.
 
-## Testing decisions
+## Testing Decisions
+
+The user confirmed these seams during wayfinding: the shared Core creation interface is the primary test surface, with deterministic clock/calendar inputs, controlled file-operation failures, and isolated project storage as internal seams. No further seam confirmation is outstanding.
+
+Good tests assert observable outcomes through that interface: created bytes and filenames, unchanged competing/source files, persisted choices, structured errors, and restart recovery. They must not depend on private helper layout, call order without an observable contract, or the number of internal modules. Cover project persistence and lifecycle operations through their public interfaces as well.
 
 Use existing real-temporary-folder fixtures and isolated project stores. Accept deterministic clock/calendar inputs and narrowly controlled filesystem/storage failures so races and interrupted operations can be reproduced. Do not add an app automation framework or dependencies for this feature.
 
@@ -280,13 +320,35 @@ Integration acceptance groups:
 - Relevant configuration changes while naming, with preserved typed input and review before creation.
 - Untouched existing/imported/synced/external documents, the Create Template bypass, unchanged untemplated behavior, and open failure after successful publication without duplicate creation.
 
-Focused expansion examples are appropriate; avoid trivial tests of language/library behavior. Existing package fixtures include `WorkspaceTests.swift`, `LooseFileTests.swift`, `OpenDocumentTests.swift`, and round-trip corpora under `Packages/GrimoireCore/Tests/GrimoireCoreTests/`.
+Focused expansion examples are appropriate; avoid trivial tests of language/library behavior. Prior art includes the real temporary-folder/store fixtures and legacy JSON cases in WorkspaceTests, bookmark/root-isolation cases in LooseFileTests, saved-versus-unsaved and conflict behavior in OpenDocumentTests, and byte-preservation cases in RoundTripTests and its corpora.
 
 Manual Mac acceptance covers each real menu/shortcut, palette, and folder-context route: destination/source display, name validation, cancel, suffix handling, no preview/second rename, focused editor/caret, inherited repair scope, warnings, and recovery dialogs. There is no established automated app test harness.
 
 Implementation must pass the checks in [Development](../development.md): both app builds, all three package test suites, both linters, and the DMG-layout test. Report results under the repo's [orchestration rules](../agents/orchestration.md) and apply the required adversarial review for stored-project, workspace, and saving changes. Implementation and test writing go through the `coder` role; the lead reviews and merges.
 
-## Decision provenance
+## Out of Scope
+
+- General folder automation, scripts, expressions, custom placeholder definitions, and custom date-format languages.
+- Applying templates to existing, imported, synced, or externally created documents; ongoing frontmatter/schema enforcement.
+- Reapplying content when an existing document is renamed or moved.
+- Automatic correlation of external descendant-folder/source renames or moves, or reliable detection of external folder replacement while the app is closed.
+- Per-placeholder prompts, content previews, a cursor placeholder, smart caret positioning, and automatic YAML parsing or rewriting.
+- Portable folder-side configuration files or automatic assignment transfer to another computer.
+- A new iOS creation UI, a new app automation framework, or an unrelated ownership/storage redesign.
+
+## Further Notes
+
+### Shipping prerequisite
+
+Fix [A projects.json that fails to load is overwritten with an empty library](https://github.com/xchrisbailey/grimoire.srcery/issues/68) before shipping. It remains open as of this spec's assembly.
+
+Failed project loads must preserve the existing file. Assignment changes also require observable save failures and staged commits; they must not appear successfully saved when persistence fails. These requirements are part of the implementation contract, not claims that storage has already been fixed.
+
+The spec is fully specified for agent implementation, but the prerequisite remains a shipping dependency. Implementation breakdown has not been performed, and the feature is not one small implementation ticket.
+
+Use [GLOSSARY.md](../../GLOSSARY.md) for domain terminology and follow [CODING_STANDARDS.md](../../CODING_STANDARDS.md). The repository file is the spec's single home; the published issue contains the problem, solution, and a link here rather than a second full copy.
+
+### Decision provenance
 
 The spec consolidates the following closed decisions without reopening them:
 
