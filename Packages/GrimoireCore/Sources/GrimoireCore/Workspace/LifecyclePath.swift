@@ -28,4 +28,23 @@ enum LifecyclePath {
         guard parts.starts(with: rootParts) else { return nil }
         return FileReference(rootID: rootID, relativePath: parts.dropFirst(rootParts.count).joined(separator: "/"))
     }
+
+    static func destinationContains(_ url: URL, destination: URL, caseSensitive: Bool?) throws -> Bool {
+        let parent = try components(destination.deletingLastPathComponent())
+        let owner = try components(url)
+        guard owner.starts(with: parent), owner.count > parent.count else { return false }
+        let recorded = owner[parent.count].precomposedStringWithCanonicalMapping
+        let proposed = destination.lastPathComponent.precomposedStringWithCanonicalMapping
+        if recorded == proposed { return true }
+        if caseSensitive == true { return false }
+        // POSIX folding is invariant under the user's language/region settings. Only
+        // unresolved names below the already-resolved destination parent are compared.
+        let locale = Locale(identifier: "en_US_POSIX")
+        guard
+            recorded.folding(options: .caseInsensitive, locale: locale).precomposedStringWithCanonicalMapping
+                == proposed.folding(options: .caseInsensitive, locale: locale).precomposedStringWithCanonicalMapping
+        else { return false }
+        guard caseSensitive != nil else { throw LifecycleError.unknownNameEquivalence }
+        return true
+    }
 }

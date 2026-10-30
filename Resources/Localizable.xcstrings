@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Folder names may conflict. Restore volume access or resolve the destination choices, then retry." : {
+      "extractionState" : "manual"
+    },
     "Template choices or source references block this operation. Files and settings are unchanged." : {
       "extractionState" : "manual"
     },

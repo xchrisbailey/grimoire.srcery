@@ -10,6 +10,9 @@ public struct LifecycleResult {
 struct LifecycleOperations {
     var rename: (URL, String) throws -> URL = { try FileOperations.rename($0, to: $1) }
     var move: (URL, URL) throws -> URL = { try FileOperations.move($0, into: $1) }
+    var caseSensitiveNames: (URL) -> Bool? = {
+        (try? $0.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?.volumeSupportsCaseSensitiveNames
+    }
 }
 
 extension Workspace {
@@ -109,12 +112,7 @@ extension Workspace {
             }
         }
         let remaining = project.templateAssignments.filter { !before.contains($0) }
-        for assignment in remaining {
-            guard let ownerURL = self.url(for: assignment.owner) else { continue }
-            if try LifecyclePath.reference(rootID: from.rootID, root: destination, url: ownerURL) != nil {
-                throw LifecycleError.conflict
-            }
-        }
+        try validateDestinationChoices(remaining, destination: destination)
         if before.isEmpty { return nil }
         guard from.rootID == to.rootID else { throw LifecycleError.unsupportedBoundary }
         try FolderTemplateAssignment.validate(remaining + after)
@@ -125,7 +123,20 @@ extension Workspace {
             destinationParentIdentity: try LifecycleIdentity(destination.deletingLastPathComponent()),
             before: before, after: after)
         try operation.validate(in: project)
+        guard !project.pendingLifecycleOperations.contains(where: { $0.conflicts(with: operation) }) else {
+            throw LifecycleError.pendingRepair
+        }
         return operation
+    }
+
+    private func validateDestinationChoices(_ assignments: [FolderTemplateAssignment], destination: URL) throws {
+        let caseSensitive = lifecycleOperations.caseSensitiveNames(destination.deletingLastPathComponent())
+        for assignment in assignments {
+            guard let ownerURL = url(for: assignment.owner) else { continue }
+            if try LifecyclePath.destinationContains(ownerURL, destination: destination, caseSensitive: caseSensitive) {
+                throw LifecycleError.conflict
+            }
+        }
     }
 
     private func requireMovableSubtree(_ source: URL) throws {

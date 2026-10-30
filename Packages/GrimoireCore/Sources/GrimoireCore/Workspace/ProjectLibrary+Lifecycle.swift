@@ -3,6 +3,11 @@ import Foundation
 extension ProjectLibrary {
     func validatePendingLifecycleEdits(from old: Project, to new: Project) throws {
         for operation in old.pendingLifecycleOperations {
+            guard
+                !new.pendingLifecycleOperations.contains(where: {
+                    $0.id != operation.id && operation.conflicts(with: $0)
+                })
+            else { throw LifecycleError.pendingRepair }
             try validatePendingRootEdits(operation, from: old, to: new)
             guard new.pendingLifecycleOperations.contains(operation),
                 new.root(operation.source.rootID) != nil,

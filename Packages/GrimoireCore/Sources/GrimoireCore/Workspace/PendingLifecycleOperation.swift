@@ -48,6 +48,12 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         return false
     }
 
+    func conflicts(with other: Self) -> Bool {
+        let owners = Set((before + after).map(\.owner))
+        return contains(other.source) || contains(other.destination)
+            || !(owners.isDisjoint(with: (other.before + other.after).map(\.owner)))
+    }
+
     func validate(in project: Project) throws {
         try FolderTemplateAssignment.validate(source.relativePath, allowsRoot: false)
         try FolderTemplateAssignment.validate(destination.relativePath, allowsRoot: false)
@@ -99,7 +105,7 @@ extension Project {
             try operation.validate(in: self)
             guard
                 !pendingLifecycleOperations.dropFirst(index + 1).contains(where: {
-                    operation.contains($0.source) || operation.contains($0.destination)
+                    operation.conflicts(with: $0)
                 })
             else { throw LifecycleError.invalidRecord }
         }
@@ -107,10 +113,14 @@ extension Project {
 }
 
 public enum LifecycleError: Error, LocalizedError {
-    case conflict, pendingRepair, unsupportedBoundary, invalidRecord, configurationProtected
+    case conflict, pendingRepair, unsupportedBoundary, invalidRecord, configurationProtected, unknownNameEquivalence
 
     public var errorDescription: String? {
         switch self {
+        case .unknownNameEquivalence:
+            String(
+                localized:
+                    "Folder names may conflict. Restore volume access or resolve the destination choices, then retry.")
         case .configurationProtected:
             String(
                 localized:
