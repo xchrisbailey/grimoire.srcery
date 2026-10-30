@@ -6,6 +6,11 @@ enum LifecyclePath {
     /// leaving a missing descendant under `/private/var`. Resolve the existing ancestor
     /// once and retain the missing suffix, so stored destination conflicts stay visible.
     static func components(_ url: URL) throws -> [String] {
+        let path = try resolved(url)
+        return path.ancestor.standardizedFileURL.resolvingSymlinksInPath().pathComponents + path.suffix
+    }
+
+    private static func resolved(_ url: URL) throws -> (ancestor: URL, suffix: [String]) {
         var ancestor = url
         var suffix: [String] = []
         var info = stat()
@@ -19,7 +24,13 @@ enum LifecyclePath {
         guard FileManager.default.fileExists(atPath: ancestor.path) else {
             throw TemplateAssignmentError.invalidReference
         }
-        return ancestor.standardizedFileURL.resolvingSymlinksInPath().pathComponents + suffix
+        return (ancestor, suffix)
+    }
+
+    static func volumeCaseSensitiveNames(at url: URL) -> Bool? {
+        guard let path = try? resolved(url) else { return nil }
+        return (try? path.ancestor.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?
+            .volumeSupportsCaseSensitiveNames
     }
 
     static func reference(rootID: UUID, root: URL, url: URL) throws -> FileReference? {
@@ -33,18 +44,56 @@ enum LifecyclePath {
         let parent = try components(destination.deletingLastPathComponent())
         let owner = try components(url)
         guard owner.starts(with: parent), owner.count > parent.count else { return false }
-        let recorded = owner[parent.count].precomposedStringWithCanonicalMapping
-        let proposed = destination.lastPathComponent.precomposedStringWithCanonicalMapping
+        return try namesEqual(owner[parent.count], destination.lastPathComponent, caseSensitive: caseSensitive)
+    }
+
+    static func namesEqual(_ left: String, _ right: String, caseSensitive: Bool?) throws -> Bool {
+        let recorded = left.precomposedStringWithCanonicalMapping
+        let proposed = right.precomposedStringWithCanonicalMapping
         if recorded == proposed { return true }
         if caseSensitive == true { return false }
-        // POSIX folding is invariant under the user's language/region settings. Only
-        // unresolved names below the already-resolved destination parent are compared.
+        // POSIX folding is invariant under the user's language/region settings.
         let locale = Locale(identifier: "en_US_POSIX")
         guard
             recorded.folding(options: .caseInsensitive, locale: locale).precomposedStringWithCanonicalMapping
                 == proposed.folding(options: .caseInsensitive, locale: locale).precomposedStringWithCanonicalMapping
         else { return false }
         guard caseSensitive != nil else { throw LifecycleError.unknownNameEquivalence }
+        return true
+    }
+
+    static func overlaps(
+        _ url: URL, reference: FileReference, in root: URL,
+        caseSensitiveNames: (URL) -> Bool?
+    ) throws -> Bool {
+        // A reservation keeps its recorded spelling even when an unrelated alias appears.
+        try overlaps(
+            components(root) + reference.relativePath.split(separator: "/").map(String.init),
+            components(url), caseSensitiveNames: caseSensitiveNames)
+    }
+
+    static func overlaps(_ left: URL, _ right: URL, caseSensitiveNames: (URL) -> Bool?) throws -> Bool {
+        try overlaps(components(left), components(right), caseSensitiveNames: caseSensitiveNames)
+    }
+
+    static func overlaps(
+        _ left: FileReference, in leftRoot: URL, _ right: FileReference, in rightRoot: URL,
+        caseSensitiveNames: (URL) -> Bool?
+    ) throws -> Bool {
+        try overlaps(
+            components(leftRoot) + left.relativePath.split(separator: "/").map(String.init),
+            components(rightRoot) + right.relativePath.split(separator: "/").map(String.init),
+            caseSensitiveNames: caseSensitiveNames)
+    }
+
+    private static func overlaps(_ left: [String], _ right: [String], caseSensitiveNames: (URL) -> Bool?) throws -> Bool
+    {
+        for index in 0..<min(left.count, right.count) where left[index] != right[index] {
+            let parent = URL(filePath: "/" + left.prefix(index).dropFirst().joined(separator: "/"))
+            guard try namesEqual(left[index], right[index], caseSensitive: caseSensitiveNames(parent)) else {
+                return false
+            }
+        }
         return true
     }
 }

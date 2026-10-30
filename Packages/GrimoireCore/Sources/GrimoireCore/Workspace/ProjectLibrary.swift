@@ -59,10 +59,15 @@ public final class ProjectLibrary {
     /// Publishes the changed snapshot only after its atomic save succeeds. Synchronous
     /// MainActor isolation keeps edits from separate windows from interleaving across I/O.
     public func update(_ id: Project.ID, _ change: (inout Project) -> Void) throws {
+        try update(id, caseSensitiveNames: LifecyclePath.volumeCaseSensitiveNames, change)
+    }
+
+    func update(_ id: Project.ID, caseSensitiveNames: (URL) -> Bool?, _ change: (inout Project) -> Void) throws {
         guard let index = projects.firstIndex(where: { $0.id == id }) else { throw LibraryError.unknownProject }
         var candidate = projects
         change(&candidate[index])
-        try validatePendingLifecycleEdits(from: projects[index], to: candidate[index])
+        try validatePendingLifecycleEdits(
+            from: projects[index], to: candidate[index], caseSensitiveNames: caseSensitiveNames)
         try commit(candidate)
     }
 

@@ -25,10 +25,13 @@ extension Workspace {
             guard let root = project?.root(reference.rootID) else { throw TemplateAssignmentError.invalidReference }
             // Last-known paths can conservatively block admission, never grant access or complete recovery.
             let rootURL = url(for: FileReference(rootID: root.id, relativePath: "")) ?? root.lastKnownURL
-            let dependency = try LifecyclePath.components(reference.url(in: rootURL))
             return try scopes.contains { scope in
-                let components = try LifecyclePath.components(scope)
-                return components.starts(with: dependency) || dependency.starts(with: components)
+                try LifecyclePath.overlaps(
+                    scope, reference: reference, in: rootURL,
+                    caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+                    || LifecyclePath.overlaps(
+                        scope, reference.url(in: rootURL),
+                        caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             }
         }
     }

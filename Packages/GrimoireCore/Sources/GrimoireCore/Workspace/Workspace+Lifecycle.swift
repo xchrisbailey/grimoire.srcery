@@ -18,9 +18,7 @@ public struct LifecycleResult {
 struct LifecycleOperations {
     var rename: (URL, String) throws -> URL = { try FileOperations.rename($0, to: $1) }
     var move: (URL, URL) throws -> URL = { try FileOperations.move($0, into: $1) }
-    var caseSensitiveNames: (URL) -> Bool? = {
-        (try? $0.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?.volumeSupportsCaseSensitiveNames
-    }
+    var caseSensitiveNames: (URL) -> Bool? = LifecyclePath.volumeCaseSensitiveNames
     var isSameVolume: (URL, URL) throws -> Bool = {
         try LifecycleIdentity($0).device == LifecycleIdentity($1).device
     }
@@ -73,20 +71,27 @@ extension Workspace {
             let operation = preparation.operation
             pending = operation
             if let operation {
-                try library.update(projectID) { $0.pendingLifecycleOperations.append(operation) }
+                try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) {
+                    $0.pendingLifecycleOperations.append(operation)
+                }
             }
             do {
                 _ = try perform()
             } catch {
                 // Even a failed filesystem call can leave an uncertain outcome. Inspect identities,
                 // never reverse or replay it; failed cleanup persistence must retain the intent.
-                if (try? preparation.observation.completed()) == true {
+                if (try? preparation.observation.completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames))
+                    == true
+                {
                     moved = preparation.observation.destination
                 }
                 reconcileLifecycleOperations()
                 throw error
             }
-            guard try preparation.observation.completed() else { throw LifecycleError.pendingRepair }
+            guard try preparation.observation.completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+            else {
+                throw LifecycleError.pendingRepair
+            }
             moved = preparation.observation.destination
             if let operation {
                 try finishRelocation(operation, completed: true)
@@ -94,15 +99,20 @@ extension Workspace {
             refreshAll()
             return LifecycleResult(movedURL: moved, error: nil)
         } catch {
-            refreshAll()
-            let failure: any Error
-            if let pending, project?.pendingLifecycleOperations.contains(pending) == true {
-                failure = LifecycleRecoveryError(operation: pending, moved: moved != nil, cause: error)
-            } else {
-                failure = error
-            }
-            return LifecycleResult(movedURL: moved, error: failure)
+            return relocationFailure(moved: moved, pending: pending, error: error)
         }
+    }
+
+    private func relocationFailure(moved: URL?, pending: PendingLifecycleOperation?, error: any Error)
+        -> LifecycleResult
+    {
+        refreshAll()
+        if let pending, project?.pendingLifecycleOperations.contains(pending) == true {
+            return LifecycleResult(
+                movedURL: moved,
+                error: LifecycleRecoveryError(operation: pending, moved: moved != nil, cause: error))
+        }
+        return LifecycleResult(movedURL: moved, error: error)
     }
 
     private func prepareRelocation(_ source: URL, to destination: URL) throws -> LifecyclePreparation {
@@ -193,17 +203,24 @@ extension Workspace {
     }
 
     private func requireVacantDestination(_ destination: URL, moving source: URL) throws {
+        let sameParent =
+            try LifecycleIdentity(source.deletingLastPathComponent())
+            == LifecycleIdentity(destination.deletingLastPathComponent())
+        let caseAlias =
+            try sameParent
+            && LifecyclePath.namesEqual(
+                source.lastPathComponent, destination.lastPathComponent,
+                caseSensitive: lifecycleOperations.caseSensitiveNames(destination.deletingLastPathComponent()))
         var info = stat()
         guard lstat(destination.path(percentEncoded: false), &info) == 0 else {
             guard errno == ENOENT else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
             return
         }
         // Only the original entry's case alias may already answer the prospective name.
-        if source.lastPathComponent.lowercased() == destination.lastPathComponent.lowercased(),
+        if caseAlias,
             try !LifecycleObservation.hasExactEntry(destination),
             let identity = try? LifecycleIdentity(destination), try identity == LifecycleIdentity(source),
-            try LifecycleIdentity(source.deletingLastPathComponent())
-                == LifecycleIdentity(destination.deletingLastPathComponent())
+            sameParent
         {
             return
         }
@@ -268,7 +285,8 @@ extension Workspace {
 
     private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
         let root = try rootURL(operation.source.rootID)
-        return try LifecycleObservation(operation: operation, root: root).completed()
+        return try LifecycleObservation(operation: operation, root: root)
+            .completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
     }
 
     private func finishRelocation(_ operation: PendingLifecycleOperation, completed: Bool) throws {
@@ -280,8 +298,10 @@ extension Workspace {
             guard let root = self.url(for: FileReference(rootID: operation.source.rootID, relativePath: "")) else {
                 continue
             }
-            if let reference = try LifecyclePath.reference(rootID: operation.source.rootID, root: root, url: url),
-                operation.contains(reference)
+            for reference in [operation.source, operation.destination]
+            where try LifecyclePath.overlaps(
+                url, reference: reference, in: root,
+                caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             {
                 throw LifecycleError.pendingRepair
             }

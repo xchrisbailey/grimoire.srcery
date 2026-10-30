@@ -22,7 +22,7 @@ extension Workspace {
         if case .useSource(let reference) = assignment.choice, let source = url(for: reference) {
             try requireNoPendingLifecycle(at: source)
         }
-        try library.update(projectID) { project in
+        try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) { project in
             project.templateAssignments.removeAll { $0.owner == assignment.owner }
             project.templateAssignments.append(assignment)
         }
@@ -30,7 +30,7 @@ extension Workspace {
 
     func removeTemplateAssignment(ownedBy owner: FileReference) throws {
         if let url = url(for: owner) { try requireNoPendingLifecycle(at: url) }
-        try library.update(projectID) { project in
+        try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) { project in
             project.templateAssignments.removeAll { $0.owner == owner }
         }
     }
