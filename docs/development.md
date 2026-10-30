@@ -318,6 +318,10 @@ ambiguous original-item/root/parent identities retain intent and block conflicti
 Proven same-root bookmark relocation may reconcile at its new resolved root without
 weakening the pending-record/root guards. No recovery replays or reverses filesystem I/O.
 External replacements while the app was closed cannot always be correlated reliably.
+With ambiguous trash intent, repeat fresh/stale and empty-once creation while the
+owner is absent, restored, or occupied by an ordinary file. None may complete the
+trash, classify its reserved choice as externally missing, recreate its directory,
+or change the recorded settings. Only the scoped trash repair below can retire it.
 
 ### Unbind, trash, and settings-only trash repair
 
