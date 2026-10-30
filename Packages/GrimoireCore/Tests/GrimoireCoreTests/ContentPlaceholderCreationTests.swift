@@ -5,6 +5,33 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct ContentPlaceholderCreationTests {
+    @Test(arguments: [
+        (
+            "{\r\n  \"title\": \"{title}\",\n  \"filename\": {filename:yaml}\r}\n",
+            "{\r\n  \"title\": \"Draft\",\n  \"filename\": \"Draft.md\"\r}\n"
+        ),
+        (
+            "unfinished {author then {title} and {filename:yaml} {title",
+            "unfinished {author then Draft and \"Draft.md\" {title"
+        ),
+    ])
+    func ordinaryBracesDoNotHideLaterExactPlaceholders(_ sourceText: String, _ expected: String) async throws {
+        let scratch = try Scratch()
+        let (workspace, _) = try await scratch.workspace(files: ["source.md": sourceText])
+        defer { workspace.deactivate() }
+        let folder = scratch.url.appending(path: "notes")
+        let source = folder.appending(path: "source.md")
+        try workspace.assignTemplate(source, to: folder)
+        let plan = try workspace.prepareDocument(in: folder, filenamePattern: "Draft")
+        guard case .published(let created) = workspace.createDocument(plan, naming: .generated) else {
+            Issue.record("Ordinary braces must not prevent publication or expansion")
+            return
+        }
+        #expect(try Data(contentsOf: created.url) == Data(expected.utf8))
+        #expect(created.editorCaretUTF16 == expected.utf16.count)
+        #expect(try Data(contentsOf: source) == Data(sourceText.utf8))
+    }
+
     @Test func yamlStringsAndLiteralEscapesExpandOnceWithoutReserializing() async throws {
         let scratch = try Scratch()
         let (workspace, _) = try await scratch.workspace(files: ["source.md": "saved"])

@@ -21,35 +21,25 @@ enum ContentPlaceholders {
         // Scan only saved bytes, so inserted names cannot become placeholders and untouched
         // BOMs, line endings and whitespace never pass through a text serializer.
         let source = Array(snapshot)
+        let substitutions = values.flatMap { name, value -> [(token: [UInt8], replacement: [UInt8])] in
+            let token = "{\(name)}"
+            return [
+                (Array("{\(token)}".utf8), Array(token.utf8)),
+                (Array(token.utf8), Array(value.utf8)),
+            ]
+        }
         var output = Data()
         var index = 0
         while index < source.count {
-            guard source[index] == 0x7b else {
+            if source[index] == 0x7b,
+                let substitution = substitutions.first(where: { source[index...].starts(with: $0.token) })
+            {
+                output.append(contentsOf: substitution.replacement)
+                index += substitution.token.count
+            } else {
                 output.append(source[index])
                 index += 1
-                continue
             }
-            guard let end = source[(index + 1)...].firstIndex(of: 0x7d) else {
-                output.append(contentsOf: source[index...])
-                break
-            }
-            let doubled = source[index + 1] == 0x7b
-            let tokenStart = index + (doubled ? 2 : 1)
-            let token = String(decoding: source[tokenStart..<end], as: UTF8.self)
-            if doubled, end + 1 < source.count, source[end + 1] == 0x7d {
-                if values[token] != nil {
-                    output.append(contentsOf: source[(index + 1)...end])
-                } else {
-                    output.append(contentsOf: source[index...(end + 1)])
-                }
-                index = end + 2
-                continue
-            } else if !doubled, let value = values[token] {
-                output.append(contentsOf: value.utf8)
-            } else {
-                output.append(contentsOf: source[index...end])
-            }
-            index = end + 1
         }
         return output
     }
