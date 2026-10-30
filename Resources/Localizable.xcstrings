@@ -1257,6 +1257,9 @@
     "Themes" : {
       "comment" : "plain: heading of the theme list in Settings"
     },
+    "The translation couldn't preserve this selection. Your original text hasn't changed." : {
+      "extractionState" : "manual"
+    },
     "There's no text in this image to read." : {
       "comment" : "plain: error (#20)",
       "extractionState" : "manual"

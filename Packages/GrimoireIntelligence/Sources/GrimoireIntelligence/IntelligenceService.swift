@@ -244,6 +244,7 @@ public enum IntelligenceError: LocalizedError, Equatable {
     case busy
     case noText
     case unsupportedTranslationSource
+    case invalidTranslation
     case failed(String)
 
     init(_ error: Error) {
@@ -284,6 +285,8 @@ public enum IntelligenceError: LocalizedError, Equatable {
                     // swiftlint:disable:next line_length
                     "This selection contains Markdown that can't be translated safely. Try a selection with explicit links and plain prose."
             )
+        case .invalidTranslation:
+            String(localized: "The translation couldn't preserve this selection. Your original text hasn't changed.")
         case .failed(let message): message
         }
     }

@@ -55,10 +55,7 @@ extension IntelligenceService {
             let request = IntelligenceRequest(instructions: Prompts.todo, text: source)
             return streamGenerated(GeneratedTasks.self, for: request) { $0.markdown }
         case .translate(let language):
-            do { try TranslationSource.validateReferences(in: source) } catch {
-                return AsyncThrowingStream { $0.finish(throwing: error) }
-            }
-            return stream(IntelligenceRequest(instructions: Prompts.translate(into: language), text: source))
+            return translate(source, into: language)
         case .rewrite, .shorten, .expand:
             return stream(IntelligenceRequest(instructions: Self.editInstructions(command), text: source))
         case .explainCode:
@@ -192,8 +189,10 @@ enum Prompts {
 
     static func translate(into language: String) -> String {
         """
-        You translate markdown into \(language). Keep every markdown marker, link destination, code span \
-        and code block exactly as they are; translate only the prose. Answer with the translation alone.
+        Translate the supplied ordered prose pieces into \(language). Return exactly one plain prose \
+        translation per piece, in the same order. Pieces may be fragments of a sentence or link labels; \
+        use the original passage only as context. Do not include Markdown, URLs, code, commentary, or \
+        extra pieces. Preserve the meaning of each individual piece.
         """
     }
 }
