@@ -250,6 +250,56 @@ func firstEvent<T: Sendable>(
 }
 
 @MainActor @Suite struct WorkspaceTests {
+    @Test(arguments: ["{broken", "{\"version\": 2, \"projects\": []}"])
+    func failedProjectLoadPreservesStoredBytesDuringDefaultCreation(json: String) throws {
+        let scratch = try Scratch()
+        let file = try scratch.file("projects.json", json)
+        let original = try Data(contentsOf: file)
+        let library = ProjectLibrary(store: ProjectStore(fileURL: file))
+
+        #expect(library.lastError != nil)
+        #expect(library.loadError != nil)
+        library.lastError = nil
+        if library.projects.isEmpty { library.createProject(named: "Grimoire") }
+        #expect(try Data(contentsOf: file) == original)
+
+        library.retryLoad()
+        #expect(library.loadError != nil)
+        #expect(try Data(contentsOf: file) == original)
+
+        let root = FolderRoot(name: "Notes", bookmark: Data([1, 2, 3]), lastKnownPath: "/notes")
+        let restored = Project(name: "Recovered", roots: [root])
+        try ProjectStore(fileURL: file).save([restored])
+        library.retryLoad()
+        #expect(library.loadError == nil)
+        #expect(library.lastError == nil)
+        #expect(library.projects == [restored])
+        library.update(restored.id) { $0.name = "Renamed" }
+        #expect(try ProjectStore(fileURL: file).load().first?.name == "Renamed")
+        #expect(try ProjectStore(fileURL: file).load().first?.roots == [root])
+    }
+
+    @Test func unreadableProjectStoreIsNotTreatedAsMissing() throws {
+        let scratch = try Scratch()
+        let directory = try scratch.folder("projects.json")
+        let marker = try scratch.file("projects.json/preserved", "original bytes")
+        let library = ProjectLibrary(store: ProjectStore(fileURL: directory))
+        #expect(library.loadError != nil)
+        library.createProject(named: "Grimoire")
+        #expect(try String(contentsOf: marker, encoding: .utf8) == "original bytes")
+        #expect(library.loadError != nil)
+    }
+
+    @Test func missingProjectStoreAllowsDefaultCreation() throws {
+        let scratch = try Scratch()
+        let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
+        let library = ProjectLibrary(store: store)
+        #expect(library.loadError == nil)
+        if library.projects.isEmpty { library.createProject(named: "Grimoire") }
+        #expect(try store.load() == library.projects)
+        #expect(library.lastError == nil)
+    }
+
     /// The "done when" for #4: make a project, bind two unrelated folders, see both trees,
     /// relaunch (a new library over the same store) and still have access; a file made
     /// outside the app appears without a manual refresh.

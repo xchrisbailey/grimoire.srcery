@@ -7,6 +7,9 @@ public final class ProjectLibrary {
     public private(set) var projects: [Project]
     /// The last save or load failure, for the UI to surface.
     public var lastError: Error?
+    /// A failed load blocks persistence until a successful retry, even if an alert is dismissed.
+    public private(set) var loadError: Error?
+    public var storageURL: URL { store.fileURL }
 
     private let store: ProjectStore
 
@@ -16,6 +19,20 @@ public final class ProjectLibrary {
             projects = try store.load()
         } catch {
             projects = []
+            loadError = error
+            lastError = error
+        }
+    }
+
+    /// Reload after the user repairs the stored file or restores a compatible backup.
+    public func retryLoad() {
+        do {
+            let loaded = try store.load()
+            projects = loaded
+            loadError = nil
+            lastError = nil
+        } catch {
+            loadError = error
             lastError = error
         }
     }
@@ -92,6 +109,10 @@ public final class ProjectLibrary {
     }
 
     private func save() {
+        guard loadError == nil else {
+            lastError = loadError
+            return
+        }
         do {
             try store.save(projects)
         } catch {

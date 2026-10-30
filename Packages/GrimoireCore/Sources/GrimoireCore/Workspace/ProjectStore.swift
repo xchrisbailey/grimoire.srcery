@@ -24,9 +24,15 @@ public struct ProjectStore: Sendable {
 
     /// The saved projects, or none when nothing has been saved yet.
     public func load() throws -> [Project] {
-        guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return [] }
-        let data = try Data(contentsOf: fileURL)
-        return try JSONDecoder().decode(Contents.self, from: data).projects
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch CocoaError.fileReadNoSuchFile {
+            return []
+        }
+        let contents = try JSONDecoder().decode(Contents.self, from: data)
+        guard contents.version == 1 else { throw ProjectStoreError.unsupportedVersion(contents.version) }
+        return contents.projects
     }
 
     public func save(_ projects: [Project]) throws {
@@ -35,5 +41,16 @@ public struct ProjectStore: Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(Contents(projects: projects)).write(to: fileURL, options: .atomic)
+    }
+}
+
+public enum ProjectStoreError: LocalizedError {
+    case unsupportedVersion(Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupportedVersion(let version):
+            String(localized: "This projects file uses an unsupported version (\(version)).")
+        }
     }
 }

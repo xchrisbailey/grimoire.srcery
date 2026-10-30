@@ -10,7 +10,21 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if let window {
+            if let error = library.loadError {
+                ContentUnavailableView {
+                    Label("Projects couldn’t be loaded", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(
+                        "Your projects file is unchanged. Repair it or restore a compatible backup, then retry."
+                    )
+                    Text(error.localizedDescription)
+                } actions: {
+                    Button("Retry") { library.retryLoad() }
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([library.storageURL])
+                    }
+                }
+            } else if let window {
                 WindowContent(window: window)
                     .background(WindowReader { window.hostWindow = $0 })
             } else {
