@@ -28,6 +28,7 @@ public final class Workspace {
     @ObservationIgnored var emptyOnceCreations: Set<UUID> = []
     @ObservationIgnored var templateAuthoringResults: [UUID: TemplateAuthoringResult] = [:]
     @ObservationIgnored var lifecycleOperations = LifecycleOperations()
+    @ObservationIgnored var templateRootIdentities: [FolderRoot.ID: LifecycleIdentity] = [:]
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
@@ -42,7 +43,7 @@ public final class Workspace {
     public func activate() {
         isActive = true
         sync()
-        reconcileLifecycleOperations()
+        refreshTemplateAssignments()
     }
 
     /// Stops watchers and gives up folder access.
@@ -66,6 +67,14 @@ public final class Workspace {
                 return open(root)
             }
             if var existing = folders.first(where: { $0.id == root.id }), existing.status != .needsAccess {
+                if let resolved = try? FolderBookmark.resolve(root.bookmark),
+                    resolved.url.standardizedFileURL != existing.url?.standardizedFileURL,
+                    let identity = try? LifecycleIdentity(resolved.url.resolvingSymlinksInPath()),
+                    identity == templateRootIdentities[root.id]
+                {
+                    release(root.id)
+                    return open(root)
+                }
                 existing.root = root
                 return existing
             }
@@ -151,6 +160,7 @@ public final class Workspace {
             else { return }
             self.folders[index].tree = tree
             self.folders[index].status = .available
+            self.refreshTemplateAssignments()
             self.scanCount += 1
         }
     }
@@ -248,6 +258,7 @@ public final class Workspace {
             folder.root = project?.root(root.id) ?? root
         }
         folder.url = url
+        templateRootIdentities[root.id] = try? LifecycleIdentity(url.resolvingSymlinksInPath())
         folder.status = .loading
         let id = root.id
         watchers[id] = FolderWatcher(url: url) { [weak self] _ in
