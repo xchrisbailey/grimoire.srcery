@@ -49,6 +49,11 @@ import Testing
         #expect(try Data(contentsOf: created.url) == Data(expected.utf8))
         #expect(created.editorCaretUTF16 == expected.utf16.count)
         #expect(try Data(contentsOf: source) == snapshot)
+        let renamed = try FileOperations.rename(created.url, to: "Renamed.md")
+        let moved = try FileOperations.move(renamed, into: scratch.folder("notes/archive"))
+        #expect(try Data(contentsOf: source) == snapshot)
+        try Data("changed {title}".utf8).write(to: source)
+        #expect(try Data(contentsOf: moved) == Data(expected.utf8))
     }
 
     @Test func yamlEscapesGeneratedFilenameBackslashesControlsAndLineBreaks() async throws {
@@ -68,5 +73,83 @@ import Testing
         #expect(created.url.lastPathComponent == stem + ".md")
         #expect(try Data(contentsOf: created.url) == Data(expected.utf8))
         #expect(created.editorCaretUTF16 == expected.utf16.count)
+    }
+
+    @Test func suffixRacesRegenerateFromOneSnapshotAndTimestampThroughTwoDigitSuffixes() async throws {
+        let scratch = try Scratch()
+        let text = "\u{feff}{title:yaml}\r\n{filename}\r{date} {time}  \n"
+        let (workspace, _) = try await scratch.workspace(files: ["source.md": text])
+        defer { workspace.deactivate() }
+        let folder = scratch.url.appending(path: "notes")
+        let source = folder.appending(path: "source.md")
+        try workspace.assignTemplate(source, to: folder)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let now = Date(timeIntervalSince1970: 1_793_404_799)
+        let plan = try workspace.prepareDocument(
+            in: folder, filenamePattern: "{date} {time}", now: now, calendar: calendar)
+        var operations = DocumentCreationOperations()
+        var competitors: [URL] = []
+        operations.publish = { directory, temporary, candidate in
+            if competitors.count < 9 {
+                let competitor = folder.appending(path: candidate)
+                try Data("Competitor".utf8).write(to: competitor)
+                competitors.append(competitor)
+                try Data("next attempt {filename}".utf8).write(to: source)
+            }
+            try DocumentCreationOperations.publish(directory, temporary, candidate)
+        }
+        guard
+            case .published(let created) = workspace.createDocument(
+                plan, naming: .generated, now: now, calendar: calendar, operations: operations)
+        else {
+            Issue.record("Expected publication after competing creators")
+            return
+        }
+        let expected = "\u{feff}\"2026-10-30 2359 10\"\r\n2026-10-30 2359 10.md\r2026-10-30 23:59:59  \n"
+        #expect(created.url.lastPathComponent == "2026-10-30 2359 10.md")
+        #expect(try Data(contentsOf: created.url) == Data(expected.utf8))
+        #expect(created.editorCaretUTF16 == expected.utf16.count)
+        for competitor in competitors { #expect(try Data(contentsOf: competitor) == Data("Competitor".utf8)) }
+        #expect(try String(contentsOf: source, encoding: .utf8) == "next attempt {filename}")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).count == 11)
+    }
+
+    @Test(arguments: [false, true])
+    func visibleRetryRefreshesSavedContentAndTimeButPreservesNamingIntent(_ edited: Bool) async throws {
+        let scratch = try Scratch()
+        let (workspace, _) = try await scratch.workspace(files: ["source.md": "old {filename} {date} {time}"])
+        defer { workspace.deactivate() }
+        let folder = scratch.url.appending(path: "notes")
+        let source = folder.appending(path: "source.md")
+        try workspace.assignTemplate(source, to: folder)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let before = Date(timeIntervalSince1970: 1_793_404_799)
+        let after = before.addingTimeInterval(2)
+        let plan = try workspace.prepareDocument(
+            in: folder, filenamePattern: "{date} {time}", now: before, calendar: calendar)
+        let naming: DocumentNamingIntent = edited ? .edited("Keep {date} {time}") : .generated
+        var operations = DocumentCreationOperations()
+        operations.publish = { _, _, _ in throw POSIXError(.EACCES) }
+        guard
+            case .failed = workspace.createDocument(
+                plan, naming: naming, now: before, calendar: calendar, operations: operations)
+        else {
+            Issue.record("First attempt must report the publication failure")
+            return
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["source.md"])
+        try Data("new {filename} {date} {time}".utf8).write(to: source)
+        guard
+            case .published(let created) = workspace.createDocument(
+                plan, naming: naming, now: after, calendar: calendar, operations: DocumentCreationOperations())
+        else {
+            Issue.record("A user-visible retry must start a fresh attempt")
+            return
+        }
+        let filename = edited ? "Keep {date} {time}.md" : "2026-10-31 0000.md"
+        #expect(created.url.lastPathComponent == filename)
+        #expect(try String(contentsOf: created.url, encoding: .utf8) == "new \(filename) 2026-10-31 00:00:01")
     }
 }

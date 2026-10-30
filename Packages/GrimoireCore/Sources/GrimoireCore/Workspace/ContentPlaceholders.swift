@@ -24,12 +24,14 @@ enum ContentPlaceholders {
         var output = Data()
         var index = 0
         while index < source.count {
-            guard source[index] == 0x7b,
-                let end = source[(index + 1)...].firstIndex(of: 0x7d)
-            else {
+            guard source[index] == 0x7b else {
                 output.append(source[index])
                 index += 1
                 continue
+            }
+            guard let end = source[(index + 1)...].firstIndex(of: 0x7d) else {
+                output.append(contentsOf: source[index...])
+                break
             }
             let doubled = source[index + 1] == 0x7b
             let tokenStart = index + (doubled ? 2 : 1)
