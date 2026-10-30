@@ -14,14 +14,12 @@ extension ProjectLibrary {
                 let originalRoots = (accessibleRoots + [resolved].compactMap { $0 })
                     .filter { (try? LifecycleIdentity($0)) == operation.rootIdentity }
                 let hints = originalRoots.isEmpty ? [root.lastKnownURL] + [resolved].compactMap { $0 } : originalRoots
-                for hint in hints {
-                    for reference in [operation.source, operation.destination]
-                    where try LifecyclePath.mayOverlap(
-                        url, reference: reference, in: hint, caseSensitiveNames: caseSensitiveNames)
-                    {
-                        throw LifecycleRecoveryError(
-                            operation: operation, moved: false, cause: LifecycleError.pendingRepair)
-                    }
+                for hint in hints
+                where try LifecyclePath.reserves(
+                    url, operation: operation, in: hint, caseSensitiveNames: caseSensitiveNames)
+                {
+                    throw LifecycleRecoveryError(
+                        operation: operation, moved: false, cause: LifecycleError.pendingRepair)
                 }
             }
         }

@@ -8,13 +8,20 @@ struct LifecycleIdentity: Codable, Hashable, Sendable {
 
     init(_ url: URL) throws {
         var info = stat()
-        guard lstat(url.path(percentEncoded: false), &info) == 0 else {
+        guard lstat(Self.entryPath(url), &info) == 0 else {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }
         device = info.st_dev
         inode = info.st_ino
         type = info.st_mode & S_IFMT
         guard type == S_IFDIR || type == S_IFREG else { throw LifecycleError.unsupportedBoundary }
+    }
+
+    static func entryPath(_ url: URL) -> String {
+        // A trailing directory slash makes lstat follow a symlink, defeating exact-entry evidence.
+        var path = url.path(percentEncoded: false)
+        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        return path
     }
 }
 

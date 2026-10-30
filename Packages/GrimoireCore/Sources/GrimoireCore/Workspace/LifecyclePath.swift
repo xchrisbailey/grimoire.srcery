@@ -66,37 +66,74 @@ enum LifecyclePath {
         _ url: URL, reference: FileReference, in root: URL,
         caseSensitiveNames: (URL) -> Bool?
     ) throws -> Bool {
-        // A reservation keeps its recorded spelling even when an unrelated alias appears.
         try overlaps(
-            components(root) + reference.relativePath.split(separator: "/").map(String.init),
-            components(url), caseSensitiveNames: caseSensitiveNames)
+            reservationPaths(url), reservationPaths(reference, in: root),
+            caseSensitiveNames: caseSensitiveNames)
     }
 
     static func overlaps(_ left: URL, _ right: URL, caseSensitiveNames: (URL) -> Bool?) throws -> Bool {
-        try overlaps(components(left), components(right), caseSensitiveNames: caseSensitiveNames)
+        try overlaps(reservationPaths(left), reservationPaths(right), caseSensitiveNames: caseSensitiveNames)
     }
 
-    /// Unavailable foreign roots still reserve plausible paths, but can never prove recovery.
-    static func mayOverlap(
-        _ url: URL, reference: FileReference, in root: URL,
+    /// Lexical paths, live aliases and observed identity can deny a conflict, never prove completion.
+    static func reserves(
+        _ url: URL, operation: PendingLifecycleOperation, in root: URL,
         caseSensitiveNames: (URL) -> Bool?
     ) throws -> Bool {
-        let rootParts = reservationComponents(root)
-        let parts = reservationComponents(url)
-        return try overlaps(
-            rootParts + reference.relativePath.split(separator: "/").map(String.init),
-            parts, caseSensitiveNames: caseSensitiveNames)
+        for path in [url, url.resolvingSymlinksInPath()] {
+            var ancestor = path
+            while ancestor.pathComponents.count > 1 {
+                if (try? LifecycleIdentity(ancestor)) == operation.itemIdentity { return true }
+                ancestor.deleteLastPathComponent()
+            }
+        }
+        return try [operation.source, operation.destination].contains {
+            try overlaps(url, reference: $0, in: root, caseSensitiveNames: caseSensitiveNames)
+        }
+    }
+
+    private static func reservationPaths(_ url: URL) -> [[String]] {
+        [url.standardizedFileURL.pathComponents, reservationComponents(url)]
+    }
+
+    private static func reservationPaths(_ reference: FileReference, in root: URL) -> [[String]] {
+        let relative = reference.relativePath.split(separator: "/").map(String.init)
+        // Retain the recorded suffix even when resolving a newly substituted parent changes its path.
+        return reservationPaths(root).map { $0 + relative } + reservationPaths(reference.url(in: root))
     }
 
     private static func reservationComponents(_ url: URL) -> [String] {
-        var ancestor = url
-        var suffix: [String] = []
-        while ancestor.pathComponents.count > 1 {
-            if let parts = try? components(ancestor) { return parts + suffix }
-            suffix.insert(ancestor.lastPathComponent, at: 0)
-            ancestor.deleteLastPathComponent()
+        var remaining = Array(url.standardizedFileURL.pathComponents.dropFirst())
+        var parts = ["/"]
+        var links = 0
+        while !remaining.isEmpty {
+            let name = remaining.removeFirst()
+            if name == "." { continue }
+            if name == ".." {
+                if parts.count > 1 { parts.removeLast() }
+                continue
+            }
+            let candidate = URL(filePath: "/" + (Array(parts.dropFirst()) + [name]).joined(separator: "/"))
+            if links < 40, let target = symlinkTarget(candidate) {
+                remaining = Array(target.pathComponents.dropFirst()) + remaining
+                parts = ["/"]
+                links += 1
+            } else {
+                parts.append(name)
+            }
         }
-        return ancestor.standardizedFileURL.pathComponents + suffix
+        return parts
+    }
+
+    private static func symlinkTarget(_ url: URL) -> URL? {
+        var info = stat()
+        let path = LifecycleIdentity.entryPath(url)
+        guard lstat(path, &info) == 0, info.st_mode & S_IFMT == S_IFLNK,
+            let target = try? FileManager.default.destinationOfSymbolicLink(atPath: path)
+        else { return nil }
+        // Resolve links without canonicalizing ordinary entry spelling; volume-aware comparison
+        // still decides whether case/Unicode variants are equivalent, including missing leaves.
+        return URL(filePath: target, relativeTo: url.deletingLastPathComponent()).absoluteURL
     }
 
     static func overlaps(
@@ -104,9 +141,16 @@ enum LifecyclePath {
         caseSensitiveNames: (URL) -> Bool?
     ) throws -> Bool {
         try overlaps(
-            components(leftRoot) + left.relativePath.split(separator: "/").map(String.init),
-            components(rightRoot) + right.relativePath.split(separator: "/").map(String.init),
+            reservationPaths(left, in: leftRoot), reservationPaths(right, in: rightRoot),
             caseSensitiveNames: caseSensitiveNames)
+    }
+
+    private static func overlaps(_ left: [[String]], _ right: [[String]], caseSensitiveNames: (URL) -> Bool?) throws
+        -> Bool
+    {
+        try left.contains { lhs in
+            try right.contains { rhs in try overlaps(lhs, rhs, caseSensitiveNames: caseSensitiveNames) }
+        }
     }
 
     private static func overlaps(_ left: [String], _ right: [String], caseSensitiveNames: (URL) -> Bool?) throws -> Bool

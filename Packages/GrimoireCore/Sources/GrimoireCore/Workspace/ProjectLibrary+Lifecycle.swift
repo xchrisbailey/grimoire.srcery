@@ -51,6 +51,12 @@ extension ProjectLibrary {
             for other in project.pendingLifecycleOperations.dropFirst(index + 1) {
                 guard !operation.conflicts(with: other) else { throw LifecycleError.pendingRepair }
                 let otherRoot = try reservationRoot(other.source.rootID, in: project)
+                if try LifecyclePath.reserves(
+                    other.source.url(in: otherRoot), operation: operation, in: root,
+                    caseSensitiveNames: caseSensitiveNames)
+                {
+                    throw LifecycleError.pendingRepair
+                }
                 for left in [operation.source, operation.destination] {
                     for right in [other.source, other.destination]
                     where try LifecyclePath.overlaps(
@@ -81,6 +87,12 @@ extension ProjectLibrary {
         return try references.contains { reference in
             guard let bound = project.root(reference.rootID) else { return false }
             let boundURL = (try? FolderBookmark.resolve(bound.bookmark).url) ?? bound.lastKnownURL
+            if try LifecyclePath.reserves(
+                reference.url(in: boundURL), operation: operation, in: rootURL,
+                caseSensitiveNames: caseSensitiveNames)
+            {
+                return true
+            }
             return try [operation.source, operation.destination].contains { reserved in
                 try LifecyclePath.overlaps(
                     reference, in: boundURL, reserved, in: rootURL,
@@ -128,14 +140,12 @@ extension ProjectLibrary {
             }
         }
         let rootURL = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
-        let paths = [operation.source, operation.destination]
         func relevant(_ roots: [FolderRoot]) throws -> [UUID] {
             try roots.filter { candidate in
                 let url = (try? FolderBookmark.resolve(candidate.bookmark).url) ?? candidate.lastKnownURL
-                return try paths.contains { path in
-                    try LifecyclePath.overlaps(
-                        url, reference: path, in: rootURL, caseSensitiveNames: caseSensitiveNames)
-                }
+                return try LifecyclePath.reserves(
+                    url, operation: operation, in: rootURL,
+                    caseSensitiveNames: caseSensitiveNames)
             }.map(\.id)
         }
         guard try relevant(old.roots) == relevant(new.roots) else { throw LifecycleError.pendingRepair }

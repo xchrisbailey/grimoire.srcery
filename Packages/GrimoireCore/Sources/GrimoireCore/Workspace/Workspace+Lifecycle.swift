@@ -296,11 +296,9 @@ extension Workspace {
                 self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
                 ?? project.root(operation.source.rootID)?.lastKnownURL
             guard let root else { throw LifecycleError.pendingRepair }
-            let relevant = try [operation.source, operation.destination].contains {
-                try LifecyclePath.overlaps(
-                    url, reference: $0, in: root,
-                    caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
-            }
+            let relevant = try LifecyclePath.reserves(
+                url, operation: operation, in: root,
+                caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             guard relevant else { continue }
             do {
                 try finishRelocation(operation, completed: observedCompletion(of: operation))
@@ -323,12 +321,12 @@ extension Workspace {
 
     func requireNoPendingLifecycle(at url: URL) throws {
         for operation in project?.pendingLifecycleOperations ?? [] {
-            guard let root = self.url(for: FileReference(rootID: operation.source.rootID, relativePath: "")) else {
-                continue
-            }
-            for reference in [operation.source, operation.destination]
-            where try LifecyclePath.overlaps(
-                url, reference: reference, in: root,
+            let root =
+                self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
+                ?? project?.root(operation.source.rootID)?.lastKnownURL
+            guard let root else { throw LifecycleError.pendingRepair }
+            if try LifecyclePath.reserves(
+                url, operation: operation, in: root,
                 caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             {
                 throw LifecycleError.pendingRepair

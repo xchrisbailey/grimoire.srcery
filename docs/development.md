@@ -224,6 +224,21 @@ plausible paths when A's root cannot resolve; last-known paths are guards, never
 evidence or access grants. Repair/reconcile through A's own workspace, then retry B's
 save and restart. No assignments migrate to B; unrelated physical paths remain writable.
 
+While intent is pending, move the item's parent to an in-root sibling and replace the
+recorded parent with a symlink to it. Own-project and foreign-project managed saves
+must remain blocked through both the old lexical URL and the resolved URL, including
+manual/autosave/Keep Mine and documents inside a pending folder move. Reservation
+guards compare recorded lexical and live resolved path variants with the same
+volume-aware component rules; observed original-item/ancestor identity also denies
+hardlink/subtree conflicts. These checks only deny conflicts, never grant access,
+eligibility, or completion. Configuration edits and fresh/stale source-dependent creation
+must not bypass the reservation through an alias either. Unrelated files still save.
+Restoring settings access alone must not reconcile through the substituted parent.
+Directory URL trailing slashes must not make `lstat` follow a symlink as original-parent
+evidence. Repair the actual original parent first, then reconcile and retry the save;
+restart must have no stranded intent. Fully resolved containment and original
+root/item/both-parent reconciliation requirements remain unchanged.
+
 Delete or replace a queued published target before repairing the old dirty editor.
 Also replace its parent directory with a regular file: `ENOTDIR`, like `ENOENT`,
 is a terminal missing publication path, not a retryable access failure. Keep that
