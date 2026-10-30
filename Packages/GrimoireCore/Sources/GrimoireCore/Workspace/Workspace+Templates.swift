@@ -4,14 +4,39 @@ import Foundation
 extension Workspace {
     /// Inspects only this folder's saved choice, including an inactive unresolved record.
     public func templateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
+        sync()
         try validateActiveTemplateOwners()
         let owner = try templateOwner(for: folder)
         return project?.templateAssignments.first { $0.owner == owner }
     }
 
+    /// The nearest active choice inside the destination's most-specific bound root.
+    public func effectiveTemplateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
+        sync()
+        try validateActiveTemplateOwners()
+        guard var owner = try templateReference(for: folder) else {
+            throw TemplateAssignmentError.unavailableFolder
+        }
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDirectory), !isDirectory.boolValue {
+            throw TemplateAssignmentError.unavailableFolder
+        }
+        while true {
+            if let assignment = project?.templateAssignments.first(where: { $0.owner == owner && $0.state == .active })
+            {
+                return assignment
+            }
+            guard !owner.relativePath.isEmpty else { return nil }
+            owner = FileReference(
+                rootID: owner.rootID,
+                relativePath: owner.relativePath.split(separator: "/").dropLast().joined(separator: "/"))
+        }
+    }
+
     /// Nil represents a cancelled picker, not removal of the previous choice.
     public func assignTemplate(_ source: URL?, to folder: URL) throws {
         guard let source else { return }
+        sync()
         try validateActiveTemplateOwners()
         let owner = try templateOwner(for: folder)
         let reference = try templateSourceReference(for: source)
@@ -28,6 +53,20 @@ extension Workspace {
         let url = reference.url(in: root)
         _ = try templateSourceReference(for: url)
         return url.resolvingSymlinksInPath()
+    }
+
+    public func disableTemplate(in folder: URL) throws {
+        sync()
+        try validateActiveTemplateOwners()
+        let owner = try templateOwner(for: folder)
+        try saveTemplateAssignment(FolderTemplateAssignment(owner: owner, choice: .noTemplate))
+    }
+
+    /// Removes only the edited folder's choice, never the ancestor supplying its effective choice.
+    public func inheritTemplate(in folder: URL) throws {
+        sync()
+        try validateActiveTemplateOwners()
+        try removeTemplateAssignment(ownedBy: templateOwner(for: folder))
     }
 
     var templateRoots: [BoundFolder] {

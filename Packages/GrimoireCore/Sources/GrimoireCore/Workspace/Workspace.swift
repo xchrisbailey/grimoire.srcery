@@ -41,6 +41,12 @@ public final class Workspace {
         }
     }
 
+    func removeTemplateAssignment(ownedBy owner: FileReference) throws {
+        try library.update(projectID) { project in
+            project.templateAssignments.removeAll { $0.owner == owner }
+        }
+    }
+
     /// Resolves every root, starts watching, and scans. Calling it again picks up roots
     /// bound since the last call.
     public func activate() {

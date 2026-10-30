@@ -81,6 +81,7 @@ struct CreationFolderIdentity: Equatable, Sendable {
 }
 
 struct DocumentCreationContext: Equatable, Sendable {
+    // The destination's chosen binding, distinct from the inherited assignment's owner.
     let owner: FileReference
     let assignment: FolderTemplateAssignment?
     let destination: CreationFolderIdentity
@@ -107,23 +108,18 @@ extension Workspace {
         }
         let assignment: FolderTemplateAssignment?
         if purpose == .document {
-            // Existing owner validation also rejects decoded aliases and references escaping their own root.
-            var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
-                guard isDirectory.boolValue else { throw TemplateAssignmentError.unavailableFolder }
-                assignment = try templateAssignment(for: destination).flatMap { $0.state == .active ? $0 : nil }
-            } else {
-                assignment = project?.templateAssignments.first { $0.owner == owner && $0.state == .active }
-            }
+            assignment = try effectiveTemplateAssignment(for: destination)
         } else {
             assignment = nil
         }
         var source: URL?
+        var requiresNaming = false
         var rootIDs = [owner.rootID]
         if case .useSource(let reference) = assignment?.choice {
+            requiresNaming = true
             try assignment?.validate()
-            rootIDs.append(reference.rootID)
             if let root = templateRoots.first(where: { $0.id == reference.rootID })?.url {
+                rootIDs.append(reference.rootID)
                 source = reference.url(in: root)
             }
         }
@@ -144,7 +140,7 @@ extension Workspace {
         return DocumentCreationPlan(
             id: UUID(), destination: destination, source: source, assignment: assignment,
             suggestedStem: FileNaming.name(from: filenamePattern, date: now, calendar: calendar),
-            requiresNaming: source != nil,
+            requiresNaming: requiresNaming,
             projectID: projectID, filenamePattern: filenamePattern, purpose: purpose, context: context)
     }
 

@@ -1,6 +1,33 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Folder" : {
+      "comment" : "plain: folder whose local template choice is being edited"
+    },
+    "Folder Choice" : {
+      "comment" : "plain: explicit choice at the folder being edited"
+    },
+    "Inherit" : {
+      "comment" : "plain: remove only this folder's explicit template choice"
+    },
+    "Use a template" : {
+      "comment" : "plain: choose a saved template source"
+    },
+    "Inherited From" : {
+      "comment" : "plain: ancestor owning the effective content template choice"
+    },
+    "No template (effective choice)" : {
+      "comment" : "plain: effective explicit template opt-out"
+    },
+    "No effective content template." : {
+      "comment" : "plain: no active explicit choice inside the selected bound root"
+    },
+    "This choice applies to this folder and its descendants within this bound root in this project." : {
+      "comment" : "plain: folder template inheritance scope"
+    },
+    "Owning folder: %@" : {
+      "comment" : "plain: identifies the assignment supplying a broken template source"
+    },
     "Enter a name without surrounding whitespace, leading dots, path separators or control characters." : {
       "comment" : "plain: literal new-document stem validation",
       "extractionState" : "manual"

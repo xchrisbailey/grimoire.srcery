@@ -23,7 +23,10 @@ import Testing
 
         for folder in [fixture.posts, fixture.alias] {
             #expect(throws: TemplateAssignmentError.self) { try workspace.templateAssignment(for: folder) }
+            #expect(throws: TemplateAssignmentError.self) { try workspace.effectiveTemplateAssignment(for: folder) }
             #expect(throws: TemplateAssignmentError.self) { try workspace.assignTemplate(fixture.source, to: folder) }
+            #expect(throws: TemplateAssignmentError.self) { try workspace.inheritTemplate(in: folder) }
+            #expect(throws: TemplateAssignmentError.self) { try workspace.disableTemplate(in: folder) }
             #expect(library.projects == before)
             #expect(try Data(contentsOf: library.storageURL) == bytes)
         }
