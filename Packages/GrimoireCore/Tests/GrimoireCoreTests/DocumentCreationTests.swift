@@ -5,6 +5,48 @@ import Testing
 @testable import GrimoireCore
 
 @Suite struct DocumentCreationTests {
+    enum TemporaryReplacement: CaseIterable {
+        case symlink, foreignFile
+    }
+
+    @Test(arguments: TemporaryReplacement.allCases)
+    func substitutedTemporaryIsNotHandedOffAndItsPublishedEntryIsPreserved(_ replacement: TemporaryReplacement) throws {
+        let scratch = try Scratch()
+        let existing = try scratch.file("existing.md", "Existing user document")
+        let foreign = try scratch.file("foreign.md", "Another creator's content")
+        let published = scratch.url.appending(path: "Untitled.md")
+        var operations = DocumentCreationOperations()
+        operations.publish = { directory, temporary, candidate in
+            let temporaryURL = scratch.url.appending(path: temporary)
+            try FileManager.default.removeItem(at: temporaryURL)
+            switch replacement {
+            case .symlink:
+                try FileManager.default.createSymbolicLink(
+                    atPath: temporaryURL.path, withDestinationPath: "existing.md")
+            case .foreignFile:
+                try FileManager.default.moveItem(at: foreign, to: temporaryURL)
+            }
+            try DocumentCreationOperations.publish(directory, temporary, candidate)
+        }
+        var opened: URL?
+        #expect(throws: FileOperationError.couldNotCreate("Untitled.md")) {
+            opened = try FileOperations.createDocument(in: scratch.url, operations: operations)
+        }
+        #expect(opened == nil)
+        #expect(try String(contentsOf: existing, encoding: .utf8) == "Existing user document")
+        switch replacement {
+        case .symlink:
+            #expect(try FileManager.default.destinationOfSymbolicLink(atPath: published.path) == "existing.md")
+            #expect(try String(contentsOf: foreign, encoding: .utf8) == "Another creator's content")
+            #expect(try String(contentsOf: published, encoding: .utf8) == "Existing user document")
+        case .foreignFile:
+            #expect(try published.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true)
+            #expect(try String(contentsOf: published, encoding: .utf8) == "Another creator's content")
+        }
+        let names = try FileManager.default.contentsOfDirectory(atPath: scratch.url.path)
+        #expect(!names.contains { $0.hasPrefix(".grimoire-create-") })
+    }
+
     @Test func creationCannotPublishOutsideItsDestinationDirectory() throws {
         let scratch = try Scratch()
         let destination = try scratch.folder("notes")

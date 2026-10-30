@@ -58,9 +58,11 @@ extension FileOperations {
             }
             do {
                 try operations.publish(directory, temporary, name)
-                // A renamed/replaced directory must not hand off a URL into an unrelated folder.
-                // The completed publication stays put; rollback through the old path would be unsafe.
-                guard matchesDestination(folder, identity: destinationIdentity) else {
+                // Exclusive rename protects the destination name, not the source's identity.
+                // Preserve a substituted entry rather than rolling back someone else's content.
+                guard matches(directory: directory, name: name, identity: identity),
+                    matchesDestination(folder, identity: destinationIdentity)
+                else {
                     throw FileOperationError.couldNotCreate(name)
                 }
                 return folder.appending(path: name)
@@ -89,6 +91,7 @@ extension FileOperations {
     private static func matches(directory: Int32, name: String, identity: stat) -> Bool {
         var current = stat()
         return fstatat(directory, name, &current, AT_SYMLINK_NOFOLLOW) == 0
+            && current.st_mode & S_IFMT == S_IFREG
             && current.st_dev == identity.st_dev && current.st_ino == identity.st_ino
     }
 
