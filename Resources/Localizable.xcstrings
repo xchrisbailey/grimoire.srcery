@@ -1,6 +1,31 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Enter a name without surrounding whitespace, leading dots, path separators or control characters." : {
+      "comment" : "plain: literal new-document stem validation",
+      "extractionState" : "manual"
+    },
+    "Creation details changed. Review them, then confirm again." : {
+      "comment" : "plain: relevant context changed during naming"
+    },
+    "Template source: %@" : {
+      "comment" : "plain: identifies a source that blocked creation"
+    },
+    "The document was created at %@, but couldn’t be opened." : {
+      "comment" : "plain: publication succeeded; opening must not retry creation"
+    },
+    "Open that file; don’t create another copy." : {
+      "comment" : "plain: recovery after a published document could not be opened"
+    },
+    "Destination" : {
+      "comment" : "plain: new-document destination folder"
+    },
+    "Template source" : {
+      "comment" : "plain: new-document saved source"
+    },
+    "No template" : {
+      "comment" : "plain: reviewed creation no longer has an assigned source"
+    },
     "Invalid content template reference. Repair the project settings and retry." : {
       "comment" : "plain: invalid stored folder template path",
       "extractionState" : "manual"
@@ -37,8 +62,8 @@
     "Template Source" : {
       "comment" : "plain: saved source file reference"
     },
-    "This choice belongs to this exact folder in this project. Document creation is not connected yet." : {
-      "comment" : "plain: scope and current configuration-only limitation"
+    "This choice applies to new documents in this exact folder in this project." : {
+      "comment" : "plain: exact-folder creation scope; inheritance is not implemented yet"
     },
     "Choose Existing File…" : {
       "comment" : "plain: choose an existing template source"

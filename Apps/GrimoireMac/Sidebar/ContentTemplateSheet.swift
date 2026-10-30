@@ -17,7 +17,7 @@ struct ContentTemplateSheet: View {
                 Text(folder.path(percentEncoded: false)).textSelection(.enabled)
             }
             choice
-            Text("This choice belongs to this exact folder in this project. Document creation is not connected yet.")
+            Text("This choice applies to new documents in this exact folder in this project.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             HStack {

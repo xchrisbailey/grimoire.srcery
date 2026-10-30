@@ -13,11 +13,16 @@ final class FileActions {
     var banishing: URL?
     var error: Error?
     var configuringTemplate: URL?
+    var creationPlan: DocumentCreationPlan?
+    var creationStem = ""
+    var creationNameEdited = false
+    var creationNotice: String?
+    private var pendingHandoff: PublishedDocument?
     /// Folders still to be offered an alias after this one, from binding several at once.
     private var aliasQueue: [(id: FolderRoot.ID, name: String)] = []
 
     /// Called after a page is conjured, so the window can open it.
-    @ObservationIgnored var didCreate: ((URL) -> Void)?
+    @ObservationIgnored var didCreate: ((PublishedDocument) -> Void)?
     /// Called after an item is renamed or moved, with its old and new URLs.
     @ObservationIgnored var didMove: ((URL, URL) -> Void)?
     /// Called after an item goes to the Trash.
@@ -29,16 +34,76 @@ final class FileActions {
     /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
     @discardableResult
     func createDocument(in folder: URL, workspace: Workspace, rename: Bool = true) -> URL? {
-        var created: URL?
-        perform(workspace, near: folder) {
-            created = try FileOperations.createDocument(
-                in: folder, named: FileNaming.name(from: Preferences.shared.newFileName))
+        do {
+            let plan = try workspace.prepareDocument(in: folder, filenamePattern: Preferences.shared.newFileName)
+            if plan.requiresNaming {
+                creationPlan = plan
+                creationStem = plan.suggestedStem
+                creationNameEdited = false
+                creationNotice = nil
+                return nil
+            }
+            return handleCreation(
+                workspace.createDocument(plan, naming: .generated), workspace: workspace, rename: rename)
+        } catch {
+            self.error = error
+            return nil
         }
-        guard let created else { return nil }
-        workspace.setExpanded(folder, true)
-        didCreate?(created)
-        if rename { startRename(created) }
-        return created
+    }
+
+    func confirmCreation(workspace: Workspace) {
+        guard let plan = creationPlan else { return }
+        let naming: DocumentNamingIntent = creationNameEdited ? .edited(creationStem) : .generated
+        _ = handleCreation(workspace.createDocument(plan, naming: naming), workspace: workspace, rename: false)
+    }
+
+    func creationDismissed() {
+        creationPlan = nil
+        guard let published = pendingHandoff else { return }
+        pendingHandoff = nil
+        didCreate?(published)
+    }
+
+    private func handleCreation(_ result: DocumentCreationResult, workspace: Workspace, rename: Bool) -> URL? {
+        switch result {
+        case .published(let published):
+            return finishCreation(published, workspace: workspace, rename: rename)
+        case .reviewNeeded(let updated):
+            if creationPlan == nil {
+                creationStem = updated.suggestedStem
+                creationNameEdited = false
+            }
+            creationPlan = updated
+            creationNotice = String(localized: "Creation details changed. Review them, then confirm again.")
+        case .invalidName(let failure):
+            creationNotice = failure.localizedDescription
+        case .sourceFailure(let plan, let failure):
+            creationNotice =
+                String(localized: "Template source: \(plan.source?.path ?? "")")
+                + "\n" + failure.localizedDescription
+        case .failed(let failure), .contextUnavailable(let failure):
+            creationNotice = failure.localizedDescription
+            if creationPlan == nil { error = failure }
+        case .publishedButUnavailable(let url):
+            creationPlan = nil
+            error = CreatedDocumentOpenError(url: url)
+        case .alreadyPublished, .cancelled:
+            break
+        }
+        return nil
+    }
+
+    private func finishCreation(_ published: PublishedDocument, workspace: Workspace, rename: Bool) -> URL {
+        workspace.refresh(of: published.url)
+        workspace.setExpanded(published.url.deletingLastPathComponent(), true)
+        if published.editorCaretUTF16 != nil {
+            pendingHandoff = published
+            creationPlan = nil
+        } else {
+            didCreate?(published)
+            if rename { startRename(published.url) }
+        }
+        return published.url
     }
 
     func createFolder(in folder: URL, workspace: Workspace) {
@@ -173,6 +238,7 @@ private struct FileActionPrompts: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .modifier(DocumentCreationPrompt(actions: actions, workspace: workspace))
             .sheet(
                 isPresented: Binding(
                     get: { actions.configuringTemplate != nil },

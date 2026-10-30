@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 extension Workspace {
@@ -29,7 +30,7 @@ extension Workspace {
         return url.resolvingSymlinksInPath()
     }
 
-    private var templateRoots: [BoundFolder] {
+    var templateRoots: [BoundFolder] {
         guard isActive, let project else { return [] }
         return project.roots.compactMap { root in
             folders.first { $0.id == root.id && $0.status != .needsAccess && $0.url != nil }
@@ -57,7 +58,7 @@ extension Workspace {
         }
     }
 
-    private func templateReference(for url: URL) throws -> FileReference? {
+    func templateReference(for url: URL) throws -> FileReference? {
         guard url.isFileURL, !url.pathComponents.contains(".."), !url.pathComponents.contains(".") else {
             throw TemplateAssignmentError.invalidReference
         }
@@ -88,17 +89,45 @@ extension Workspace {
     }
 
     private func templateSourceReference(for url: URL) throws -> FileReference {
+        let reference = try eligibleTemplateReference(for: url)
+        _ = try savedTemplateBytes(at: url)
+        return reference
+    }
+
+    func eligibleTemplateReference(for url: URL) throws -> FileReference {
         let resolved = url.resolvingSymlinksInPath()
         guard let reference = try templateReference(for: url),
             ["md", "mdx"].contains(resolved.pathExtension.lowercased())
         else { throw TemplateAssignmentError.ineligibleSource }
         try FolderTemplateAssignment.validate(reference.relativePath, allowsRoot: false)
-        let bytes: Data
         do {
             guard try resolved.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
                 throw TemplateAssignmentError.ineligibleSource
             }
-            bytes = try Data(contentsOf: resolved)
+        } catch let failure as TemplateAssignmentError {
+            throw failure
+        } catch {
+            throw TemplateAssignmentError.sourceUnavailable(error)
+        }
+        return reference
+    }
+
+    func savedTemplateBytes(at url: URL) throws -> Data {
+        let bytes: Data
+        do {
+            let resolved = url.resolvingSymlinksInPath()
+            _ = try eligibleTemplateReference(for: resolved)
+            // Pin the validated file, rejecting a last-component link substituted before opening.
+            let descriptor = open(resolved.path(percentEncoded: false), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+            guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+            let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            var info = stat()
+            guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
+                throw TemplateAssignmentError.ineligibleSource
+            }
+            bytes = try handle.readToEnd() ?? Data()
+            try handle.close()
+            _ = try eligibleTemplateReference(for: url)
         } catch let failure as TemplateAssignmentError {
             throw failure
         } catch {
@@ -107,6 +136,6 @@ extension Workspace {
         guard !bytes.contains(0), String(data: bytes, encoding: .utf8) != nil else {
             throw TemplateAssignmentError.unsupportedText
         }
-        return reference
+        return bytes
     }
 }

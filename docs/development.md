@@ -30,8 +30,7 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 ## Content template configuration demo
 
-This configuration slice does not apply templates when creating documents. In the
-Mac app, bind a folder to a project and save an ordinary Markdown file inside it
+In the Mac app, bind a folder to a project and save an ordinary Markdown file inside it
 (a separate bound templates folder also works). Right-click a root or subfolder,
 choose **Content Template…**, then **Choose Existing File…**. The sheet shows the
 exact owning folder and saved template source. Close and reopen the sheet, then
@@ -42,8 +41,23 @@ replacement, choose an invalid or outside-project source, and simulate a setting
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
 starts unconfigured. Source files and content folders must stay untouched. No
-inheritance, opt-out controls, source authoring, or document creation integration
-is included in this slice.
+inheritance, opt-out controls, source authoring, placeholder expansion, or recovery
+actions are included yet.
+
+New File now uses an exact-folder assignment's saved static contents. Menu/shortcut
+and palette commands resolve their existing destination before joining the same
+creation flow as the folder context menu. The naming sheet shows destination and
+source, edits a literal stem with `.md` separate, and creates nothing on cancel.
+Relevant context changes require another confirmation; saved edits to the same
+source remain live. Placeholders stay literal in this slice.
+
+Native Mac acceptance is **not verified** by package tests or source wiring. Check
+each real menu, shortcut, palette, and folder-context route: destination/source
+display, invalid names without rewriting, cancellation, context review preserving
+input, collision suffixes, no preview or second rename prompt, and focused editor
+with its caret at the UTF-16 content end (including emoji and a BOM). Check an open
+or last-opened-settings failure after publication separately: preserve the created
+file and do not retry creation. No native GUI automation harness is available.
 
 ## CI
 

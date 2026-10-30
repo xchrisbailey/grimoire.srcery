@@ -24,6 +24,7 @@ public final class Workspace {
     /// Counts finished scans, so observers (the search index) can follow file changes even
     /// when a tree's shape stays the same.
     public private(set) var scanCount = 0
+    @ObservationIgnored var publishedCreations: [UUID: PublishedDocument] = [:]
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
@@ -63,6 +64,10 @@ public final class Workspace {
         let ids = Set(project.roots.map(\.id))
         for id in Array(accessed.keys) where !ids.contains(id) { release(id) }
         folders = project.roots.map { root in
+            if let existing = folders.first(where: { $0.id == root.id }), existing.root.bookmark != root.bookmark {
+                release(root.id)
+                return open(root)
+            }
             if var existing = folders.first(where: { $0.id == root.id }), existing.status != .needsAccess {
                 existing.root = root
                 return existing

@@ -17,7 +17,9 @@ struct DocumentCreationOperations {
 extension FileOperations {
     static func createDocument(
         in folder: URL, named baseName: String = "Untitled", extension ext: String = "md",
-        operations: DocumentCreationOperations
+        operations: DocumentCreationOperations,
+        content: (String) throws -> Data = { _ in Data() },
+        validate: () throws -> Void = {}
     ) throws -> URL {
         let initialName = ext.isEmpty ? baseName : "\(baseName).\(ext)"
         // Directory-relative publication must accept only a single filename, never a path or a C-string prefix.
@@ -46,31 +48,84 @@ extension FileOperations {
                 unlinkat(directory, temporary, 0)
             }
         }
-        try operations.write(handle)
-        try handle.close()
+        let publication = DocumentPublication(
+            folder: folder, directory: directory, destinationIdentity: destinationIdentity,
+            temporary: temporary, identity: identity, handle: handle)
+        return try publishDocument(
+            publication, filename: (stem: baseName, extension: ext), operations: operations,
+            content: content, validate: validate)
+    }
+
+    private static func publishDocument(
+        _ publication: DocumentPublication, filename: (stem: String, extension: String),
+        operations: DocumentCreationOperations, content: (String) throws -> Data, validate: () throws -> Void
+    ) throws -> URL {
+        let (baseName, ext) = filename
         var index = 1
-        for _ in 0..<32 {
-            let name = try nextDocumentName(in: directory, baseName: baseName, extension: ext, index: &index)
-            guard matches(directory: directory, name: temporary, identity: identity),
-                matchesDestination(folder, identity: destinationIdentity)
-            else {
-                throw FileOperationError.couldNotCreate(name)
-            }
+        for attempt in 0..<32 {
+            let name = try nextDocumentName(
+                in: publication.directory, baseName: baseName, extension: ext, index: &index)
+            let bytes = try content(name)
+            // Collision output is generated for the allocated name, from the caller's one saved snapshot.
+            try publication.write(bytes, retry: attempt > 0, operations: operations)
+            try validate()
+            try publication.validateTemporary(named: name)
             do {
-                try operations.publish(directory, temporary, name)
-                // Exclusive rename protects the destination name, not the source's identity.
-                // Preserve a substituted entry rather than rolling back someone else's content.
-                guard matches(directory: directory, name: name, identity: identity),
-                    matchesDestination(folder, identity: destinationIdentity)
-                else {
-                    throw FileOperationError.couldNotCreate(name)
-                }
-                return folder.appending(path: name)
+                return try publication.publish(named: name, operations: operations, validate: validate)
             } catch let error as POSIXError where error.code == .EEXIST {
                 index += 1
             }
         }
-        throw FileOperationError.couldNotCreate(initialName)
+        throw FileOperationError.couldNotCreate(ext.isEmpty ? baseName : "\(baseName).\(ext)")
+    }
+
+    private struct DocumentPublication {
+        let folder: URL
+        let directory: Int32
+        let destinationIdentity: stat
+        let temporary: String
+        let identity: stat
+        let handle: FileHandle
+
+        func write(_ bytes: Data, retry: Bool, operations: DocumentCreationOperations) throws {
+            let output: FileHandle
+            if retry {
+                let reopened = openat(directory, temporary, O_WRONLY | O_NOFOLLOW | O_CLOEXEC)
+                guard reopened >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+                output = FileHandle(fileDescriptor: reopened, closeOnDealloc: true)
+            } else {
+                output = handle
+            }
+            var current = stat()
+            guard fstat(output.fileDescriptor, &current) == 0,
+                current.st_dev == identity.st_dev, current.st_ino == identity.st_ino
+            else { throw FileOperationError.couldNotCreate(temporary) }
+            try validateTemporary(named: temporary)
+            try output.truncate(atOffset: 0)
+            try output.write(contentsOf: bytes)
+            try operations.write(output)
+            try output.close()
+        }
+
+        func validateTemporary(named name: String) throws {
+            guard matches(directory: directory, name: temporary, identity: identity),
+                matchesDestination(folder, identity: destinationIdentity)
+            else { throw FileOperationError.couldNotCreate(name) }
+        }
+
+        func publish(
+            named name: String, operations: DocumentCreationOperations, validate: () throws -> Void
+        ) throws -> URL {
+            try operations.publish(directory, temporary, name)
+            let url = folder.appending(path: name)
+            // Exclusive rename protects the destination name, not the source's identity.
+            // Preserve a substituted entry rather than rolling back someone else's content.
+            guard matches(directory: directory, name: name, identity: identity),
+                matchesDestination(folder, identity: destinationIdentity)
+            else { throw DocumentPublicationError.publishedButUnavailable(url) }
+            do { try validate() } catch { throw DocumentPublicationError.publishedButUnavailable(url) }
+            return url
+        }
     }
 
     private static func nextDocumentName(
@@ -100,4 +155,8 @@ extension FileOperations {
         return stat(folder.path(percentEncoded: false), &current) == 0
             && current.st_dev == identity.st_dev && current.st_ino == identity.st_ino
     }
+}
+
+enum DocumentPublicationError: Error, Equatable {
+    case publishedButUnavailable(URL)
 }

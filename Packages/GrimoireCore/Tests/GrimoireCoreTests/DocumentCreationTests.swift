@@ -29,7 +29,7 @@ import Testing
             try DocumentCreationOperations.publish(directory, temporary, candidate)
         }
         var opened: URL?
-        #expect(throws: FileOperationError.couldNotCreate("Untitled.md")) {
+        #expect(throws: DocumentPublicationError.publishedButUnavailable(published)) {
             opened = try FileOperations.createDocument(in: scratch.url, operations: operations)
         }
         #expect(opened == nil)
@@ -68,7 +68,7 @@ import Testing
             try DocumentCreationOperations.publish(directory, temporary, candidate)
         }
         var opened: URL?
-        #expect(throws: FileOperationError.couldNotCreate("Untitled.md")) {
+        #expect(throws: DocumentPublicationError.publishedButUnavailable(destination.appending(path: "Untitled.md"))) {
             opened = try FileOperations.createDocument(in: destination, operations: operations)
         }
         #expect(opened == nil)

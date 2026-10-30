@@ -58,7 +58,7 @@ final class WindowState {
     init(library: ProjectLibrary) {
         self.library = library
         search.semantic = { [weak self] in self?.currentSemanticIndex() }
-        actions.didCreate = { [weak self] url in self?.select(url) }
+        actions.didCreate = { [weak self] created in self?.openCreatedDocument(created) }
         actions.didMove = { [weak self] from, to in self?.itemMoved(from: from, to: to) }
         actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
         actions.willRelease = { [weak self] in self?.save() }
@@ -151,13 +151,13 @@ final class WindowState {
     // MARK: - Document
 
     /// Opens `url` in this window, saving and closing whatever was open.
-    func select(_ url: URL?) {
+    func select(_ url: URL?, initialEditorMode: EditorMode? = nil) {
         guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else { return }
         closeDocument()
         selectedFile = url
         selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
         guard let url else { return }
-        editorMode = FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
+        editorMode = initialEditorMode ?? FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
             document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
             document?.versions = .standard
@@ -269,16 +269,24 @@ final class WindowState {
 
     func newFile() {
         guard let workspace, let folder = folderForNewFiles else { return }
-        do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        } catch {
-            actions.error = error
-            return
-        }
         actions.createDocument(in: folder, workspace: workspace)
     }
 
+    private func openCreatedDocument(_ created: PublishedDocument) {
+        guard let caret = created.editorCaretUTF16 else {
+            select(created.url)
+            return
+        }
+        select(created.url, initialEditorMode: .raw)
+        guard document != nil, openError == nil else {
+            openError = CreatedDocumentOpenError(url: created.url)
+            return
+        }
+        editor.revealWhenReady(NSRange(location: caret, length: 0), in: created.url)
+    }
+
     private func closeDocument() {
+        editor.cancelPendingReveal()
         document?.close()
         document = nil
         openError = nil
