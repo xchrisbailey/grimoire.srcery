@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 extension Workspace {
@@ -13,26 +14,49 @@ extension Workspace {
         refreshTemplateRootLocations()
         reconcileLifecycleOperations()
         refreshTemplateRootLocations()
+        do { try classifyMissingTemplateOwners() } catch { lastError = error }
+    }
+
+    /// Lookup can recreate a missing destination later in the same actor turn. Retire
+    /// affected choices durably first, without making unrelated missing owners a write veto.
+    func prepareTemplateLookup(in folder: URL) throws {
+        sync()
+        reconcileLifecycleOperations()
+        try classifyMissingTemplateOwners(affecting: folder)
+        try validateActiveTemplateOwners()
+    }
+
+    private func classifyMissingTemplateOwners(affecting folder: URL? = nil) throws {
         var missing: [FolderTemplateAssignment] = []
         for assignment in project?.templateAssignments ?? [] where assignment.state == .active {
+            if let folder {
+                guard let root = templateRoots.first(where: { $0.id == assignment.owner.rootID })?.url,
+                    try LifecyclePath.contains(
+                        assignment.owner, in: root, url: folder,
+                        caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+                else { continue }
+            }
             do {
                 try requireAvailableTemplateDependency(assignment)
-                if try templateOwnerIsMissing(assignment.owner) { missing.append(assignment) }
             } catch {
-                // Access and ambiguous pending evidence leave the choice untouched for explicit retry.
+                // Pending choices cannot be retired, but creation must not erase their
+                // missing-path evidence either. Existing independent destinations stay usable.
+                if folder != nil, (try? templateOwnerIsMissing(assignment.owner)) == true { throw error }
                 if case LifecycleError.pendingRepair = error { continue }
                 lastError = error
+                continue
             }
+            do {
+                if try templateOwnerIsMissing(assignment.owner) { missing.append(assignment) }
+            } catch { lastError = error }
         }
         guard !missing.isEmpty else { return }
-        do {
-            try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) { project in
-                for index in project.templateAssignments.indices
-                where missing.contains(project.templateAssignments[index]) {
-                    project.templateAssignments[index].state = .unresolved
-                }
+        try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) { project in
+            for index in project.templateAssignments.indices
+            where missing.contains(project.templateAssignments[index]) {
+                project.templateAssignments[index].state = .unresolved
             }
-        } catch { lastError = error }
+        }
     }
 
     private func templateOwnerIsMissing(_ owner: FileReference) throws -> Bool {
@@ -53,6 +77,16 @@ extension Workspace {
                 break
             }
             current.append(path: match)
+            var entry = stat()
+            guard lstat(LifecycleIdentity.entryPath(current), &entry) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            // An observed ordinary file proves this folder is gone. Links and denied
+            // lookups remain uncertain; never follow an unbound replacement as evidence.
+            if entry.st_mode & S_IFMT == S_IFREG {
+                missing = true
+                break
+            }
             guard try LifecyclePath.reference(rootID: owner.rootID, root: root, url: current) != nil else {
                 throw TemplateAssignmentError.invalidReference
             }

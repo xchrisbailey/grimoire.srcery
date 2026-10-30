@@ -108,6 +108,12 @@ import Testing
         #expect(restarted.unresolvedTemplateAssignments.isEmpty)
         #expect(restarted.project?.templateAssignments.first?.state == .active)
         #expect(try Data(contentsOf: library.storageURL) == interrupted)
+        #expect(throws: (any Error).self) {
+            try restarted.prepareDocument(in: owner, filenamePattern: "Must not recreate")
+        }
+        #expect(!FileManager.default.fileExists(atPath: owner.path))
+        #expect(restarted.hasPendingLifecycleOperations)
+        #expect(try Data(contentsOf: library.storageURL) == interrupted)
     }
 
     private struct RecoveryContext {

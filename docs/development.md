@@ -276,6 +276,21 @@ the choice must stay inactive. Loss of root/ancestor access, an unavailable volu
 bookmark, and transient read errors must not be treated as proof of deletion. Source
 loss alone must retain the distinct broken-source recovery flow above.
 
+Delete a configured owner and invoke New File immediately, before a watcher scan.
+Fresh creation/assignment lookup must reconcile pending lifecycle intent and persist
+the affected missing choice inactive before any directory recreation. Repeat with an
+opt-out, an ancestor template, and a naming sheet prepared before deletion: changed
+details require review, and the old choice must remain inactive after creation/relaunch.
+An inactive choice does not block normal ancestor inheritance. Failed retirement saves
+must block the affected creation without creating directories or changing settings;
+independent destinations and never-configured legacy subfolder creation remain usable.
+
+Replace the owner itself, then an ancestor, with an ordinary regular file while the
+root is readable. Detect the folder as gone and persist unresolved state without
+changing that replacement's bytes or inode. Restoring the directory structure must
+not reactivate the choice. Denied access and dangling/uncertain links remain distinct
+from an observed ordinary non-directory entry.
+
 Locate an accessible folder in this project's bindings. Review the old owner, new owner
 and inheritance scope before confirming; source references/files stay unchanged, including
 broken sources needing separate repair. Check cancellation, occupied choices, symlinks
