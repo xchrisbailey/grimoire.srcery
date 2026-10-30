@@ -140,8 +140,46 @@ final class ExternalOpens {
 
     func prepareRelease(in project: Project.ID?) -> Bool {
         var allowed = true
-        for window in windows.compactMap(\.window) where window.projectID == project {
-            if !window.prepareForRelease() { allowed = false }
+        for window in affectedWindows(in: project) where !window.prepareForRelease() { allowed = false }
+        return allowed
+    }
+
+    private func affectedWindows(in project: Project.ID?) -> [WindowState] {
+        var affected = windows.compactMap(\.window).filter { $0.projectID == project }
+        for window in blockedWindows where window.projectID == project {
+            if !affected.contains(where: { $0 === window }) { affected.append(window) }
+        }
+        return affected
+    }
+
+    func rootsRemoved(in project: Project.ID?) {
+        for window in affectedWindows(in: project) { window.projectRootsChanged() }
+    }
+
+    func itemTrashed(_ url: URL, in project: Project.ID?) {
+        for window in allManagedWindows { window.itemTrashed(url) }
+    }
+
+    private var allManagedWindows: [WindowState] {
+        var all = windows.compactMap(\.window)
+        for window in blockedWindows where !all.contains(where: { $0 === window }) { all.append(window) }
+        return all
+    }
+
+    func prepareDestructiveOperation(_ plan: DestructiveLifecyclePlan, in project: Project.ID?) -> Bool {
+        var allowed = true
+        // Retained states stay owned until persistence succeeds, including when their
+        // pre-save drains a published-document queue.
+        preparingDeletion = true
+        defer { preparingDeletion = false }
+        for window in allManagedWindows {
+            let physical =
+                plan.action != .unbind
+                && (window.selectedFile.map { (try? DestructiveLifecyclePlan.affects(plan.item, document: $0)) ?? true }
+                    ?? false)
+            if window.projectID == project || physical {
+                if !window.prepareForRelease() { allowed = false }
+            }
         }
         return allowed
     }
