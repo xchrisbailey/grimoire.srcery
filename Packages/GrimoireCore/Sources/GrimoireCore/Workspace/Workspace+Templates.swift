@@ -150,7 +150,7 @@ extension Workspace {
         return nil
     }
 
-    private func templateOwner(for url: URL) throws -> FileReference {
+    func templateOwner(for url: URL) throws -> FileReference {
         // Picker URLs may cache directory metadata; query disk again before committing.
         var isDirectory: ObjCBool = false
         guard let reference = try templateReference(for: url),

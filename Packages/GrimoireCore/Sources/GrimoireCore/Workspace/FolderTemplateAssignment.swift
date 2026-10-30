@@ -83,9 +83,12 @@ public struct FolderTemplateAssignment: Codable, Hashable, Sendable {
 public enum TemplateAssignmentError: Error, LocalizedError {
     case invalidReference, conflictingChoices, unavailableFolder, ineligibleSource, unsupportedText
     case sourceUnavailable(any Error)
+    case recoveryChanged
 
     public var errorDescription: String? {
         switch self {
+        case .recoveryChanged:
+            String(localized: "Folder template recovery changed. Review the folder and configuration, then retry.")
         case .invalidReference:
             String(localized: "Invalid content template reference. Repair the project settings and retry.")
         case .conflictingChoices:

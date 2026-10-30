@@ -10,7 +10,9 @@ extension Workspace {
     public func refreshTemplateAssignments() {
         guard isActive else { return }
         sync()
+        refreshTemplateRootLocations()
         reconcileLifecycleOperations()
+        refreshTemplateRootLocations()
         var missing: [FolderTemplateAssignment] = []
         for assignment in project?.templateAssignments ?? [] where assignment.state == .active {
             do {
@@ -18,13 +20,15 @@ extension Workspace {
                 if try templateOwnerIsMissing(assignment.owner) { missing.append(assignment) }
             } catch {
                 // Access and ambiguous pending evidence leave the choice untouched for explicit retry.
-                if !(error is LifecycleError) { lastError = error }
+                if case LifecycleError.pendingRepair = error { continue }
+                lastError = error
             }
         }
         guard !missing.isEmpty else { return }
         do {
             try library.update(projectID, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) { project in
-                for index in project.templateAssignments.indices where missing.contains(project.templateAssignments[index]) {
+                for index in project.templateAssignments.indices
+                where missing.contains(project.templateAssignments[index]) {
                     project.templateAssignments[index].state = .unresolved
                 }
             }

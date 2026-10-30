@@ -172,9 +172,9 @@ assignment/source/binding operations remain blocked while unrelated name/theme e
 remain available. Configured cross-root moves, root relocation, unbind, and trash
 policies are not implemented by this slice; unsupported destructive operations fail
 closed rather than silently dropping configuration. The full feature is not shipped.
-User-facing configured regrant accepts only an observable same-root identity in this
-slice. Authoritative library bookmark updates remain allowed without conflicting
-pending intent; creation must still revalidate them rather than writing through stale access.
+User-facing configured regrant uses the reviewed carry-over flow below. Authoritative
+library bookmark updates remain allowed without conflicting pending intent; creation
+must still revalidate them rather than writing through stale access.
 Core rechecks the original item/root/parent identities before returning an editor handoff,
 including moves with no configuration changes. Identity rejection retains pending intent
 without retargeting a dirty document to a replacement. Verified movement still hands off
@@ -262,6 +262,41 @@ and access (successful pre-saves are intentional). After a successful commit, al
 states must synchronously leave the deleted project without editable orphan authorizers;
 unrelated project windows stay untouched. A removed Workspace's authorizer remains
 fail-closed. These production-method regressions do not establish native GUI acceptance.
+
+### Missing owner and bound-root access recovery
+
+Native sidebar, picker and confirmation acceptance remains **UNVERIFIED**. The full
+content-template feature is not shipped. Package tests do not establish native UI behavior.
+
+Delete a configured folder externally while its root remains readable. After a completed
+scan, or **Check Folder Template Assignments** in the sidebar's **Content Templates**
+section, its choice/opt-out must appear inactive with **Locate Folder…** and **Remove
+Assignment** even though no tree row exists. Recreate its former path, then relaunch:
+the choice must stay inactive. Loss of root/ancestor access, an unavailable volume or
+bookmark, and transient read errors must not be treated as proof of deletion. Source
+loss alone must retain the distinct broken-source recovery flow above.
+
+Locate an accessible folder in this project's bindings. Review the old owner, new owner
+and inheritance scope before confirming; source references/files stay unchanged, including
+broken sources needing separate repair. Check cancellation, occupied choices, symlinks
+outside access, most-specific overlapping bindings, and another window changing the
+target identity, bindings or choices while confirmation is open. Remove only the shown
+choice, never neighboring choices or files. Failed persistence must retain the old snapshot
+in both windows and on relaunch, show an error, and permit explicit retry.
+
+Use **Grant Access…** from a bound root's context menu or needs-access row. An observable
+same physical bookmarked root may relocate without copying assignment/source references;
+the root UUID and relative paths stay unchanged. A different target must show all affected
+owned choices and source references before **Carry Configuration**. Cancel and failed
+persistence keep the old binding/access/configuration. Replace the picked target or change
+the displayed scope in another window before confirmation: require another review.
+
+Repeat all recovery actions after an interrupted in-app operation, both before its
+filesystem change and after filesystem success/final-save failure. Reconcile first;
+ambiguous original-item/root/parent identities retain intent and block conflicting edits.
+Proven same-root bookmark relocation may reconcile at its new resolved root without
+weakening the pending-record/root guards. No recovery replays or reverses filesystem I/O.
+External replacements while the app was closed cannot always be correlated reliably.
 
 ## CI
 
