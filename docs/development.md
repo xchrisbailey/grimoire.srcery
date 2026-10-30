@@ -291,6 +291,12 @@ owned choices and source references before **Carry Configuration**. Cancel and f
 persistence keep the old binding/access/configuration. Replace the picked target or change
 the displayed scope in another window before confirmation: require another review.
 
+For Locate Folder, revoke read or traversal access on the selected folder both before
+opening recovery and between preparation and confirmation without replacing its inode.
+Each failure must preserve the entire unresolved choice and stored settings. Restore
+read and traversal access and retry the same target; a read-only accessible folder is
+eligible because relinking changes project settings, not that folder's files.
+
 Repeat all recovery actions after an interrupted in-app operation, both before its
 filesystem change and after filesystem success/final-save failure. Reconcile first;
 ambiguous original-item/root/parent identities retain intent and block conflicting edits.

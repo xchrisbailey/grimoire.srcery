@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// A settings-only edit. Preparing or discarding it never changes files or assignments.
@@ -28,6 +29,7 @@ extension Workspace {
         let owner = try destination.map { try templateOwner(for: $0) }
         if let owner, let destination {
             try requireNoPendingLifecycle(at: destination)
+            try requireAccessibleRecoveryFolder(destination)
             try requireVacantTemplateOwner(owner, replacing: assignment)
         }
         return TemplateRecoveryPlan(
@@ -53,6 +55,19 @@ extension Workspace {
                 project.templateAssignments.append(located)
             }
         }
+    }
+
+    private func requireAccessibleRecoveryFolder(_ url: URL) throws {
+        let resolved = url.resolvingSymlinksInPath()
+        let directory = open(resolved.path(percentEncoded: false), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard directory >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { close(directory) }
+        // Listing alone can succeed without search permission. A relative open proves
+        // traversal too, without requiring write access to this settings-only destination.
+        let traversed = openat(directory, ".", O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+        guard traversed >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { close(traversed) }
+        _ = try FileManager.default.contentsOfDirectory(atPath: resolved.path)
     }
 
     private func recoveryRootIdentity(_ id: FolderRoot.ID) throws -> LifecycleIdentity {
