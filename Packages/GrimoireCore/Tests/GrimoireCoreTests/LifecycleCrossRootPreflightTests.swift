@@ -4,28 +4,6 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct LifecycleCrossRootPreflightTests {
-    @Test func retainedOuterSourceReferenceIsProtectedWhenAnInnerBindingOwnsTheMove() async throws {
-        let scratch = try Scratch()
-        let (workspace, library) = try await scratch.workspace(files: ["templates/source.md": "original"])
-        defer { workspace.deactivate() }
-        let source = scratch.url.appending(path: "notes/templates/source.md")
-        let owner = try scratch.folder("notes/owner")
-        let target = try scratch.folder("destination")
-        try workspace.assignTemplate(source, to: owner)
-        try library.bindFolder(source.deletingLastPathComponent(), to: workspace.projectID)
-        try library.bindFolder(target, to: workspace.projectID)
-        let before = library.projects
-        let bytes = try Data(contentsOf: library.storageURL)
-        let result = workspace.move(source, into: target)
-        // The root-pair record cannot yet express an outer reference to this inner-owned
-        // source. Keep both disk and settings intact until that mapping is approved.
-        #expect(result.movedURL == nil && result.legacyMovedURL == nil && result.error != nil)
-        #expect(library.projects == before)
-        #expect(try Data(contentsOf: library.storageURL) == bytes)
-        #expect(try String(contentsOf: source, encoding: .utf8) == "original")
-        #expect(!FileManager.default.fileExists(atPath: target.appending(path: "source.md").path))
-    }
-
     @Test func unavailableInnerDestinationNeverMigratesChoicesIntoTheAccessibleOuterRoot() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])

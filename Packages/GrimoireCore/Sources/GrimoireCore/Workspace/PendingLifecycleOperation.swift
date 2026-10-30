@@ -25,6 +25,29 @@ struct LifecycleIdentity: Codable, Hashable, Sendable {
     }
 }
 
+struct LifecycleSourceProjection: Codable, Hashable, Sendable {
+    let source: FileReference
+    let rootIdentity: LifecycleIdentity
+
+    func affects(_ assignments: [FolderTemplateAssignment]) -> Bool {
+        assignments.contains { assignment in
+            let references = [assignment.owner] + assignment.sourceReferences
+            return references.contains { reference in
+                reference.rootID == source.rootID
+                    && reference.relativePath.split(separator: "/")
+                        .starts(with: source.relativePath.split(separator: "/"))
+            }
+        }
+    }
+}
+
+extension FolderTemplateAssignment {
+    var sourceReferences: [FileReference] {
+        if case .useSource(let source) = choice { return [source] }
+        return []
+    }
+}
+
 struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     let id: UUID
     let projectID: UUID
@@ -37,17 +60,23 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     let before: [FolderTemplateAssignment]
     let after: [FolderTemplateAssignment]
     let destinationRootIdentity: LifecycleIdentity?
+    let sourceProjections: [LifecycleSourceProjection]?
+
+    var sourceCoordinates: [FileReference] { [source] + (sourceProjections ?? []).map(\.source) }
+
+    var reservedReferences: [FileReference] { sourceCoordinates + [destination] }
 
     var rootIdentities: [UUID: LifecycleIdentity] {
         var identities = [source.rootID: rootIdentity]
         identities[destination.rootID] = destinationRootIdentity ?? rootIdentity
+        for projection in sourceProjections ?? [] { identities[projection.source.rootID] = projection.rootIdentity }
         return identities
     }
 
     func contains(_ reference: FileReference) -> Bool {
-        (reference.rootID == source.rootID && Self.overlaps(reference.relativePath, source.relativePath))
-            || (reference.rootID == destination.rootID
-                && Self.overlaps(reference.relativePath, destination.relativePath))
+        reservedReferences.contains { reserved in
+            reference.rootID == reserved.rootID && Self.overlaps(reference.relativePath, reserved.relativePath)
+        }
     }
 
     static func overlaps(_ left: String, _ right: String) -> Bool {
@@ -64,7 +93,7 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
 
     func conflicts(with other: Self) -> Bool {
         let owners = Set((before + after).map(\.owner))
-        return contains(other.source) || contains(other.destination)
+        return other.reservedReferences.contains(where: contains)
             || !(owners.isDisjoint(with: (other.before + other.after).map(\.owner)))
     }
 
@@ -73,6 +102,7 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         try FolderTemplateAssignment.validate(destination.relativePath, allowsRoot: false)
         try FolderTemplateAssignment.validate(before)
         try FolderTemplateAssignment.validate(after)
+        try validateSourceProjections(in: project)
         guard projectID == project.id, project.root(source.rootID) != nil, project.root(destination.rootID) != nil,
             source != destination,
             source.rootID != destination.rootID || !Self.overlaps(source.relativePath, destination.relativePath),
@@ -100,7 +130,25 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     }
 
     func relocated(_ reference: FileReference) -> FileReference {
-        Self.relocated(reference, from: source, to: destination)
+        guard let coordinate = sourceCoordinates.first(where: { $0.rootID == reference.rootID }) else {
+            return reference
+        }
+        return Self.relocated(reference, from: coordinate, to: destination)
+    }
+
+    private func validateSourceProjections(in project: Project) throws {
+        let projections = sourceProjections ?? []
+        guard sourceProjections == nil || !projections.isEmpty,
+            Set(projections.map { $0.source.rootID }).count == projections.count
+        else { throw LifecycleError.invalidRecord }
+        for projection in projections {
+            try FolderTemplateAssignment.validate(projection.source.relativePath, allowsRoot: false)
+            guard projection.source.rootID != source.rootID, project.root(projection.source.rootID) != nil,
+                projection.rootIdentity.type == S_IFDIR, projection.affects(before),
+                projection.source.rootID != destination.rootID
+                    || projection.rootIdentity == (destinationRootIdentity ?? rootIdentity)
+            else { throw LifecycleError.invalidRecord }
+        }
     }
 
     static func relocated(_ reference: FileReference, from source: FileReference, to destination: FileReference)
@@ -119,7 +167,7 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
 extension PendingLifecycleOperation {
     private enum CodingKeys: String, CodingKey {
         case id, projectID, source, destination, rootIdentity, itemIdentity
-        case sourceParentIdentity, destinationParentIdentity, before, after, destinationRootIdentity
+        case sourceParentIdentity, destinationParentIdentity, before, after, destinationRootIdentity, sourceProjections
     }
 
     init(from decoder: Decoder) throws {
@@ -138,6 +186,9 @@ extension PendingLifecycleOperation {
         destinationRootIdentity =
             container.contains(.destinationRootIdentity)
             ? try container.decode(LifecycleIdentity.self, forKey: .destinationRootIdentity) : nil
+        sourceProjections =
+            container.contains(.sourceProjections)
+            ? try container.decode([LifecycleSourceProjection].self, forKey: .sourceProjections) : nil
     }
 }
 

@@ -78,6 +78,8 @@ extension Workspace {
                 }
             }
             do {
+                guard try !preparation.observation.completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+                else { throw LifecycleError.pendingRepair }
                 _ = try perform()
             } catch {
                 // Even a failed filesystem call can leave an uncertain outcome. Inspect identities,
@@ -123,24 +125,22 @@ extension Workspace {
             !from.relativePath.isEmpty
         else { throw LifecycleError.unsupportedBoundary }
         let to = Self.destinationReference(parent: parent, name: destination.lastPathComponent)
-        let root = try rootURL(from.rootID)
         try requireMovableSubtree(source)
         try requireVacantDestination(destination, moving: source)
-        var before: [FolderTemplateAssignment] = []
-        var after: [FolderTemplateAssignment] = []
-        for assignment in project.templateAssignments {
-            let updated = try relocatedAssignment(
-                assignment, from: from, to: to, source: source, destination: destination)
-            if assignment != updated {
-                before.append(assignment)
-                after.append(updated)
-            }
-        }
+        var observation = try LifecycleObservation(
+            source: source, destination: destination, roots: [rootURL(from.rootID), rootURL(to.rootID)])
+        let candidates = try sourceProjectionCandidates(
+            for: project.templateAssignments, source: source, from: from, identity: observation.itemIdentity)
+        let (before, after) = try relocatedAssignments(
+            project.templateAssignments, coordinates: [from] + candidates.map(\.source), to: to,
+            source: source, destination: destination)
         let remaining = project.templateAssignments.filter { !before.contains($0) }
         try validateDestinationChoices(remaining, destination: destination)
-        let observation = try LifecycleObservation(
-            source: source, destination: destination,
-            roots: [root, rootURL(to.rootID)])
+        let projections = candidates.filter { $0.affects(before) }
+        try observation.recordSourceProjections(
+            projections,
+            roots: Dictionary(
+                uniqueKeysWithValues: projections.map { ($0.source.rootID, try rootURL($0.source.rootID)) }))
         if try !lifecycleOperations.isSameVolume(source, destination.deletingLastPathComponent())
             || observation.itemIdentity.device != observation.destinationParentIdentity.device
         {
@@ -160,30 +160,13 @@ extension Workspace {
             sourceParentIdentity: observation.sourceParentIdentity,
             destinationParentIdentity: observation.destinationParentIdentity,
             before: before, after: after,
-            destinationRootIdentity: from.rootID == to.rootID ? nil : observation.roots[1].identity)
+            destinationRootIdentity: from.rootID == to.rootID ? nil : observation.roots[1].identity,
+            sourceProjections: projections.isEmpty ? nil : projections)
         try operation.validate(in: project)
         guard !project.pendingLifecycleOperations.contains(where: { $0.conflicts(with: operation) }) else {
             throw LifecycleError.pendingRepair
         }
         return LifecyclePreparation(operation: operation, observation: observation)
-    }
-
-    private func relocatedAssignment(
-        _ assignment: FolderTemplateAssignment, from: FileReference, to: FileReference,
-        source: URL, destination: URL
-    ) throws -> FolderTemplateAssignment {
-        try assignment.validate()
-        var updated = assignment
-        if assignment.state == .unresolved {
-            // Inactive aliases are stored choices, not evidence of the live target's identity.
-            updated.owner = PendingLifecycleOperation.relocated(assignment.owner, from: from, to: to)
-        } else {
-            updated.owner = try relocatedReference(assignment.owner, source: source, destination: destination)
-        }
-        if case .useSource(let reference) = assignment.choice {
-            updated.choice = .useSource(try relocatedReference(reference, source: source, destination: destination))
-        }
-        return updated
     }
 
     private func validateDestinationChoices(_ assignments: [FolderTemplateAssignment], destination: URL) throws {
@@ -231,28 +214,10 @@ extension Workspace {
         throw FileOperationError.alreadyExists(destination.lastPathComponent)
     }
 
-    private static func destinationReference(parent: FileReference, name: String, suffix: String = "") -> FileReference
-    {
+    static func destinationReference(parent: FileReference, name: String, suffix: String = "") -> FileReference {
         FileReference(
             rootID: parent.rootID,
             relativePath: ([parent.relativePath, name, suffix].filter { !$0.isEmpty }).joined(separator: "/"))
-    }
-
-    private func relocatedReference(_ reference: FileReference, source: URL, destination: URL) throws -> FileReference {
-        guard let root = templateRoots.first(where: { $0.id == reference.rootID })?.url else { return reference }
-        let url = reference.url(in: root)
-        guard let suffix = try LifecyclePath.reference(rootID: reference.rootID, root: source, url: url) else {
-            return reference
-        }
-        guard let canonical = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: url),
-            canonical == reference
-        else { throw TemplateAssignmentError.invalidReference }
-        guard let parent = try lifecycleReference(for: destination.deletingLastPathComponent())
-        else { throw LifecycleError.unsupportedBoundary }
-        // Resolve the parent, not the prospective leaf: on case-insensitive volumes the
-        // old item can already answer the new spelling before the rename happens.
-        return Self.destinationReference(
-            parent: parent, name: destination.lastPathComponent, suffix: suffix.relativePath)
     }
 
     private func rootURL(_ id: UUID) throws -> URL {
@@ -260,7 +225,7 @@ extension Workspace {
         return root
     }
 
-    private func lifecycleReference(for url: URL) throws -> FileReference? {
+    func lifecycleReference(for url: URL) throws -> FileReference? {
         let roots = templateRoots
         for root in project?.roots ?? [] where !roots.contains(where: { $0.id == root.id }) {
             // Inaccessible bindings can deny an ambiguous boundary, never grant ownership

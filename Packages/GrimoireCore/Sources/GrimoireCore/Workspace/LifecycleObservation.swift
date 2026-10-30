@@ -11,7 +11,8 @@ struct LifecycleObservation {
     let itemIdentity: LifecycleIdentity
     let sourceParentIdentity: LifecycleIdentity
     let destinationParentIdentity: LifecycleIdentity
-    let roots: [LifecycleObservedRoot]
+    private(set) var roots: [LifecycleObservedRoot]
+    private var sourceCoordinates: [URL] = []
 
     init(source: URL, destination: URL, roots: [URL]) throws {
         self.source = source
@@ -34,15 +35,39 @@ struct LifecycleObservation {
             guard let url = roots[id] else { throw LifecycleError.pendingRepair }
             return LifecycleObservedRoot(url: url, identity: identity)
         }
+        sourceCoordinates = try (operation.sourceProjections ?? []).map { projection in
+            guard let root = roots[projection.source.rootID] else { throw LifecycleError.pendingRepair }
+            return projection.source.url(in: root)
+        }
     }
 
-    func completed(caseSensitiveNames: (URL) -> Bool? = LifecyclePath.volumeCaseSensitiveNames) throws -> Bool {
+    mutating func recordSourceProjections(_ projections: [LifecycleSourceProjection], roots: [UUID: URL]) throws {
+        for projection in projections {
+            guard let root = roots[projection.source.rootID] else { throw LifecycleError.pendingRepair }
+            self.roots.append(LifecycleObservedRoot(url: root, identity: projection.rootIdentity))
+            let coordinate = projection.source.url(in: root)
+            guard try LifecycleIdentity(coordinate) == itemIdentity else { throw LifecycleError.pendingRepair }
+            sourceCoordinates.append(coordinate)
+        }
+        try validateContext()
+    }
+
+    private func validateContext() throws {
         for root in roots {
             guard try LifecycleIdentity(root.url) == root.identity else { throw LifecycleError.pendingRepair }
         }
         guard try LifecycleIdentity(source.deletingLastPathComponent()) == sourceParentIdentity,
             try LifecycleIdentity(destination.deletingLastPathComponent()) == destinationParentIdentity
         else { throw LifecycleError.pendingRepair }
+        for coordinate in sourceCoordinates {
+            guard try LifecyclePath.components(coordinate) == LifecyclePath.components(source),
+                try LifecycleIdentity(coordinate.deletingLastPathComponent()) == sourceParentIdentity
+            else { throw LifecycleError.pendingRepair }
+        }
+    }
+
+    func completed(caseSensitiveNames: (URL) -> Bool? = LifecyclePath.volumeCaseSensitiveNames) throws -> Bool {
+        try validateContext()
         let sourceNames = caseSensitiveNames(source.deletingLastPathComponent())
         let destinationNames = caseSensitiveNames(destination.deletingLastPathComponent())
         let atSource = try Self.entry(at: source, caseSensitive: sourceNames)

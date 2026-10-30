@@ -213,10 +213,16 @@ Both root identities are required to reconcile. Managed cross-volume moves remai
 pending the separately approved copy/publication/source-retirement contract; they must not
 enter the genuinely unconfigured legacy route. This is a #92 implementation checkpoint,
 not completion of its cross-volume acceptance criteria or native GUI verification.
-An outer-root source reference retained after adding an inner source binding currently
-blocks moving that inner-owned source before mutation. Representing those equivalent
-source coordinates durably is still open; the root-pair record does not guess or drop
-the retained outer reference. This also prevents claiming full same-volume acceptance.
+Outer-root references retained after adding an inner source binding now follow verified
+same-volume moves through recorded alternative source coordinates. Only affected
+coordinates and their observed bound-root identities are recorded. Each must project
+to the same original item/subtree before mutation and during reconciliation; equal
+inodes at unrelated paths do not establish that projection. Check a mixed subtree with
+outer-owned choices and inner-owned choices/sources, including unresolved choices that
+must remain inactive. Unavailable alternative roots or substituted projection parents
+retain repair and both-root/alias save reservations. Malformed projections must report
+settings diagnostics without replacing the original store. Native checks remain
+**UNVERIFIED**; cross-volume completion is still awaiting the user's policy decision.
 
 After a verified move whose final settings save fails, dirty editors follow the moved
 file but must not atomically replace it until observation and settings finalization

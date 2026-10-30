@@ -87,7 +87,7 @@ enum LifecyclePath {
                 ancestor.deleteLastPathComponent()
             }
         }
-        return try [operation.source, operation.destination].contains {
+        return try operation.reservedReferences.contains {
             guard let root = roots[$0.rootID] else { throw LifecycleError.pendingRepair }
             return try overlaps(url, reference: $0, in: root, caseSensitiveNames: caseSensitiveNames)
         }

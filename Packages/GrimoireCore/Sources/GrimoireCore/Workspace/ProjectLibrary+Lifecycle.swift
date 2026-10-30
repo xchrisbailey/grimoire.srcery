@@ -59,8 +59,8 @@ extension ProjectLibrary {
                 {
                     throw LifecycleError.pendingRepair
                 }
-                for left in [operation.source, operation.destination] {
-                    for right in [other.source, other.destination] {
+                for left in operation.reservedReferences {
+                    for right in other.reservedReferences {
                         guard let root = roots[left.rootID], let otherRoot = otherRoots[right.rootID] else {
                             throw LifecycleError.pendingRepair
                         }
@@ -102,7 +102,7 @@ extension ProjectLibrary {
             {
                 return true
             }
-            return try [operation.source, operation.destination].contains { reserved in
+            return try operation.reservedReferences.contains { reserved in
                 guard let rootURL = roots[reserved.rootID] else { throw LifecycleError.pendingRepair }
                 return try LifecyclePath.overlaps(
                     reference, in: boundURL, reserved, in: rootURL,

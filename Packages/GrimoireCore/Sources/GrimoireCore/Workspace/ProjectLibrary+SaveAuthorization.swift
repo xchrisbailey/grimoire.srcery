@@ -9,7 +9,7 @@ extension ProjectLibrary {
             for operation in owner.pendingLifecycleOperations {
                 // These URLs only reserve physical paths. They never authorize access, supply
                 // template eligibility, or establish completion on behalf of another project.
-                var variants: [[UUID: URL]] = [[:]]
+                var rootHints: [UUID: [URL]] = [:]
                 for (id, identity) in operation.rootIdentities {
                     guard let root = owner.root(id) else { throw LifecycleError.pendingRepair }
                     let resolved = try? FolderBookmark.resolve(root.bookmark).url
@@ -17,12 +17,16 @@ extension ProjectLibrary {
                         .filter { (try? LifecycleIdentity($0)) == identity }
                     let hints =
                         originalRoots.isEmpty ? [root.lastKnownURL] + [resolved].compactMap { $0 } : originalRoots
-                    variants = variants.flatMap { previous in
-                        hints.map { hint in
-                            var next = previous
-                            next[id] = hint
-                            return next
-                        }
+                    rootHints[id] = hints
+                }
+                let base = rootHints.compactMapValues(\.first)
+                // Each path reservation is independent; enumerate alternatives for one
+                // root at a time rather than multiplying equivalent-root combinations.
+                let variants = rootHints.flatMap { id, hints in
+                    hints.map { hint in
+                        var roots = base
+                        roots[id] = hint
+                        return roots
                     }
                 }
                 for roots in variants
