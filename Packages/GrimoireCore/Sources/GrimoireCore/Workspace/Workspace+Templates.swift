@@ -3,6 +3,7 @@ import Foundation
 extension Workspace {
     /// Inspects only this folder's saved choice, including an inactive unresolved record.
     public func templateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
+        try validateActiveTemplateOwners()
         let owner = try templateOwner(for: folder)
         return project?.templateAssignments.first { $0.owner == owner }
     }
@@ -10,6 +11,7 @@ extension Workspace {
     /// Nil represents a cancelled picker, not removal of the previous choice.
     public func assignTemplate(_ source: URL?, to folder: URL) throws {
         guard let source else { return }
+        try validateActiveTemplateOwners()
         let owner = try templateOwner(for: folder)
         let reference = try templateSourceReference(for: source)
         try saveTemplateAssignment(FolderTemplateAssignment(owner: owner, choice: .useSource(reference)))
@@ -31,6 +33,27 @@ extension Workspace {
         guard isActive, let project else { return [] }
         return project.roots.compactMap { root in
             folders.first { $0.id == root.id && $0.status != .needsAccess && $0.url != nil }
+        }
+    }
+
+    private func validateActiveTemplateOwners() throws {
+        let roots = templateRoots
+        for assignment in project?.templateAssignments ?? [] where assignment.state == .active {
+            try assignment.validate()
+            let owner = assignment.owner
+            guard let root = roots.first(where: { $0.id == owner.rootID })?.url else { continue }
+            let url = owner.url(in: root)
+            // Missing or inaccessible owners await lifecycle recovery. Do not infer a
+            // relink, or rewrite their saved reference from incomplete filesystem evidence.
+            guard FileManager.default.fileExists(atPath: url.path),
+                FileManager.default.isReadableFile(atPath: url.path)
+            else { continue }
+            // A stored owner must stay within its own root identity, even if another
+            // binding grants access to a symlink's outside target.
+            guard let canonical = FileReference(rootID: owner.rootID, rootURL: root, url: url) else {
+                throw TemplateAssignmentError.invalidReference
+            }
+            guard canonical == owner else { throw TemplateAssignmentError.invalidReference }
         }
     }
 
