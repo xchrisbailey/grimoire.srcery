@@ -268,14 +268,7 @@ private struct FileActionPrompts: ViewModifier {
     func body(content: Content) -> some View {
         content
             .modifier(DocumentCreationPrompt(actions: actions, workspace: workspace))
-            .sheet(
-                isPresented: Binding(
-                    get: { actions.configuringTemplate != nil },
-                    set: { if !$0 { actions.configuringTemplate = nil } }),
-                onDismiss: { actions.templateConfigurationDismissed(select: select) }
-            ) {
-                templateSheet
-            }
+            .modifier(TemplateConfigurationPrompt(actions: actions, workspace: workspace, select: select))
             .alert(
                 String(localized: "Rename “\(actions.renaming?.lastPathComponent ?? "")”"),
                 isPresented: Binding(get: { actions.renaming != nil }, set: { if !$0 { actions.renaming = nil } })
@@ -317,6 +310,22 @@ private struct FileActionPrompts: ViewModifier {
             ) {
                 Button("OK", role: .cancel) {}
             }
+    }
+
+}
+
+private struct TemplateConfigurationPrompt: ViewModifier {
+    @Bindable var actions: FileActions
+    let workspace: Workspace?
+    let select: (URL) -> Void
+
+    func body(content: Content) -> some View {
+        content.sheet(
+            isPresented: Binding(
+                get: { actions.configuringTemplate != nil },
+                set: { if !$0 { actions.configuringTemplate = nil } }),
+            onDismiss: { actions.templateConfigurationDismissed(select: select) },
+            content: { templateSheet })
     }
 
     @ViewBuilder private var templateSheet: some View {

@@ -52,7 +52,11 @@ struct ContentTemplateSheet: View {
         } message: {
             if let source = unassignedSource {
                 Text(
-                    "The empty source was created at \(source.url.path(percentEncoded: false)), but its assignment was not saved. The previous choice is unchanged. After fixing project settings, use Choose Existing File… to assign this source; do not create it again."
+                    """
+                    The empty source was created at \(source.url.path(percentEncoded: false)), but its assignment \
+                    was not saved. The previous choice is unchanged. After fixing project settings, use \
+                    Choose Existing File… to assign this source; do not create it again.
+                    """
                 )
             }
         }
@@ -119,7 +123,10 @@ struct ContentTemplateSheet: View {
         panel.prompt = String(localized: "Create Template")
         panel.message = String(
             localized:
-                "Create an empty Markdown template source inside a folder bound to this project. Existing files are never replaced; a numbered name is used instead."
+                """
+                Create an empty Markdown template source inside a folder bound to this project. \
+                Existing files are never replaced; a numbered name is used instead.
+                """
         )
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
