@@ -5,6 +5,35 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct ContentPlaceholderCreationTests {
+    @Test(arguments: [false, true])
+    func allocatedTitlesPreserveUnicodeBeforeTheKnownExtension(_ collision: Bool) async throws {
+        let scratch = try Scratch()
+        let text = "{title}\r\n{title:yaml}\r{filename}\n{filename:yaml}"
+        let (workspace, _) = try await scratch.workspace(files: ["source.md": text])
+        defer { workspace.deactivate() }
+        let folder = scratch.url.appending(path: "notes")
+        let source = folder.appending(path: "source.md")
+        try workspace.assignTemplate(source, to: folder)
+        let stem = "Draft\u{0D4E}"
+        if collision { try scratch.file("notes/" + stem + ".md", "Competitor") }
+        let plan = try workspace.prepareDocument(in: folder, filenamePattern: "Draft")
+        guard case .published(let created) = workspace.createDocument(plan, naming: .edited(stem)) else {
+            Issue.record("A valid literal Unicode stem must publish without rewriting")
+            return
+        }
+        let expected =
+            collision
+            ? "Draft\u{0D4E} 2\r\n\"Draft\u{0D4E} 2\"\rDraft\u{0D4E} 2.md\n\"Draft\u{0D4E} 2.md\""
+            : "Draft\u{0D4E}\r\n\"Draft\u{0D4E}\"\rDraft\u{0D4E}.md\n\"Draft\u{0D4E}.md\""
+        #expect(created.url.lastPathComponent == (collision ? "Draft\u{0D4E} 2.md" : "Draft\u{0D4E}.md"))
+        #expect(try Data(contentsOf: created.url) == Data(expected.utf8))
+        #expect(created.editorCaretUTF16 == expected.utf16.count)
+        #expect(try Data(contentsOf: source) == Data(text.utf8))
+        if collision {
+            #expect(try String(contentsOf: folder.appending(path: stem + ".md"), encoding: .utf8) == "Competitor")
+        }
+    }
+
     @Test(arguments: [
         (
             "{\r\n  \"title\": \"{title}\",\n  \"filename\": {filename:yaml}\r}\n",

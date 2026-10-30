@@ -7,8 +7,10 @@ enum ContentPlaceholders {
             let text = String(value ?? 0)
             return String(repeating: "0", count: max(0, width - text.count)) + text
         }
+        // The publisher appends ASCII .md. A trailing stem scalar can share the dot's
+        // grapheme, so remove exactly those suffix bytes rather than whole Characters.
         var values = [
-            "title": String(filename.dropLast(3)),
+            "title": String(decoding: filename.utf8.dropLast(3), as: UTF8.self),
             "filename": filename,
             "date": "\(pad(parts.year, 4))-\(pad(parts.month))-\(pad(parts.day))",
             "time": "\(pad(parts.hour)):\(pad(parts.minute)):\(pad(parts.second))",
