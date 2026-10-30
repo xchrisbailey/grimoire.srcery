@@ -7,19 +7,31 @@ extension ProjectLibrary {
     ) throws {
         for owner in projects where owner.id != projectID {
             for operation in owner.pendingLifecycleOperations {
-                guard let root = owner.root(operation.source.rootID) else { throw LifecycleError.pendingRepair }
                 // These URLs only reserve physical paths. They never authorize access, supply
                 // template eligibility, or establish completion on behalf of another project.
-                let resolved = try? FolderBookmark.resolve(root.bookmark).url
-                let originalRoots = (accessibleRoots + [resolved].compactMap { $0 })
-                    .filter { (try? LifecycleIdentity($0)) == operation.rootIdentity }
-                let hints = originalRoots.isEmpty ? [root.lastKnownURL] + [resolved].compactMap { $0 } : originalRoots
-                for hint in hints
-                where try LifecyclePath.reserves(
-                    url, operation: operation, in: hint, caseSensitiveNames: caseSensitiveNames)
-                {
-                    throw LifecycleRecoveryError(
-                        operation: operation, moved: false, cause: LifecycleError.pendingRepair)
+                var variants: [[UUID: URL]] = [[:]]
+                for (id, identity) in operation.rootIdentities {
+                    guard let root = owner.root(id) else { throw LifecycleError.pendingRepair }
+                    let resolved = try? FolderBookmark.resolve(root.bookmark).url
+                    let originalRoots = (accessibleRoots + [resolved].compactMap { $0 })
+                        .filter { (try? LifecycleIdentity($0)) == identity }
+                    let hints =
+                        originalRoots.isEmpty ? [root.lastKnownURL] + [resolved].compactMap { $0 } : originalRoots
+                    variants = variants.flatMap { previous in
+                        hints.map { hint in
+                            var next = previous
+                            next[id] = hint
+                            return next
+                        }
+                    }
+                }
+                for roots in variants {
+                    if try LifecyclePath.reserves(
+                        url, operation: operation, roots: roots, caseSensitiveNames: caseSensitiveNames)
+                    {
+                        throw LifecycleRecoveryError(
+                            operation: operation, moved: false, cause: LifecycleError.pendingRepair)
+                    }
                 }
             }
         }

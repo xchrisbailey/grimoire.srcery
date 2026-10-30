@@ -22,13 +22,18 @@ struct LifecycleObservation {
         self.roots = try roots.map { LifecycleObservedRoot(url: $0, identity: try LifecycleIdentity($0)) }
     }
 
-    init(operation: PendingLifecycleOperation, root: URL) {
-        source = operation.source.url(in: root)
-        destination = operation.destination.url(in: root)
+    init(operation: PendingLifecycleOperation, roots: [UUID: URL]) throws {
+        guard let sourceRoot = roots[operation.source.rootID], let destinationRoot = roots[operation.destination.rootID]
+        else { throw LifecycleError.pendingRepair }
+        source = operation.source.url(in: sourceRoot)
+        destination = operation.destination.url(in: destinationRoot)
         itemIdentity = operation.itemIdentity
         sourceParentIdentity = operation.sourceParentIdentity
         destinationParentIdentity = operation.destinationParentIdentity
-        roots = [LifecycleObservedRoot(url: root, identity: operation.rootIdentity)]
+        self.roots = try operation.rootIdentities.map { id, identity in
+            guard let url = roots[id] else { throw LifecycleError.pendingRepair }
+            return LifecycleObservedRoot(url: url, identity: identity)
+        }
     }
 
     func completed(caseSensitiveNames: (URL) -> Bool? = LifecyclePath.volumeCaseSensitiveNames) throws -> Bool {

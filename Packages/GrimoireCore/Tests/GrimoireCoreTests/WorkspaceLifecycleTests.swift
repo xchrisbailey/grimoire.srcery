@@ -184,7 +184,7 @@ import Testing
         #expect(ProjectLibrary(store: store).projects == library.projects)
     }
 
-    @Test func configuredBoundariesFailClosedWhileUnconfiguredCrossRootMoveRemainsAvailable() async throws {
+    @Test func boundRootChangesFailClosedWhileUnconfiguredCrossRootMoveRemainsAvailable() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "source", "plain.md": "plain"])
         defer { workspace.deactivate() }
@@ -194,8 +194,6 @@ import Testing
         let other = try library.bindFolder(target, to: workspace.projectID)
         try workspace.assignTemplate(root.appending(path: "source.md"), to: nested)
         let before = library.projects
-        #expect(workspace.move(nested, into: target).movedURL == nil)
-        #expect(workspace.move(root.appending(path: "source.md"), into: target).movedURL == nil)
         #expect(workspace.rename(root, to: "another-root").movedURL == nil)
         let rootID = try #require(workspace.project?.roots.first?.id)
         #expect(throws: (any Error).self) { try workspace.unbind(rootID) }

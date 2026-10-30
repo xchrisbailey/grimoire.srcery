@@ -13,8 +13,9 @@ extension ProjectLibrary {
             else { throw LifecycleError.pendingRepair }
             try validatePendingRootEdits(operation, from: old, to: new, caseSensitiveNames: caseSensitiveNames)
             guard new.pendingLifecycleOperations.contains(operation),
-                new.root(operation.source.rootID) != nil,
-                old.root(operation.source.rootID)?.lastKnownPath == new.root(operation.source.rootID)?.lastKnownPath
+                operation.rootIdentities.keys.allSatisfy({ id in
+                    new.root(id) != nil && old.root(id)?.lastKnownPath == new.root(id)?.lastKnownPath
+                })
             else { throw LifecycleError.pendingRepair }
             for reference in (operation.before + operation.after).flatMap({ assignment in
                 if case .useSource(let source) = assignment.choice { return [assignment.owner, source] }
@@ -47,23 +48,27 @@ extension ProjectLibrary {
 
     private func validatePendingPathReservations(_ project: Project, caseSensitiveNames: (URL) -> Bool?) throws {
         for (index, operation) in project.pendingLifecycleOperations.enumerated() {
-            let root = try reservationRoot(operation.source.rootID, in: project)
+            let roots = try reservationRoots(operation, in: project)
             for other in project.pendingLifecycleOperations.dropFirst(index + 1) {
                 guard !operation.conflicts(with: other) else { throw LifecycleError.pendingRepair }
-                let otherRoot = try reservationRoot(other.source.rootID, in: project)
+                let otherRoots = try reservationRoots(other, in: project)
                 if try LifecyclePath.reserves(
-                    other.source.url(in: otherRoot), operation: operation, in: root,
+                    other.source.url(in: reservationRoot(other.source.rootID, in: project)),
+                    operation: operation, roots: roots,
                     caseSensitiveNames: caseSensitiveNames)
                 {
                     throw LifecycleError.pendingRepair
                 }
                 for left in [operation.source, operation.destination] {
-                    for right in [other.source, other.destination]
-                    where try LifecyclePath.overlaps(
-                        left, in: root, right, in: otherRoot,
-                        caseSensitiveNames: caseSensitiveNames)
-                    {
-                        throw LifecycleError.pendingRepair
+                    for right in [other.source, other.destination] {
+                        guard let root = roots[left.rootID], let otherRoot = otherRoots[right.rootID] else {
+                            throw LifecycleError.pendingRepair
+                        }
+                        if try LifecyclePath.overlaps(
+                            left, in: root, right, in: otherRoot, caseSensitiveNames: caseSensitiveNames)
+                        {
+                            throw LifecycleError.pendingRepair
+                        }
                     }
                 }
             }
@@ -75,26 +80,31 @@ extension ProjectLibrary {
         return (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
     }
 
+    private func reservationRoots(_ operation: PendingLifecycleOperation, in project: Project) throws -> [UUID: URL] {
+        try Dictionary(
+            uniqueKeysWithValues: operation.rootIdentities.keys.map { ($0, try reservationRoot($0, in: project)) })
+    }
+
     private func touchesPendingPaths(
         _ assignment: FolderTemplateAssignment, operation: PendingLifecycleOperation,
         in project: Project, caseSensitiveNames: (URL) -> Bool?
     ) throws -> Bool {
-        guard let root = project.root(operation.source.rootID) else { throw LifecycleError.pendingRepair }
         // Last-known paths are conservative mutation guards only, never evidence for completing intent.
-        let rootURL = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
+        let roots = try reservationRoots(operation, in: project)
         var references = [assignment.owner]
         if case .useSource(let source) = assignment.choice { references.append(source) }
         return try references.contains { reference in
             guard let bound = project.root(reference.rootID) else { return false }
             let boundURL = (try? FolderBookmark.resolve(bound.bookmark).url) ?? bound.lastKnownURL
             if try LifecyclePath.reserves(
-                reference.url(in: boundURL), operation: operation, in: rootURL,
+                reference.url(in: boundURL), operation: operation, roots: roots,
                 caseSensitiveNames: caseSensitiveNames)
             {
                 return true
             }
             return try [operation.source, operation.destination].contains { reserved in
-                try LifecyclePath.overlaps(
+                guard let rootURL = roots[reserved.rootID] else { throw LifecycleError.pendingRepair }
+                return try LifecyclePath.overlaps(
                     reference, in: boundURL, reserved, in: rootURL,
                     caseSensitiveNames: caseSensitiveNames)
                     || LifecyclePath.overlaps(
@@ -128,23 +138,25 @@ extension ProjectLibrary {
                     $0.id != $1.id || $0.bookmark != $1.bookmark || $0.lastKnownPath != $1.lastKnownPath
                 })
         else { return }
-        guard let root = old.root(operation.source.rootID), let replacement = new.root(root.id) else {
-            throw LifecycleError.pendingRepair
-        }
-        if root.bookmark != replacement.bookmark {
-            let resolved = try FolderBookmark.resolve(replacement.bookmark)
-            let accessing = resolved.url.startAccessingSecurityScopedResource()
-            defer { if accessing { resolved.url.stopAccessingSecurityScopedResource() } }
-            guard try LifecycleIdentity(resolved.url) == operation.rootIdentity else {
+        for (id, identity) in operation.rootIdentities {
+            guard let root = old.root(id), let replacement = new.root(id) else {
                 throw LifecycleError.pendingRepair
             }
+            if root.bookmark != replacement.bookmark {
+                let resolved = try FolderBookmark.resolve(replacement.bookmark)
+                let accessing = resolved.url.startAccessingSecurityScopedResource()
+                defer { if accessing { resolved.url.stopAccessingSecurityScopedResource() } }
+                guard try LifecycleIdentity(resolved.url) == identity else {
+                    throw LifecycleError.pendingRepair
+                }
+            }
         }
-        let rootURL = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
+        let reservedRoots = try reservationRoots(operation, in: old)
         func relevant(_ roots: [FolderRoot]) throws -> [UUID] {
             try roots.filter { candidate in
                 let url = (try? FolderBookmark.resolve(candidate.bookmark).url) ?? candidate.lastKnownURL
                 return try LifecyclePath.reserves(
-                    url, operation: operation, in: rootURL,
+                    url, operation: operation, roots: reservedRoots,
                     caseSensitiveNames: caseSensitiveNames)
             }.map(\.id)
         }
@@ -153,7 +165,7 @@ extension ProjectLibrary {
 
     func requireUnconfiguredRoot(_ rootID: FolderRoot.ID, in projectID: Project.ID) throws {
         guard let project = project(projectID) else { throw LibraryError.unknownProject }
-        guard !project.pendingLifecycleOperations.contains(where: { $0.source.rootID == rootID }) else {
+        guard !project.pendingLifecycleOperations.contains(where: { $0.rootIdentities[rootID] != nil }) else {
             throw LifecycleError.pendingRepair
         }
         guard

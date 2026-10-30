@@ -36,11 +36,18 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     let destinationParentIdentity: LifecycleIdentity
     let before: [FolderTemplateAssignment]
     let after: [FolderTemplateAssignment]
+    let destinationRootIdentity: LifecycleIdentity?
+
+    var rootIdentities: [UUID: LifecycleIdentity] {
+        var identities = [source.rootID: rootIdentity]
+        identities[destination.rootID] = destinationRootIdentity ?? rootIdentity
+        return identities
+    }
 
     func contains(_ reference: FileReference) -> Bool {
-        reference.rootID == source.rootID
-            && (Self.overlaps(reference.relativePath, source.relativePath)
-                || Self.overlaps(reference.relativePath, destination.relativePath))
+        (reference.rootID == source.rootID && Self.overlaps(reference.relativePath, source.relativePath))
+            || (reference.rootID == destination.rootID
+                && Self.overlaps(reference.relativePath, destination.relativePath))
     }
 
     static func overlaps(_ left: String, _ right: String) -> Bool {
@@ -66,13 +73,19 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         try FolderTemplateAssignment.validate(destination.relativePath, allowsRoot: false)
         try FolderTemplateAssignment.validate(before)
         try FolderTemplateAssignment.validate(after)
-        guard projectID == project.id, project.root(source.rootID) != nil,
-            source.rootID == destination.rootID, source != destination,
-            !Self.overlaps(source.relativePath, destination.relativePath),
+        guard projectID == project.id, project.root(source.rootID) != nil, project.root(destination.rootID) != nil,
+            source != destination,
+            source.rootID != destination.rootID || !Self.overlaps(source.relativePath, destination.relativePath),
+            source.rootID == destination.rootID || destinationRootIdentity != nil,
+            destinationRootIdentity == nil || destinationRootIdentity?.type == S_IFDIR,
+            source.rootID != destination.rootID || destinationRootIdentity == nil
+                || destinationRootIdentity == rootIdentity,
             rootIdentity.type == S_IFDIR, sourceParentIdentity.type == S_IFDIR,
             destinationParentIdentity.type == S_IFDIR,
             itemIdentity.type == S_IFDIR || itemIdentity.type == S_IFREG,
-            !before.isEmpty, before.count == after.count,
+            itemIdentity.device == sourceParentIdentity.device,
+            itemIdentity.device == destinationParentIdentity.device,
+            !before.isEmpty || source.rootID != destination.rootID, before.count == after.count,
             Set(before.map(\.owner)).count == before.count,
             Set(after.map(\.owner)).count == after.count,
             before.allSatisfy({ project.templateAssignments.contains($0) }),
@@ -97,9 +110,34 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         let prefix = source.relativePath.split(separator: "/")
         guard reference.rootID == source.rootID, parts.starts(with: prefix) else { return reference }
         return FileReference(
-            rootID: source.rootID,
+            rootID: destination.rootID,
             relativePath: (destination.relativePath.split(separator: "/") + parts.dropFirst(prefix.count)).joined(
                 separator: "/"))
+    }
+}
+
+extension PendingLifecycleOperation {
+    private enum CodingKeys: String, CodingKey {
+        case id, projectID, source, destination, rootIdentity, itemIdentity
+        case sourceParentIdentity, destinationParentIdentity, before, after, destinationRootIdentity
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        projectID = try container.decode(UUID.self, forKey: .projectID)
+        source = try container.decode(FileReference.self, forKey: .source)
+        destination = try container.decode(FileReference.self, forKey: .destination)
+        rootIdentity = try container.decode(LifecycleIdentity.self, forKey: .rootIdentity)
+        itemIdentity = try container.decode(LifecycleIdentity.self, forKey: .itemIdentity)
+        sourceParentIdentity = try container.decode(LifecycleIdentity.self, forKey: .sourceParentIdentity)
+        destinationParentIdentity = try container.decode(LifecycleIdentity.self, forKey: .destinationParentIdentity)
+        before = try container.decode([FolderTemplateAssignment].self, forKey: .before)
+        after = try container.decode([FolderTemplateAssignment].self, forKey: .after)
+        // Only a missing field is legacy. Explicit null or malformed identity is not a default.
+        destinationRootIdentity =
+            container.contains(.destinationRootIdentity)
+            ? try container.decode(LifecycleIdentity.self, forKey: .destinationRootIdentity) : nil
     }
 }
 

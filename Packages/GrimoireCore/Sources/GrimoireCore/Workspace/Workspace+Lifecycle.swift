@@ -30,10 +30,12 @@ extension Workspace {
     public var lifecycleRepairURLs: [URL] {
         (project?.pendingLifecycleOperations ?? []).flatMap { operation in
             // Last-known paths are only hints for manual repair in Finder, never reconciliation evidence.
-            let root =
-                folders.first { $0.id == operation.source.rootID }?.url
-                ?? project?.root(operation.source.rootID)?.lastKnownURL
-            return root.map { [operation.source.url(in: $0), operation.destination.url(in: $0)] } ?? []
+            [operation.source, operation.destination].compactMap { reference in
+                let root =
+                    folders.first { $0.id == reference.rootID }?.url
+                    ?? project?.root(reference.rootID)?.lastKnownURL
+                return root.map { reference.url(in: $0) }
+            }
         }
     }
 
@@ -148,15 +150,17 @@ extension Workspace {
             try requireLegacyAdmission(source: source, destination: destination)
             return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
         }
-        if before.isEmpty { return LifecyclePreparation(operation: nil, observation: observation) }
-        guard from.rootID == to.rootID else { throw LifecycleError.unsupportedBoundary }
+        if before.isEmpty, from.rootID == to.rootID {
+            return LifecyclePreparation(operation: nil, observation: observation)
+        }
         try FolderTemplateAssignment.validate(remaining + after)
         let operation = PendingLifecycleOperation(
             id: UUID(), projectID: projectID, source: from, destination: to,
             rootIdentity: observation.roots[0].identity, itemIdentity: observation.itemIdentity,
             sourceParentIdentity: observation.sourceParentIdentity,
             destinationParentIdentity: observation.destinationParentIdentity,
-            before: before, after: after)
+            before: before, after: after,
+            destinationRootIdentity: from.rootID == to.rootID ? nil : observation.roots[1].identity)
         try operation.validate(in: project)
         guard !project.pendingLifecycleOperations.contains(where: { $0.conflicts(with: operation) }) else {
             throw LifecycleError.pendingRepair
@@ -243,12 +247,7 @@ extension Workspace {
         guard let canonical = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: url),
             canonical == reference
         else { throw TemplateAssignmentError.invalidReference }
-        let movedURL = suffix.url(in: destination)
-        guard
-            let parent = try LifecyclePath.reference(
-                rootID: reference.rootID, root: root,
-                url: destination.deletingLastPathComponent()),
-            try lifecycleReference(for: movedURL)?.rootID == reference.rootID
+        guard let parent = try lifecycleReference(for: destination.deletingLastPathComponent())
         else { throw LifecycleError.unsupportedBoundary }
         // Resolve the parent, not the prospective leaf: on case-insensitive volumes the
         // old item can already answer the new spelling before the rename happens.
@@ -292,12 +291,8 @@ extension Workspace {
             at: url, requesting: projectID,
             accessibleRoots: folders.compactMap(\.url), caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
         for operation in project.pendingLifecycleOperations {
-            let root =
-                self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
-                ?? project.root(operation.source.rootID)?.lastKnownURL
-            guard let root else { throw LifecycleError.pendingRepair }
             let relevant = try LifecyclePath.reserves(
-                url, operation: operation, in: root,
+                url, operation: operation, roots: reservationRoots(for: operation),
                 caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             guard relevant else { continue }
             do {
@@ -310,8 +305,8 @@ extension Workspace {
     }
 
     private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
-        let root = try rootURL(operation.source.rootID)
-        return try LifecycleObservation(operation: operation, root: root)
+        let roots = try Dictionary(uniqueKeysWithValues: operation.rootIdentities.keys.map { ($0, try rootURL($0)) })
+        return try LifecycleObservation(operation: operation, roots: roots)
             .completed(caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
     }
 
@@ -321,17 +316,24 @@ extension Workspace {
 
     func requireNoPendingLifecycle(at url: URL) throws {
         for operation in project?.pendingLifecycleOperations ?? [] {
-            let root =
-                self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
-                ?? project?.root(operation.source.rootID)?.lastKnownURL
-            guard let root else { throw LifecycleError.pendingRepair }
             if try LifecyclePath.reserves(
-                url, operation: operation, in: root,
+                url, operation: operation, roots: reservationRoots(for: operation),
                 caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
             {
                 throw LifecycleError.pendingRepair
             }
         }
+    }
+
+    private func reservationRoots(for operation: PendingLifecycleOperation) throws -> [UUID: URL] {
+        try Dictionary(
+            uniqueKeysWithValues: operation.rootIdentities.keys.map { id in
+                guard
+                    let root = self.url(for: FileReference(rootID: id, relativePath: ""))
+                        ?? project?.root(id)?.lastKnownURL
+                else { throw LifecycleError.pendingRepair }
+                return (id, root)
+            })
     }
 
     /// Out-of-scope destructive operations must not silently orphan project configuration.

@@ -77,7 +77,7 @@ enum LifecyclePath {
 
     /// Lexical paths, live aliases and observed identity can deny a conflict, never prove completion.
     static func reserves(
-        _ url: URL, operation: PendingLifecycleOperation, in root: URL,
+        _ url: URL, operation: PendingLifecycleOperation, roots: [UUID: URL],
         caseSensitiveNames: (URL) -> Bool?
     ) throws -> Bool {
         for path in [url, url.resolvingSymlinksInPath()] {
@@ -88,7 +88,8 @@ enum LifecyclePath {
             }
         }
         return try [operation.source, operation.destination].contains {
-            try overlaps(url, reference: $0, in: root, caseSensitiveNames: caseSensitiveNames)
+            guard let root = roots[$0.rootID] else { throw LifecycleError.pendingRepair }
+            return try overlaps(url, reference: $0, in: root, caseSensitiveNames: caseSensitiveNames)
         }
     }
 
