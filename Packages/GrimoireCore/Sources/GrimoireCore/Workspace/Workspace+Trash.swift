@@ -146,7 +146,8 @@ extension Workspace {
     }
 
     public func prepareTrashConfigurationRemoval(_ id: UUID) throws -> DestructiveLifecyclePlan {
-        sync()
+        // Repair validates already-held access without taking over unrelated root
+        // synchronization, which can release watchers and security-scoped access.
         guard let project, let operation = project.pendingLifecycleOperations.first(where: { $0.id == id }),
             operation.kind == .trash, let scopes = operation.trashRoots,
             let root = url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))

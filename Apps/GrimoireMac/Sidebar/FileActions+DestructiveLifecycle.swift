@@ -9,8 +9,19 @@ extension FileActions {
         } catch { self.error = error }
     }
 
+    private func prepareFiles(for plan: DestructiveLifecyclePlan) -> Bool {
+        switch plan.action {
+        case .finishTrash:
+            // Settings-only repair retires the reservation that blocks dirty-buffer writes.
+            // It neither saves documents nor releases their lifetime/access ownership.
+            return true
+        case .trash, .unbind:
+            return willPerformDestructiveOperation?(plan) ?? false
+        }
+    }
+
     func confirmDestructiveOperation(workspace: Workspace) {
-        guard let plan = destructivePlan, willPerformDestructiveOperation?(plan) ?? false else { return }
+        guard let plan = destructivePlan, prepareFiles(for: plan) else { return }
         do {
             switch try workspace.confirmDestructiveOperation(plan) {
             case .completed:

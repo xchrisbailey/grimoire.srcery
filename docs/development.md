@@ -266,7 +266,7 @@ fail-closed. These production-method regressions do not establish native GUI acc
 ### Unbind, trash, and settings-only trash repair
 
 Native warnings, cancellation, trash, restoration, and repair acceptance remain
-**UNVERIFIED**. Both sidebar destructive actions prepare their impact through Workspace
+**UNVERIFIED**. Actual trash and unbind prepare their impact through Workspace
 and require confirmation after checking every affected managed buffer, including
 retained windows and another project's editor of the same physical item. A failed
 save vetoes mutation without discarding dirty text. Package integration tests and
@@ -299,6 +299,13 @@ and parent access/identity before attempting settings-only repair.
 Use **Finish configuration removal…** to inspect the recorded item, owned choices,
 and retained source dependencies. Confirm that it only applies the recorded settings
 removals and clears that one intent: it never moves, deletes, or restores files.
+Unlike actual trash/unbind, this settings-only repair must not save or release any
+document first: the pending reservation deliberately denies those writes. Open a
+restored document and edit it in same-project and foreign-project windows, including
+a strongly retained state. Check that cancel, failed settings persistence, and
+successful repair preserve the exact dirty buffers, selections, watchers, workspaces,
+access, and on-disk inode/bytes, without a trash callback. After repair clears its
+own reservation, retry a normal save; unrelated pending intent must remain untouched.
 Cancel and failed persistence preserve intent and choices. Relevant scope changes
 require renewed review; unavailable/replaced roots or parents block repair. A successful
 repair preserves unrelated choices and pending records. Any removed choices still
