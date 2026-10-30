@@ -188,8 +188,10 @@ extension ProjectLibrary {
         if completed {
             updated.templateAssignments.removeAll { operation.before.contains($0) }
             updated.templateAssignments += operation.after
-            updated.lastOpenedFile = updated.lastOpenedFile.map(operation.relocated)
-            updated.expandedFolders = Set(updated.expandedFolders.map(operation.relocated))
+            if operation.kind == .relocation {
+                updated.lastOpenedFile = updated.lastOpenedFile.map(operation.relocated)
+                updated.expandedFolders = Set(updated.expandedFolders.map(operation.relocated))
+            }
         }
         updated.pendingLifecycleOperations.removeAll { $0.id == operation.id }
         try commit(projects.map { $0.id == id ? updated : $0 })

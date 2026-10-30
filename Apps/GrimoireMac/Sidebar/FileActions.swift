@@ -10,7 +10,6 @@ final class FileActions {
     /// The bound folder being given an alias, and the name it had when the prompt opened.
     var aliasing: (id: FolderRoot.ID, name: String)?
     var newAlias = ""
-    var banishing: URL?
     var destructivePlan: DestructiveLifecyclePlan?
     var destructiveNotice: String?
     var error: Error?
@@ -35,6 +34,7 @@ final class FileActions {
     /// Called before a folder or loose file leaves the project and its access ends, so the
     /// window can save what it has open while it still can.
     @ObservationIgnored var willRelease: (() -> Bool)?
+    @ObservationIgnored var willPerformDestructiveOperation: ((DestructiveLifecyclePlan) -> Bool)?
     @ObservationIgnored var didUnbind: (() -> Void)?
     @ObservationIgnored var retryReconciliation: (() -> Void)?
     /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
@@ -223,11 +223,17 @@ extension FileActions {
     }
 
     func banish(_ url: URL, workspace: Workspace) {
-        perform(workspace, near: url) {
-            try workspace.requireUnconfiguredLifecycleItem(url)
-            try FileOperations.moveToTrash(url)
-            didTrash?(url)
-        }
+        do {
+            destructivePlan = try workspace.prepareTrash(url)
+            destructiveNotice = nil
+        } catch { self.error = error }
+    }
+
+    func finishTrashConfiguration(_ id: UUID, workspace: Workspace) {
+        do {
+            destructivePlan = try workspace.prepareTrashConfigurationRemoval(id)
+            destructiveNotice = nil
+        } catch { self.error = error }
     }
 
     /// Moves dropped items into `folder`. Only items inside this workspace are accepted.
@@ -282,32 +288,6 @@ extension FileActions {
         let next = aliasQueue.removeFirst()
         aliasing = next
         newAlias = next.name
-    }
-
-    func unbind(_ folder: BoundFolder, from workspace: Workspace) {
-        do {
-            destructivePlan = try workspace.prepareUnbind(folder.id)
-            destructiveNotice = nil
-        } catch {
-            self.error = error
-        }
-    }
-
-    func confirmDestructiveOperation(workspace: Workspace) {
-        guard let plan = destructivePlan, willRelease?() ?? true else { return }
-        do {
-            switch try workspace.confirmDestructiveOperation(plan) {
-            case .completed:
-                destructivePlan = nil
-                didUnbind?()
-            case .cancelled:
-                destructivePlan = nil
-            case .reviewNeeded(let updated):
-                destructivePlan = updated
-                destructiveNotice = String(
-                    localized: "The affected configuration changed. Review it, then confirm again.")
-            }
-        } catch { self.error = error }
     }
 
     func removeLooseFile(_ file: BoundFile, from workspace: Workspace) {
@@ -375,17 +355,6 @@ private struct FileActionPrompts: ViewModifier {
                 }
             } message: {
                 Text("The sidebar shows this name instead of the folder's. Leave it empty to use the folder's name.")
-            }
-            .confirmationDialog(
-                String(localized: "Banish \(actions.banishing?.lastPathComponent ?? "")?"),
-                isPresented: Binding(get: { actions.banishing != nil }, set: { if !$0 { actions.banishing = nil } })
-            ) {
-                Button("Banish", role: .destructive) {
-                    guard let workspace, let url = actions.banishing else { return }
-                    actions.banish(url, workspace: workspace)
-                }
-            } message: {
-                Text("It goes to the Trash.")
             }
             .alert(
                 actions.error?.localizedDescription ?? "",

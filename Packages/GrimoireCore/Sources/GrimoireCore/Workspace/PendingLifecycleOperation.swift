@@ -26,6 +26,9 @@ struct LifecycleIdentity: Codable, Hashable, Sendable {
 }
 
 struct PendingLifecycleOperation: Codable, Hashable, Sendable {
+    enum Kind: String, Codable, Sendable { case relocation, trash }
+    var kind: Kind = .relocation
+    var trashRoots: [DestructiveRootScope]?
     let id: UUID
     let projectID: UUID
     let source: FileReference
@@ -36,6 +39,49 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
     let destinationParentIdentity: LifecycleIdentity
     let before: [FolderTemplateAssignment]
     let after: [FolderTemplateAssignment]
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, trashRoots, id, projectID, source, destination, rootIdentity, itemIdentity
+        case sourceParentIdentity, destinationParentIdentity, before, after
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        kind = values.contains(.kind) ? try values.decode(Kind.self, forKey: .kind) : .relocation
+        trashRoots =
+            values.contains(.trashRoots) ? try values.decode([DestructiveRootScope].self, forKey: .trashRoots) : nil
+        id = try values.decode(UUID.self, forKey: .id)
+        projectID = try values.decode(UUID.self, forKey: .projectID)
+        source = try values.decode(FileReference.self, forKey: .source)
+        destination = try values.decode(FileReference.self, forKey: .destination)
+        rootIdentity = try values.decode(LifecycleIdentity.self, forKey: .rootIdentity)
+        itemIdentity = try values.decode(LifecycleIdentity.self, forKey: .itemIdentity)
+        sourceParentIdentity = try values.decode(LifecycleIdentity.self, forKey: .sourceParentIdentity)
+        destinationParentIdentity = try values.decode(LifecycleIdentity.self, forKey: .destinationParentIdentity)
+        before = try values.decode([FolderTemplateAssignment].self, forKey: .before)
+        after = try values.decode([FolderTemplateAssignment].self, forKey: .after)
+    }
+
+    init(
+        kind: Kind = .relocation, trashRoots: [DestructiveRootScope]? = nil,
+        id: UUID, projectID: UUID, source: FileReference, destination: FileReference,
+        rootIdentity: LifecycleIdentity, itemIdentity: LifecycleIdentity,
+        sourceParentIdentity: LifecycleIdentity, destinationParentIdentity: LifecycleIdentity,
+        before: [FolderTemplateAssignment], after: [FolderTemplateAssignment]
+    ) {
+        self.kind = kind
+        self.trashRoots = trashRoots
+        self.id = id
+        self.projectID = projectID
+        self.source = source
+        self.destination = destination
+        self.rootIdentity = rootIdentity
+        self.itemIdentity = itemIdentity
+        self.sourceParentIdentity = sourceParentIdentity
+        self.destinationParentIdentity = destinationParentIdentity
+        self.before = before
+        self.after = after
+    }
 
     func contains(_ reference: FileReference) -> Bool {
         reference.rootID == source.rootID
@@ -66,6 +112,11 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
         try FolderTemplateAssignment.validate(destination.relativePath, allowsRoot: false)
         try FolderTemplateAssignment.validate(before)
         try FolderTemplateAssignment.validate(after)
+        if kind == .trash {
+            try validateTrash(in: project)
+            return
+        }
+        guard trashRoots == nil else { throw LifecycleError.invalidRecord }
         guard projectID == project.id, project.root(source.rootID) != nil,
             source.rootID == destination.rootID, source != destination,
             !Self.overlaps(source.relativePath, destination.relativePath),
@@ -84,6 +135,39 @@ struct PendingLifecycleOperation: Codable, Hashable, Sendable {
             })
         else { throw LifecycleError.invalidRecord }
         try FolderTemplateAssignment.validate(project.templateAssignments.filter { !before.contains($0) } + after)
+    }
+
+    private func validateTrash(in project: Project) throws {
+        guard projectID == project.id, source == destination, project.root(source.rootID) != nil,
+            rootIdentity.type == S_IFDIR, sourceParentIdentity.type == S_IFDIR,
+            destinationParentIdentity == sourceParentIdentity,
+            itemIdentity.type == S_IFREG || itemIdentity.type == S_IFDIR,
+            !before.isEmpty, Set(before.map(\.owner)).count == before.count,
+            Set(after.map(\.owner)).count == after.count,
+            before.allSatisfy({ project.templateAssignments.contains($0) }),
+            after.allSatisfy({ before.contains($0) }),
+            let trashRoots, !trashRoots.isEmpty,
+            Set(trashRoots.map(\.id)).count == trashRoots.count,
+            trashRoots.contains(where: { $0.id == source.rootID && $0.identity == rootIdentity }),
+            trashRoots.allSatisfy({ scope in
+                guard let root = project.root(scope.id) else { return false }
+                return root.bookmark == scope.bookmark && root.lastKnownPath == scope.path
+                    && scope.identity?.type == S_IFDIR && scope.resolvedPath.hasPrefix("/")
+            })
+        else { throw LifecycleError.invalidRecord }
+        func parts(_ reference: FileReference) -> [String]? {
+            guard let scope = trashRoots.first(where: { $0.id == reference.rootID }) else { return nil }
+            return URL(filePath: scope.resolvedPath).pathComponents
+                + reference.relativePath.split(separator: "/").map(String.init)
+        }
+        guard let sourceParts = parts(source) else { throw LifecycleError.invalidRecord }
+        func inside(_ reference: FileReference) -> Bool { parts(reference)?.starts(with: sourceParts) == true }
+        guard before.filter({ !after.contains($0) }).allSatisfy({ inside($0.owner) }),
+            after.allSatisfy({ assignment in
+                guard !inside(assignment.owner), case .useSource(let source) = assignment.choice else { return false }
+                return inside(source)
+            })
+        else { throw LifecycleError.invalidRecord }
     }
 
     func relocated(_ reference: FileReference) -> FileReference {
@@ -158,6 +242,15 @@ struct LifecycleRecoveryError: LocalizedError {
     let cause: any Error
 
     var errorDescription: String? {
+        if operation.kind == .trash {
+            return String(
+                localized:
+                    "A trash operation has an unknown outcome. Review its recorded configuration removal."
+            )
+                + "\n" + String(localized: "Retry never moves or restores files.")
+                + "\n[" + operation.source.rootID.uuidString + "]/" + operation.source.relativePath
+                + "\n" + cause.localizedDescription
+        }
         let status =
             moved
             ? String(localized: "The item moved, but its project changes are still pending.")

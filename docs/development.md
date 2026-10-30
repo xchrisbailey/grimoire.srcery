@@ -169,9 +169,9 @@ The sidebar retains the recorded paths and **Retry Reconciliation** / **Show in 
 Manually restore the original item to an unambiguous recorded location, restore store
 access, then retry; retry never moves, reverses, or discards files. Verify conflicting
 assignment/source/binding operations remain blocked while unrelated name/theme edits
-remain available. Configured cross-root moves, root relocation, unbind, and trash
-policies are not implemented by this slice; unsupported destructive operations fail
-closed rather than silently dropping configuration. The full feature is not shipped.
+remain available. Configured cross-root moves and root relocation are not implemented
+by this slice; unsupported operations fail closed rather than silently dropping
+configuration. Unbind and trash checks are described below. The full feature is not shipped.
 User-facing configured regrant accepts only an observable same-root identity in this
 slice. Authoritative library bookmark updates remain allowed without conflicting
 pending intent; creation must still revalidate them rather than writing through stale access.
@@ -262,6 +262,47 @@ and access (successful pre-saves are intentional). After a successful commit, al
 states must synchronously leave the deleted project without editable orphan authorizers;
 unrelated project windows stay untouched. A removed Workspace's authorizer remains
 fail-closed. These production-method regressions do not establish native GUI acceptance.
+
+### Unbind, trash, and settings-only trash repair
+
+Native warnings, cancellation, trash, restoration, and repair acceptance remain
+**UNVERIFIED**. Both sidebar destructive actions prepare their impact through Workspace
+and require confirmation after checking every affected managed buffer, including
+retained windows and another project's editor of the same physical item. A failed
+save vetoes mutation without discarding dirty text. Package integration tests and
+compiled app wiring do not verify native sheets or sandbox Trash behavior.
+
+Unbind a root containing assignments, opt-outs, and sources referenced by another
+binding. Review the owned choices to remove and remaining dependencies. Cancel must
+change neither settings nor files. A failed settings commit must preserve access,
+watchers, and configuration; success releases access only after one atomic settings
+commit. Sources and other disk files stay untouched. Rebinding starts unconfigured.
+Remove an inner overlapping binding and check retained outer choices become effective;
+rebind it and check its deleted inner choices do not return. Remaining assignments
+keep broken source references even when their source's root UUID no longer exists.
+
+Trash a configured folder with descendant choices, then a source used by other
+folders/bindings. Review every owned choice and source dependency before confirming.
+Preparation failure changes nothing. A failed filesystem call with the original
+identities unchanged preserves choices. Actual successful trash removes only the
+recorded owned subtree choices; remaining dependencies stay explicit and broken,
+never falling back to an ancestor or empty content. Restoring the item does not
+restore deleted choices. Actual-success selection cleanup does not open a replacement.
+
+Fail final settings persistence after actual trash. The UI must distinguish actual
+filesystem success from pending configuration removal. Restart with the item absent,
+restored, or replaced: none alone proves an interrupted trash outcome. Retry never
+searches Trash, replays, or reverses anything. Pending intent still guards own/foreign
+physical writes, case aliases, and substituted-parent symlinks. Restore original root
+and parent access/identity before attempting settings-only repair.
+
+Use **Finish configuration removal…** to inspect the recorded item, owned choices,
+and retained source dependencies. Confirm that it only applies the recorded settings
+removals and clears that one intent: it never moves, deletes, or restores files.
+Cancel and failed persistence preserve intent and choices. Relevant scope changes
+require renewed review; unavailable/replaced roots or parents block repair. A successful
+repair preserves unrelated choices and pending records. Any removed choices still
+require reassignment if the item is later restored.
 
 ## CI
 

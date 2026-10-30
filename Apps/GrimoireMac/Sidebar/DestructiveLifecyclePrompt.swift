@@ -13,16 +13,18 @@ struct DestructiveLifecyclePrompt: ViewModifier {
         ) {
             if let plan = actions.destructivePlan {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Unbind Folder").font(.headline)
+                    Text(title(plan)).font(.headline)
                     Text(plan.item.path).textSelection(.enabled)
-                    Text(
-                        "This removes the binding and its owned template assignments and opt-outs. Files on disk stay unchanged. Rebinding starts unconfigured."
-                    )
+                    Text(explanation(plan))
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Choices to remove").font(.headline)
                             ForEach(plan.removedChoices, id: \.owner) { assignment in
                                 Text(referencePath(assignment.owner))
+                                switch assignment.choice {
+                                case .noTemplate: Text("No template")
+                                case .useSource(let source): Text(referencePath(source))
+                                }
                             }
                             Text("Remaining assignments with broken sources").font(.headline)
                             ForEach(plan.brokenDependencies, id: \.owner) { assignment in
@@ -35,7 +37,7 @@ struct DestructiveLifecyclePrompt: ViewModifier {
                     HStack {
                         Spacer()
                         Button("Cancel", role: .cancel) { actions.destructivePlan = nil }
-                        Button("Unbind Folder", role: .destructive) {
+                        Button(title(plan), role: .destructive) {
                             if let workspace { actions.confirmDestructiveOperation(workspace: workspace) }
                         }
                     }
@@ -46,5 +48,35 @@ struct DestructiveLifecyclePrompt: ViewModifier {
 
     private func referencePath(_ reference: FileReference) -> String {
         workspace?.url(for: reference)?.path ?? "[" + reference.rootID.uuidString + "]/" + reference.relativePath
+    }
+
+    private func title(_ plan: DestructiveLifecyclePlan) -> String {
+        switch plan.action {
+        case .unbind: String(localized: "Unbind Folder")
+        case .trash: String(localized: "Banish")
+        case .finishTrash: String(localized: "Finish configuration removal…")
+        }
+    }
+
+    private func explanation(_ plan: DestructiveLifecyclePlan) -> String {
+        switch plan.action {
+        case .unbind:
+            String(localized: "This removes the binding and its owned template assignments and opt-outs.")
+                + "\n" + String(localized: "Files on disk stay unchanged. Rebinding starts unconfigured.")
+        case .trash:
+            String(localized: "This item goes to the Trash.")
+                + "\n"
+                + String(localized: "Its explicit and descendant choices are removed only after successful trash.")
+                + "\n" + String(localized: "Restoring it requires reassignment.")
+                + "\n" + String(localized: "Remaining assignments keep broken source references without a fallback.")
+        case .finishTrash:
+            String(
+                localized:
+                    "This applies only the recorded configuration removals and clears this trash recovery record.")
+                + "\n" + String(localized: "It does not move, delete, or restore any file.")
+                + "\n" + String(localized: "The item's trash outcome is unknown, even if it has reappeared.")
+                + "\n" + String(localized: "Removed choices require reassignment.")
+                + "\n" + String(localized: "Remaining assignments retain their source references, which may be broken.")
+        }
     }
 }

@@ -67,15 +67,15 @@ final class WindowState {
             guard let self else { return }
             ExternalOpens.shared.itemMoved(from: from, to: to, in: projectID)
         }
-        actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
+        actions.didTrash = { [weak self] url in
+            guard let self else { return }
+            ExternalOpens.shared.itemTrashed(url, in: projectID)
+        }
         actions.willRelease = { [weak self] in
             guard let self else { return false }
             return ExternalOpens.shared.prepareRelease(in: projectID)
         }
-        actions.didUnbind = { [weak self] in
-            guard let self else { return }
-            ExternalOpens.shared.rootsRemoved(in: projectID)
-        }
+        configureDestructiveActions()
         actions.retryReconciliation = { [weak self] in self?.retryRecovery() }
     }
 
@@ -309,11 +309,9 @@ final class WindowState {
         rememberLastOpenedFile(newURL)
     }
 
-    private func itemTrashed(_ url: URL) {
+    func itemTrashed(_ url: URL) {
         guard let current = selectedFile else { return }
-        let path = url.standardizedFileURL.path(percentEncoded: false)
-        let currentPath = current.standardizedFileURL.path(percentEncoded: false)
-        guard currentPath == path || currentPath.hasPrefix(path.hasSuffix("/") ? path : path + "/") else { return }
+        guard (try? DestructiveLifecyclePlan.affects(url, document: current)) == true else { return }
         document?.discard()
         document = nil
         selectedFile = nil

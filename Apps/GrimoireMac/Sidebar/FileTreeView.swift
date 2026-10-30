@@ -15,13 +15,18 @@ struct FileTreeView: View {
             if workspace.hasPendingLifecycleOperations {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(LifecycleError.pendingRepair.localizedDescription)
+                        Text(workspace.lifecycleRepairExplanation)
                             .fixedSize(horizontal: false, vertical: true)
                         ForEach(workspace.lifecycleRepairURLs, id: \.self) { url in
                             Text(url.path).textSelection(.enabled)
                         }
                         Button("Retry Reconciliation") {
                             actions.retryReconciliation?()
+                        }
+                        ForEach(workspace.pendingTrashConfigurationRemovals, id: \.self) { id in
+                            Button("Finish configuration removal…") {
+                                actions.finishTrashConfiguration(id, workspace: workspace)
+                            }
                         }
                         Button("Show in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting(
@@ -318,6 +323,6 @@ private struct ItemMenu: View {
             Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }
         Divider()
-        Button("Banish…", role: .destructive) { actions.banishing = url }
+        Button("Banish…", role: .destructive) { actions.banish(url, workspace: workspace) }
     }
 }
