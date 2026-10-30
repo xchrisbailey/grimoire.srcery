@@ -1,6 +1,27 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Create Empty Once" : {
+      "comment" : "plain: explicitly bypass the source only for this pending creation"
+    },
+    "Choose Replacement…" : {
+      "comment" : "plain: select a replacement for the supplying folder template assignment"
+    },
+    "Confirm Replacement" : {
+      "comment" : "plain: persist the displayed supplying-assignment repair independently of creation"
+    },
+    "Replacement source" : {
+      "comment" : "plain: saved source selected for a confirmed repair"
+    },
+    "This repairs the owning folder shown above and descendants that inherit its choice within this bound root. Nearer overrides, opt-outs, and separately bound roots are excluded. Other explicit assignments using the old source are unchanged." : {
+      "comment" : "plain: scope confirmation before repairing an inherited template assignment"
+    },
+    "The replacement was saved. You can create the document or cancel without undoing the repair." : {
+      "comment" : "plain: a confirmed assignment repair is independent of document creation"
+    },
+    "Discard Replacement" : {
+      "comment" : "plain: abandon the selected replacement without changing settings"
+    },
     "Folder" : {
       "comment" : "plain: folder whose local template choice is being edited"
     },

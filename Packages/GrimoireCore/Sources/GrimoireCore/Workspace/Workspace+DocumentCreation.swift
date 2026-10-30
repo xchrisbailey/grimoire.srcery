@@ -11,6 +11,11 @@ public enum DocumentCreationPurpose: Sendable {
     case templateSource
 }
 
+public enum DocumentRecoveryIntent: Sendable {
+    case retry
+    case createEmptyOnce
+}
+
 public struct PublishedDocument: Sendable {
     public let url: URL
     /// Nil retains the legacy preview and rename experience.
@@ -146,18 +151,22 @@ extension Workspace {
 
     public func createDocument(
         _ plan: DocumentCreationPlan, naming: DocumentNamingIntent,
-        confirmed: Bool = true
+        confirmed: Bool = true, recovery: DocumentRecoveryIntent = .retry
     ) -> DocumentCreationResult {
         createDocument(
-            plan, naming: naming, confirmed: confirmed, now: .now, calendar: .current,
+            plan, naming: naming, confirmed: confirmed, recovery: recovery, now: .now, calendar: .current,
             operations: DocumentCreationOperations())
     }
 
     func createDocument(
         _ plan: DocumentCreationPlan, naming: DocumentNamingIntent,
-        confirmed: Bool = true, now: Date, calendar: Calendar, operations: DocumentCreationOperations
+        confirmed: Bool = true, recovery: DocumentRecoveryIntent = .retry,
+        now: Date, calendar: Calendar, operations: DocumentCreationOperations
     ) -> DocumentCreationResult {
-        guard confirmed else { return .cancelled }
+        guard confirmed else {
+            emptyOnceCreations.remove(plan.id)
+            return .cancelled
+        }
         if let published = publishedCreations[plan.id] { return .alreadyPublished(published) }
         guard plan.projectID == projectID else { return .contextUnavailable(TemplateAssignmentError.unavailableFolder) }
         var current: DocumentCreationPlan
@@ -169,6 +178,7 @@ extension Workspace {
         current.id = plan.id
         current.requiresNaming = current.requiresNaming || plan.requiresNaming
         guard current.context == plan.context else { return .reviewNeeded(current) }
+        if recovery == .createEmptyOnce { emptyOnceCreations.insert(plan.id) }
         let stem: String
         switch naming {
         case .generated: stem = current.suggestedStem
@@ -186,6 +196,7 @@ extension Workspace {
     }
 
     private func creationBytes(_ plan: DocumentCreationPlan) throws -> Data {
+        if emptyOnceCreations.contains(plan.id) { return Data() }
         guard plan.usesSource else { return Data() }
         guard let source = plan.source else { throw TemplateAssignmentError.ineligibleSource }
         return try savedTemplateBytes(at: source)
@@ -218,9 +229,11 @@ extension Workspace {
             }
             let published = PublishedDocument(url: url, editorCaretUTF16: caret)
             publishedCreations[current.id] = published
+            emptyOnceCreations.remove(current.id)
             return .published(published)
         } catch DocumentPublicationError.publishedButUnavailable(let url) {
             publishedCreations[current.id] = PublishedDocument(url: url, editorCaretUTF16: nil)
+            emptyOnceCreations.remove(current.id)
             return .publishedButUnavailable(url)
         } catch { return .failed(error) }
     }
@@ -240,6 +253,8 @@ extension Workspace {
         guard fresh.context.owner == plan.context.owner, fresh.assignment == plan.assignment,
             fresh.context.roots == plan.context.roots, fresh.context.sourceURL == plan.context.sourceURL
         else { throw TemplateAssignmentError.unavailableFolder }
-        if plan.usesSource, let source = plan.source { _ = try eligibleTemplateReference(for: source) }
+        if plan.usesSource, !emptyOnceCreations.contains(plan.id), let source = plan.source {
+            _ = try eligibleTemplateReference(for: source)
+        }
     }
 }

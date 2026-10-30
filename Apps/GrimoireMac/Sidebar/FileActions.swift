@@ -17,6 +17,8 @@ final class FileActions {
     var creationStem = ""
     var creationNameEdited = false
     var creationNotice: String?
+    var creationSourceFailed = false
+    var creationAttemptFailed = false
     private var pendingHandoff: PublishedDocument?
     /// Folders still to be offered an alias after this one, from binding several at once.
     private var aliasQueue: [(id: FolderRoot.ID, name: String)] = []
@@ -41,6 +43,8 @@ final class FileActions {
                 creationStem = plan.suggestedStem
                 creationNameEdited = false
                 creationNotice = nil
+                creationSourceFailed = false
+                creationAttemptFailed = false
                 return nil
             }
             return handleCreation(
@@ -51,10 +55,20 @@ final class FileActions {
         }
     }
 
-    func confirmCreation(workspace: Workspace) {
+    func confirmCreation(workspace: Workspace, recovery: DocumentRecoveryIntent = .retry) {
         guard let plan = creationPlan else { return }
         let naming: DocumentNamingIntent = creationNameEdited ? .edited(creationStem) : .generated
-        _ = handleCreation(workspace.createDocument(plan, naming: naming), workspace: workspace, rename: false)
+        creationSourceFailed = false
+        creationAttemptFailed = false
+        _ = handleCreation(
+            workspace.createDocument(plan, naming: naming, recovery: recovery), workspace: workspace, rename: false)
+    }
+
+    func cancelCreation(workspace: Workspace) {
+        if let plan = creationPlan {
+            _ = workspace.createDocument(plan, naming: .generated, confirmed: false)
+        }
+        creationPlan = nil
     }
 
     func creationDismissed() {
@@ -69,6 +83,8 @@ final class FileActions {
         case .published(let published):
             return finishCreation(published, workspace: workspace, rename: rename)
         case .reviewNeeded(let updated):
+            creationSourceFailed = false
+            creationAttemptFailed = false
             if creationPlan == nil {
                 creationStem = updated.suggestedStem
                 creationNameEdited = false
@@ -78,6 +94,9 @@ final class FileActions {
         case .invalidName(let failure):
             creationNotice = failure.localizedDescription
         case .sourceFailure(let plan, let failure):
+            creationPlan = plan
+            if !creationNameEdited { creationStem = plan.suggestedStem }
+            creationSourceFailed = true
             creationNotice =
                 String(localized: "Template source: \(creationSourcePath(plan))")
                 + "\n"
@@ -85,6 +104,7 @@ final class FileActions {
                     localized: "Owning folder: \(plan.assignment.flatMap { workspace.url(for: $0.owner) }?.path ?? "")")
                 + "\n" + failure.localizedDescription
         case .failed(let failure), .contextUnavailable(let failure):
+            creationAttemptFailed = true
             creationNotice = failure.localizedDescription
             if creationPlan == nil { error = failure }
         case .publishedButUnavailable(let url):

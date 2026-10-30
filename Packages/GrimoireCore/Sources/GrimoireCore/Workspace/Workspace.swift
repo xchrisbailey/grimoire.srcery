@@ -25,6 +25,7 @@ public final class Workspace {
     /// when a tree's shape stays the same.
     public private(set) var scanCount = 0
     @ObservationIgnored var publishedCreations: [UUID: PublishedDocument] = [:]
+    @ObservationIgnored var emptyOnceCreations: Set<UUID> = []
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID

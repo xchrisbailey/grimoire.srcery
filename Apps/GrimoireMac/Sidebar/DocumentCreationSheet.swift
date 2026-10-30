@@ -43,11 +43,16 @@ struct DocumentCreationSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { actions.creationPlan = nil }
+                Button("Cancel", role: .cancel) { actions.cancelCreation(workspace: workspace) }
                     .keyboardShortcut(.cancelAction)
-                Button("Create") { confirm() }
-                    .keyboardShortcut(.defaultAction)
+                if actions.creationSourceFailed {
+                    Button("Create Empty Once") {
+                        actions.confirmCreation(workspace: workspace, recovery: .createEmptyOnce)
+                    }
                     .disabled(validation != nil)
+                }
+                Button(actions.creationSourceFailed || actions.creationAttemptFailed ? "Retry" : "Create") { confirm() }
+                    .keyboardShortcut(.defaultAction).disabled(validation != nil)
             }
         }
         .padding(24)
@@ -87,7 +92,9 @@ struct DocumentCreationPrompt: ViewModifier {
         content.sheet(
             isPresented: Binding(
                 get: { actions.creationPlan != nil },
-                set: { if !$0 { actions.creationPlan = nil } }),
+                set: {
+                    if !$0, let workspace { actions.cancelCreation(workspace: workspace) }
+                }),
             onDismiss: { actions.creationDismissed() },
             content: {
                 if let workspace { DocumentCreationSheet(actions: actions, workspace: workspace) }
