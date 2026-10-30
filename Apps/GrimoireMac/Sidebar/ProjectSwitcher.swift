@@ -106,7 +106,7 @@ struct ProjectSwitcher: View {
 
     private func deleteCurrent() {
         guard let current else { return }
-        window.save()
+        guard ExternalOpens.shared.prepareRelease(in: current.id) else { return }
         do {
             try library.deleteProject(current.id)
             window.selectProject(library.projects.first?.id)

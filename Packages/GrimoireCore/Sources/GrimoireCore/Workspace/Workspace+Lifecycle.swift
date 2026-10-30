@@ -283,6 +283,30 @@ extension Workspace {
         }
     }
 
+    /// Authorizes atomic replacement only after relevant recovery evidence is durably retired.
+    /// Does not reconcile unrelated intent or take ownership of the document.
+    public func authorizeDocumentSave(at url: URL) throws {
+        guard library.loadError == nil, let project else { throw LifecycleError.pendingRepair }
+        for operation in project.pendingLifecycleOperations {
+            let root =
+                self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
+                ?? project.root(operation.source.rootID)?.lastKnownURL
+            guard let root else { throw LifecycleError.pendingRepair }
+            let relevant = try [operation.source, operation.destination].contains {
+                try LifecyclePath.overlaps(
+                    url, reference: $0, in: root,
+                    caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+            }
+            guard relevant else { continue }
+            do {
+                try finishRelocation(operation, completed: observedCompletion(of: operation))
+            } catch {
+                throw LifecycleRecoveryError(operation: operation, moved: false, cause: error)
+            }
+        }
+        try requireNoPendingLifecycle(at: url)
+    }
+
     private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
         let root = try rootURL(operation.source.rootID)
         return try LifecycleObservation(operation: operation, root: root)

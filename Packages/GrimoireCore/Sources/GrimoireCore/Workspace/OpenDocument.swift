@@ -33,23 +33,29 @@ public final class OpenDocument {
 
     private var autosave: Task<Void, Never>?
     private var watcher: FolderWatcher?
+    private let authorizeWrite: ((URL) throws -> Void)?
 
     /// Reads `url`. Throws if it can't be read.
-    public init(url: URL, autosaveDelay: Duration = .seconds(1)) throws {
+    public init(
+        url: URL, autosaveDelay: Duration = .seconds(1),
+        authorizeWrite: ((URL) throws -> Void)? = nil
+    ) throws {
         let text = try Self.read(url)
         self.url = url
         self.text = text
         self.savedText = text
         self.autosaveDelay = autosaveDelay
+        self.authorizeWrite = authorizeWrite
         watch()
     }
 
-    /// Stops watching and saves any pending edits. Call before letting go of the document.
-    public func close() {
-        save()
+    /// Releases the watcher only after all edits are saved. A false result requires retaining this document.
+    @discardableResult public func close() -> Bool {
+        guard save() else { return false }
         autosave?.cancel()
         watcher?.stop()
         watcher = nil
+        return true
     }
 
     /// Stops watching without saving, for a file that was moved to the Trash.
@@ -61,10 +67,11 @@ public final class OpenDocument {
 
     /// Writes the text to disk if it has unsaved changes. Holds off while there's a
     /// conflict, so the user's choice decides what wins.
-    public func save() {
+    @discardableResult public func save() -> Bool {
         autosave?.cancel()
-        guard isDirty, conflict == nil else { return }
-        write()
+        guard isDirty else { return conflict == nil }
+        guard conflict == nil else { return false }
+        return write()
     }
 
     /// The file was renamed or moved (from the tree); follow it.
@@ -92,11 +99,9 @@ public final class OpenDocument {
     }
 
     /// Resolves a conflict by writing the editor's text over the disk.
-    public func keepMine() {
-        guard let disk = conflict else { return }
-        conflict = nil
-        versions?.keep(disk, of: url, reason: .conflict)
-        write()
+    @discardableResult public func keepMine() -> Bool {
+        guard let disk = conflict else { return save() }
+        return write(conflictingText: disk)
     }
 
     /// Resolves a conflict by taking the disk's text.
@@ -115,15 +120,21 @@ public final class OpenDocument {
         versions?.keep(text, of: url, reason: reason)
     }
 
-    private func write() {
-        if savedText != text { versions?.willSave(url, previous: savedText) }
+    private func write(conflictingText: String? = nil) -> Bool {
         do {
+            // Finalize pending filesystem intent before atomic replacement destroys its identity evidence.
+            try authorizeWrite?(url)
             try Data(text.utf8).write(to: url, options: .atomic)
+            if let conflictingText { versions?.keep(conflictingText, of: url, reason: .conflict) }
+            if savedText != text { versions?.willSave(url, previous: savedText) }
+            conflict = nil
             savedText = text
             saveError = nil
             didSave?(url)
+            return true
         } catch {
             saveError = error
+            return false
         }
     }
 

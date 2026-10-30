@@ -21,8 +21,7 @@ struct FileTreeView: View {
                             Text(url.path).textSelection(.enabled)
                         }
                         Button("Retry Reconciliation") {
-                            workspace.reconcileLifecycleOperations()
-                            actions.error = workspace.lastError
+                            actions.retryReconciliation?()
                         }
                         Button("Show in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting(

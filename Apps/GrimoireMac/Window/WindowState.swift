@@ -40,6 +40,9 @@ final class WindowState {
     /// The loose file the selected file is, if it is one.
     private(set) var selectedLooseFile: LooseFile.ID?
     private(set) var document: OpenDocument?
+    var deferredDocuments: [DeferredDocument] = []
+    @ObservationIgnored var closeBridge: WindowCloseBridge?
+    @ObservationIgnored var presentationID: UUID?
     /// The AppKit window this state is shown in, to bring it forward.
     weak var hostWindow: NSWindow?
     /// Why the selected file couldn't be opened.
@@ -59,9 +62,16 @@ final class WindowState {
         self.library = library
         search.semantic = { [weak self] in self?.currentSemanticIndex() }
         actions.didCreate = { [weak self] created in self?.openCreatedDocument(created) }
-        actions.didMove = { [weak self] from, to in self?.itemMoved(from: from, to: to) }
+        actions.didMove = { [weak self] from, to in
+            guard let self else { return }
+            ExternalOpens.shared.itemMoved(from: from, to: to, in: projectID)
+        }
         actions.didTrash = { [weak self] url in self?.itemTrashed(url) }
-        actions.willRelease = { [weak self] in self?.save() }
+        actions.willRelease = { [weak self] in
+            guard let self else { return false }
+            return ExternalOpens.shared.prepareRelease(in: projectID)
+        }
+        actions.retryReconciliation = { [weak self] in self?.retryRecovery() }
     }
 
     var project: Project? { projectID.flatMap(library.project) }
@@ -69,14 +79,16 @@ final class WindowState {
     // MARK: - Project
 
     /// Shows project `id`, reopening the file it last had open unless `openLastFile` is false.
-    func selectProject(_ id: Project.ID?, openLastFile: Bool = true) {
-        guard id != projectID else { return }
-        closeDocument()
+    @discardableResult func selectProject(_ id: Project.ID?, openLastFile: Bool = true) -> Bool {
+        guard id != projectID else { return true }
+        guard deferredDocuments.isEmpty, closeDocument() else { return false }
         workspace?.deactivate()
         projectID = id
+        selectedFile = nil
+        selectedLooseFile = nil
         guard let id else {
             workspace = nil
-            return
+            return true
         }
         index = ProjectIndex()
         search.index = index
@@ -93,23 +105,7 @@ final class WindowState {
         if openLastFile, let reference = project?.lastOpenedFile, let url = workspace.url(for: reference) {
             select(url)
         }
-    }
-
-    /// The project's roots or loose files changed (bound or unbound elsewhere); update the
-    /// workspace.
-    func projectRootsChanged() {
-        workspace?.sync()
-        reportWorkspaceError()
-        // A loose file that can't be found stays open, with its text; only taking it off the
-        // list closes it.
-        let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
-        if let url = selectedFile, workspace?.reference(for: url) == nil, !listed { select(nil) }
-    }
-
-    func close() {
-        closeDocument()
-        workspace?.deactivate()
-        ExternalOpens.shared.unregister(self)
+        return true
     }
 
     /// Lets the user pick folders to bind to this window's project, then offers to alias
@@ -151,30 +147,33 @@ final class WindowState {
     // MARK: - Document
 
     /// Opens `url` in this window, saving and closing whatever was open.
-    func select(_ url: URL?, initialEditorMode: EditorMode? = nil) {
-        guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else { return }
-        closeDocument()
+    @discardableResult func select(_ url: URL?, initialEditorMode: EditorMode? = nil) -> Bool {
+        guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else {
+            return document != nil || url == nil
+        }
+        guard closeDocument() else { return false }
         selectedFile = url
         selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
-        guard let url else { return }
+        guard let url else { return true }
         editorMode = initialEditorMode ?? FileModes.mode(for: url, default: preferences.opensInRaw ? .raw : .preview)
         do {
-            document = try OpenDocument(url: url, autosaveDelay: .seconds(preferences.autosaveDelay))
+            let context = workspace
+            document = try OpenDocument(
+                url: url, autosaveDelay: .seconds(preferences.autosaveDelay),
+                authorizeWrite: { url in try context?.authorizeDocumentSave(at: url) })
             document?.versions = .standard
             document?.didSave = { [weak self] url in
                 guard let self else { return }
                 workspace?.didSave(url, fileID: selectedLooseFile)
                 reportWorkspaceError()
+                ExternalOpens.shared.saved(self)
             }
             openError = nil
             rememberLastOpenedFile(url)
         } catch {
             openError = error
         }
-    }
-
-    func save() {
-        document?.save()
+        return document != nil
     }
 
     /// Opens a markdown file a link pointed at: in this window when it's inside the
@@ -242,7 +241,7 @@ final class WindowState {
 
     /// Opens `url` and selects `range` in it, for a search result.
     func open(_ url: URL, revealing range: NSRange) {
-        select(url)
+        guard select(url) else { return }
         // The editor takes the new text on its next update.
         DispatchQueue.main.async { [editor] in
             DispatchQueue.main.async { editor.reveal(range) }
@@ -273,26 +272,20 @@ final class WindowState {
     }
 
     private func openCreatedDocument(_ created: PublishedDocument) {
-        guard let caret = created.editorCaretUTF16 else {
-            select(created.url)
-            return
-        }
-        select(created.url, initialEditorMode: .raw)
-        guard document != nil, openError == nil else {
-            openError = CreatedDocumentOpenError(url: created.url)
-            return
-        }
-        editor.revealWhenReady(NSRange(location: caret, length: 0), in: created.url)
+        deferPublishedDocument(created)
+        resumePublishedDocuments()
     }
 
-    private func closeDocument() {
+    private func closeDocument() -> Bool {
+        guard document?.close() ?? true else { return false }
         editor.cancelPendingReveal()
-        document?.close()
         document = nil
         openError = nil
+        return true
     }
 
     func itemMoved(from: URL, to: URL) {
+        moveDeferredDocuments(from: from, to: to)
         guard let current = selectedFile else { return }
         let fromPath = from.standardizedFileURL.path(percentEncoded: false)
         let currentPath = current.standardizedFileURL.path(percentEncoded: false)
@@ -323,6 +316,31 @@ final class WindowState {
 }
 
 extension WindowState {
+    @discardableResult func save() -> Bool {
+        guard document?.save() ?? true else { return false }
+        resumePublishedDocuments()
+        return true
+    }
+
+    /// Root changes must not release access while this window still needs it to save.
+    func projectRootsChanged() {
+        guard prepareForRelease() else { return }
+        workspace?.sync()
+        reportWorkspaceError()
+        let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
+        if let url = selectedFile, workspace?.reference(for: url) == nil, !listed { select(nil) }
+    }
+
+    @discardableResult func close() -> Bool {
+        guard deferredDocuments.isEmpty, closeDocument() else {
+            ExternalOpens.shared.retainBlocked(self)
+            return false
+        }
+        workspace?.deactivate()
+        ExternalOpens.shared.unregister(self)
+        return true
+    }
+
     private func rememberLastOpenedFile(_ url: URL) {
         guard let projectID, let reference = workspace?.reference(for: url) else { return }
         do {

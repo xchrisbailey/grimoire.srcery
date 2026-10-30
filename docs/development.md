@@ -198,6 +198,24 @@ descendants, source references, aliases and pending reservations block legacy ad
 Same-root moves never fall back to legacy; unsupported identity-preserving semantics fail
 before mutation. Native acceptance of these distinctions is still **UNVERIFIED**.
 
+After a verified move whose final settings save fails, dirty editors follow the moved
+file but must not atomically replace it until observation and settings finalization
+succeed. Check autosave, Save, and Keep Mine in two windows, including a document
+inside a moved subtree. Failed authorization must preserve the original inode and
+bytes, local text, saved text, conflict, and versions. Unrelated documents still save.
+Restore settings access and use Retry Reconciliation or retry the save: configuration
+must finish before the editor writes. Reopen the project to check persisted choices.
+
+Native close/quit and deferred-opening acceptance remain **UNVERIFIED**. While saving
+is blocked, try file/project switches, unbinding/removing a loose file, project deletion,
+window close, and Quit. The dirty editor, watcher, and workspace access must survive.
+Exercise a direct native close/view disappearance too: a replacement window must
+reclaim the exact retained state and buffer, without reopening from disk. Check that
+SwiftUI's original window delegate still receives its callbacks. Publish a new document
+while the old editor is blocked, then repair and retry: open that same file once, never
+recreate/delete it or send its caret to the old editor. Retention is in memory only;
+force-quitting, process termination, or power loss cannot guarantee unsaved edits survive.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.

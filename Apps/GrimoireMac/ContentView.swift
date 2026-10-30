@@ -26,14 +26,14 @@ struct ContentView: View {
                 }
             } else if let window {
                 WindowContent(window: window)
-                    .background(WindowReader { window.hostWindow = $0 })
+                    .background(WindowReader { window.attach(to: $0) })
             } else {
                 Color.brand(\.page)
             }
         }
         .frame(minWidth: 640, minHeight: 400)
         .onAppear {
-            if window == nil { window = WindowState(library: library) }
+            if window == nil { window = ExternalOpens.shared.reclaimBlocked() ?? WindowState(library: library) }
             ThemeLibrary.shared.applyAppearance()
         }
     }
@@ -41,6 +41,7 @@ struct ContentView: View {
 
 private struct WindowContent: View {
     @Bindable var window: WindowState
+    @State private var presentationID = UUID()
     @Environment(ProjectLibrary.self) private var library
     @SceneStorage("grimoire.project") private var storedProject = ""
     @SceneStorage("grimoire.file") private var storedFile = ""
@@ -82,7 +83,12 @@ private struct WindowContent: View {
             if window.focusMode, window.columnVisibility != .detailOnly { window.setFocusMode(false) }
         }
         .onAppear {
+            window.presentationID = presentationID
             let stored = (project: storedProject, file: storedFile, fallback: lastProject)
+            guard window.workspace == nil else {
+                ExternalOpens.shared.register(window)
+                return
+            }
             ExternalOpens.shared.whenLaunched {
                 if library.projects.isEmpty {
                     do {
@@ -94,7 +100,11 @@ private struct WindowContent: View {
                 window.restore(projectID: stored.project, file: stored.file, fallbackProject: stored.fallback)
             }
         }
-        .onDisappear { window.close() }
+        .onDisappear {
+            guard window.presentationID == presentationID else { return }
+            window.presentationID = nil
+            window.close()
+        }
         .onChange(of: window.projectID) {
             storedProject = window.projectID?.uuidString ?? ""
             if !storedProject.isEmpty { lastProject = storedProject }

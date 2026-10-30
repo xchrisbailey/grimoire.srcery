@@ -32,8 +32,8 @@ final class FileActions {
     @ObservationIgnored var didTrash: ((URL) -> Void)?
     /// Called before a folder or loose file leaves the project and its access ends, so the
     /// window can save what it has open while it still can.
-    @ObservationIgnored var willRelease: (() -> Void)?
-
+    @ObservationIgnored var willRelease: (() -> Bool)?
+    @ObservationIgnored var retryReconciliation: (() -> Void)?
     /// Conjures a page in `folder` and opens it, then offers to name it when `rename` is set.
     @discardableResult
     func createDocument(in folder: URL, workspace: Workspace, rename: Bool = true) -> URL? {
@@ -284,7 +284,7 @@ extension FileActions {
     func unbind(_ folder: BoundFolder, from workspace: Workspace) {
         // Save the open document while access is held; only a committed removal may
         // release that access. Saving can refresh bookmarks, so it precedes staging.
-        willRelease?()
+        guard willRelease?() ?? true else { return }
         do {
             try workspace.unbind(folder.id)
         } catch {
@@ -293,7 +293,7 @@ extension FileActions {
     }
 
     func removeLooseFile(_ file: BoundFile, from workspace: Workspace) {
-        willRelease?()
+        guard willRelease?() ?? true else { return }
         do {
             try workspace.removeLooseFile(file.id)
         } catch {

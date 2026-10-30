@@ -22,6 +22,7 @@ final class ExternalOpens {
     private var afterLaunch: [() -> Void] = []
     private var windows: [WeakWindow] = []
     private var pending = PendingOpens()
+    private var blockedWindows: [WindowState] = []
 
     private struct WeakWindow {
         weak var window: WindowState?
@@ -92,6 +93,47 @@ final class ExternalOpens {
 
     func unregister(_ window: WindowState) {
         windows.removeAll { $0.window == nil || $0.window === window }
+        blockedWindows.removeAll { $0 === window }
+    }
+
+    func retainBlocked(_ window: WindowState) {
+        guard !blockedWindows.contains(where: { $0 === window }) else { return }
+        blockedWindows.append(window)
+        window.hostWindow = nil
+        // Direct native close can bypass the veto. Rehome the exact state, not disk text.
+        openWindow?()
+    }
+
+    func reclaimBlocked() -> WindowState? {
+        guard !blockedWindows.isEmpty else { return nil }
+        return blockedWindows.removeFirst()
+    }
+
+    func saved(_ window: WindowState) {
+        guard blockedWindows.contains(where: { $0 === window }), window.deferredDocuments.isEmpty else { return }
+        window.close()
+    }
+
+    func prepareRelease(in project: Project.ID?) -> Bool {
+        var allowed = true
+        for window in windows.compactMap(\.window) where window.projectID == project {
+            if !window.prepareForRelease() { allowed = false }
+        }
+        return allowed
+    }
+
+    func itemMoved(from: URL, to: URL, in project: Project.ID?) {
+        for window in windows.compactMap(\.window) where window.projectID == project {
+            window.itemMoved(from: from, to: to)
+        }
+    }
+
+    func prepareTermination() -> Bool {
+        var allowed = true
+        for window in windows.compactMap(\.window) where !window.prepareWindowClose() {
+            allowed = false
+        }
+        return allowed
     }
 
     private func windowShowing(_ project: Project.ID) -> WindowState? {
@@ -107,6 +149,9 @@ final class ExternalOpens {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        MainActor.assumeIsolated { ExternalOpens.shared.prepareTermination() ? .terminateNow : .terminateCancel }
+    }
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated { ExternalOpens.shared.finishLaunching() }
     }
@@ -124,6 +169,7 @@ struct WindowReader: NSViewRepresentable {
 
     func updateNSView(_ view: NSView, context: Context) {
         (view as? WindowReaderView)?.onWindow = onWindow
+        if let window = view.window { onWindow(window) }
     }
 
     private final class WindowReaderView: NSView {
