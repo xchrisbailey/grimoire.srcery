@@ -19,7 +19,7 @@ struct ContentView: View {
                     )
                     Text(error.localizedDescription)
                 } actions: {
-                    Button("Retry") { library.retryLoad() }
+                    Button("Retry") { ExternalOpens.shared.retryLibraryLoad() }
                     Button("Show in Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([library.storageURL])
                     }

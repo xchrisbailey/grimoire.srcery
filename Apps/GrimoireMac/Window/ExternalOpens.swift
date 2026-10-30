@@ -43,7 +43,7 @@ final class ExternalOpens {
     func open(_ urls: [URL]) {
         let files = urls.filter { $0.isFileURL && !$0.hasDirectoryPath }
         library.lastError = nil
-        let placements = library.place(files, unsortedName: String(localized: "Unsorted"))
+        let placements = pending.place(files, in: library, unsortedName: String(localized: "Unsorted"))
         if let error = library.lastError {
             library.lastError = nil
             report(error)
@@ -58,6 +58,12 @@ final class ExternalOpens {
         }
         NSApp.activate()
         requestWindows()
+    }
+
+    func retryLibraryLoad() {
+        library.retryLoad()
+        guard library.loadError == nil else { return }
+        open([])
     }
 
     /// Tells the user a file couldn't be opened: in a window's alert, or on its own when
