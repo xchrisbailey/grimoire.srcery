@@ -3,6 +3,8 @@ import Foundation
 public enum DocumentTemplateRepairResult {
     case cancelled
     case repaired(DocumentCreationPlan)
+    /// Settings were committed; only preparation of the pending document failed.
+    case savedButUnavailable(any Error)
     case reviewNeeded(DocumentCreationPlan)
     case failed(any Error)
 }
@@ -28,13 +30,21 @@ extension Workspace {
             }
             let reference = try eligibleTemplateReference(for: replacement)
             _ = try savedTemplateBytes(at: replacement)
+            // Source I/O can outlive external folder changes. Recheck the confirmed scope before settings mutation.
+            var validated = try prepareDocument(
+                in: plan.destination, filenamePattern: plan.filenamePattern, purpose: plan.purpose)
+            validated.id = plan.id
+            validated.requiresNaming = current.requiresNaming
+            guard validated.context == current.context else { return .reviewNeeded(validated) }
             try saveTemplateAssignment(
                 FolderTemplateAssignment(owner: assignment.owner, choice: .useSource(reference)))
-            var repaired = try prepareDocument(
-                in: plan.destination, filenamePattern: plan.filenamePattern, purpose: plan.purpose)
-            repaired.id = plan.id
-            repaired.requiresNaming = current.requiresNaming
-            return .repaired(repaired)
+            do {
+                var repaired = try prepareDocument(
+                    in: plan.destination, filenamePattern: plan.filenamePattern, purpose: plan.purpose)
+                repaired.id = plan.id
+                repaired.requiresNaming = current.requiresNaming
+                return .repaired(repaired)
+            } catch { return .savedButUnavailable(error) }
         } catch { return .failed(error) }
     }
 }

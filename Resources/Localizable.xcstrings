@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The replacement was saved, but creation details are unavailable." : {
+      "comment" : "plain: successful settings repair with unavailable pending creation context"
+    },
     "Create Empty Once" : {
       "comment" : "plain: explicitly bypass the source only for this pending creation"
     },

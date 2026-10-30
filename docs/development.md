@@ -41,8 +41,8 @@ Manual QA still needs to check the native picker and sandbox access: cancel a
 replacement, choose an invalid or outside-project source, and simulate a settings
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
-starts unconfigured. Source files and content folders must stay untouched. No
-recovery actions are included yet.
+starts unconfigured. Choosing an existing source must not modify its contents or
+create files in content folders. Broken-source recovery checks are listed below.
 
 **Use a template → Create Template…** asks for a Markdown save location in an
 active project binding. It creates an empty ordinary source even in a templated
@@ -111,6 +111,35 @@ then confirm. Success must dismiss the review sheet and hand off once after dism
 even though this output keeps legacy preview behavior. A repeated confirmation must
 not leave a stale sheet, create another document, or open the result twice. Direct
 legacy creation without a sheet must still open immediately and offer its usual rename.
+
+### Broken-source recovery
+
+Native recovery acceptance remains **UNVERIFIED**. In each New File route, remove a
+configured source, revoke its access, point its saved reference outside the project's
+bound folders, or save invalid UTF-8/NUL bytes. The naming sheet must identify the
+broken source and reason (including its root/reference when no live URL is available),
+without using an ancestor, cached content, or empty content automatically.
+
+Check **Retry**, **Choose Replacement…**, **Create Empty Once**, and **Cancel**.
+Retry must preserve an edited name, reread saved bytes, refresh untouched generated
+names/date/time, and recheck collisions. Select a replacement for an inherited
+assignment: inspect the owning folder and scope explanation before **Confirm
+Replacement**. Descendants inherit except nearer overrides, opt-outs, and separately
+bound roots; other explicit references to the old source are unchanged. Discarding
+the replacement must not save anything. A confirmed repair must survive cancelling
+creation, destination failure, and relaunch. A failed settings save must retain the
+old choice and report failure, not claim a repair was saved.
+
+Check empty-once destination failure followed by Retry: only this pending creation
+stays empty, with safe collision handling and cleanup. The next separate New File
+must use its configured source again. Change the destination/binding/effective owner
+while recovery is open: review updated details with the name preserved before any
+creation or repair. Successful publication must dismiss the sheet before opening
+exactly once, focused at the UTF-16 content end, without preview/another rename.
+An opening failure must preserve the published file without another creation attempt.
+Also recheck Create Template/Edit Template handoff and ordinary untemplated creation.
+Package integration tests cover Core results and persisted bytes, not these native
+picker, action-label, scope-confirmation, name-preservation, or focus interactions.
 
 ## CI
 

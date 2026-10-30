@@ -72,6 +72,31 @@ final class FileActions {
         creationPlan = nil
     }
 
+    func replaceCreationSource(_ source: URL, workspace: Workspace) {
+        guard let plan = creationPlan else { return }
+        switch workspace.repairDocumentTemplate(plan, replacement: source) {
+        case .repaired(let updated):
+            creationPlan = updated
+            creationSourceFailed = false
+            creationAttemptFailed = false
+            creationNotice = String(
+                localized:
+                    "The replacement was saved. You can create the document or cancel without undoing the repair.")
+        case .reviewNeeded(let updated):
+            _ = handleCreation(.reviewNeeded(updated), workspace: workspace, rename: false)
+        case .failed(let failure):
+            creationNotice = failure.localizedDescription
+        case .savedButUnavailable(let failure):
+            creationSourceFailed = false
+            creationAttemptFailed = true
+            creationNotice =
+                String(localized: "The replacement was saved, but creation details are unavailable.")
+                + "\n" + failure.localizedDescription
+        case .cancelled:
+            break
+        }
+    }
+
     func creationDismissed() {
         creationPlan = nil
         guard let published = pendingHandoff else { return }
@@ -114,15 +139,7 @@ final class FileActions {
         case .invalidName(let failure):
             creationNotice = failure.localizedDescription
         case .sourceFailure(let plan, let failure):
-            creationPlan = plan
-            if !creationNameEdited { creationStem = plan.suggestedStem }
-            creationSourceFailed = true
-            creationNotice =
-                String(localized: "Template source: \(creationSourcePath(plan))")
-                + "\n"
-                + String(
-                    localized: "Owning folder: \(plan.assignment.flatMap { workspace.url(for: $0.owner) }?.path ?? "")")
-                + "\n" + failure.localizedDescription
+            showSourceFailure(plan, failure: failure, workspace: workspace)
         case .failed(let failure), .contextUnavailable(let failure):
             creationAttemptFailed = true
             creationNotice = failure.localizedDescription
@@ -162,6 +179,21 @@ final class FileActions {
             if rename { startRename(published.url) }
         }
         return published.url
+    }
+
+}
+
+extension FileActions {
+    private func showSourceFailure(_ plan: DocumentCreationPlan, failure: Error, workspace: Workspace) {
+        creationPlan = plan
+        if !creationNameEdited { creationStem = plan.suggestedStem }
+        creationSourceFailed = true
+        creationNotice =
+            String(localized: "Template source: \(creationSourcePath(plan))")
+            + "\n"
+            + String(
+                localized: "Owning folder: \(plan.assignment.flatMap { workspace.url(for: $0.owner) }?.path ?? "")")
+            + "\n" + failure.localizedDescription
     }
 
     func createFolder(in folder: URL, workspace: Workspace) {

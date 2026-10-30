@@ -357,7 +357,10 @@ extension AssignedDocumentCreationTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["Draft.md"])
     }
 
-    @Test func facadeExhaustionPreservesAll32CompetitorsAndCleansTemporaryOutput() async throws {
+    @Test(arguments: [DocumentRecoveryIntent.retry, .createEmptyOnce])
+    func facadeExhaustionPreservesAll32CompetitorsAndCleansTemporaryOutput(_ recovery: DocumentRecoveryIntent)
+        async throws
+    {
         let scratch = try Scratch()
         let (workspace, _) = try await scratch.workspace(files: ["source.md": "saved"])
         defer { workspace.deactivate() }
@@ -373,7 +376,7 @@ extension AssignedDocumentCreationTests {
         }
         guard
             case .failed = workspace.createDocument(
-                plan, naming: .generated, now: .now, calendar: .current, operations: operations)
+                plan, naming: .generated, recovery: recovery, now: .now, calendar: .current, operations: operations)
         else {
             Issue.record("The 33rd publication must not be attempted")
             return

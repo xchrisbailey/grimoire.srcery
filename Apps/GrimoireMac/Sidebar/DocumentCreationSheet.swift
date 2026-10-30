@@ -1,10 +1,13 @@
+import AppKit
 import GrimoireCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct DocumentCreationSheet: View {
     @Bindable var actions: FileActions
     let workspace: Workspace
     @FocusState private var nameFocused: Bool
+    @State private var replacementSource: URL?
 
     private var validation: String? {
         guard actions.creationNameEdited else { return nil }
@@ -41,21 +44,43 @@ struct DocumentCreationSheet: View {
             if let message = validation ?? actions.creationNotice {
                 Text(message).foregroundStyle(.red).textSelection(.enabled)
             }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { actions.cancelCreation(workspace: workspace) }
-                    .keyboardShortcut(.cancelAction)
-                if actions.creationSourceFailed {
+            if let source = replacementSource {
+                LabeledContent("Replacement source", value: source.path)
+                Text(
+                    """
+                    This repairs the owning folder shown above and descendants that inherit its choice \
+                    within this bound root. \
+                    Nearer overrides, opt-outs, and separately bound roots are excluded. \
+                    Other explicit assignments using the old source are unchanged.
+                    """
+                )
+                .font(.callout)
+                HStack {
+                    Button("Discard Replacement") { replacementSource = nil }
+                    Spacer()
+                    Button("Confirm Replacement") {
+                        replacementSource = nil
+                        actions.replaceCreationSource(source, workspace: workspace)
+                    }
+                }
+            } else if actions.creationSourceFailed {
+                HStack {
+                    Button("Choose Replacement…", action: chooseReplacement)
                     Button("Create Empty Once") {
                         actions.confirmCreation(workspace: workspace, recovery: .createEmptyOnce)
                     }
                     .disabled(validation != nil)
                 }
+            }
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { actions.cancelCreation(workspace: workspace) }
+                    .keyboardShortcut(.cancelAction)
                 Button(
                     actions.creationSourceFailed || actions.creationAttemptFailed
                         ? String(localized: "Retry") : String(localized: "Create")
                 ) { confirm() }
-                    .keyboardShortcut(.defaultAction).disabled(validation != nil)
+                .keyboardShortcut(.defaultAction).disabled(validation != nil || replacementSource != nil)
             }
         }
         .padding(24)
@@ -64,8 +89,22 @@ struct DocumentCreationSheet: View {
     }
 
     private func confirm() {
-        guard validation == nil else { return }
+        guard validation == nil, replacementSource == nil else { return }
         actions.confirmCreation(workspace: workspace)
+    }
+
+    private func chooseReplacement() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "md") ?? .plainText, UTType(filenameExtension: "mdx") ?? .text,
+        ]
+        panel.directoryURL = actions.creationPlan?.destination
+        panel.message = String(localized: "Choose a Markdown template source inside a folder bound to this project.")
+        panel.prompt = String(localized: "Choose Replacement…")
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        replacementSource = source
     }
 
     private func ownerPath(_ owner: FileReference) -> String {
