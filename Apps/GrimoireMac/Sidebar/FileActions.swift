@@ -79,7 +79,7 @@ final class FileActions {
             creationNotice = failure.localizedDescription
         case .sourceFailure(let plan, let failure):
             creationNotice =
-                String(localized: "Template source: \(plan.source?.path ?? "")")
+                String(localized: "Template source: \(creationSourcePath(plan))")
                 + "\n"
                 + String(
                     localized: "Owning folder: \(plan.assignment.flatMap { workspace.url(for: $0.owner) }?.path ?? "")")
@@ -98,6 +98,14 @@ final class FileActions {
             break
         }
         return nil
+    }
+
+    private func creationSourcePath(_ plan: DocumentCreationPlan) -> String {
+        if let url = plan.source { return url.path }
+        if case .useSource(let reference) = plan.assignment?.choice {
+            return "[" + reference.rootID.uuidString + "]/" + reference.relativePath
+        }
+        return ""
     }
 
     private func finishCreation(_ published: PublishedDocument, workspace: Workspace, rename: Bool) -> URL {

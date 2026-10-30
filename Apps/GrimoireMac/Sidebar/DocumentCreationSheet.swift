@@ -19,7 +19,7 @@ struct DocumentCreationSheet: View {
             Text("Conjure a page").font(.headline)
             if let plan = actions.creationPlan {
                 LabeledContent("Destination", value: plan.destination.path)
-                LabeledContent("Template source", value: plan.source?.path ?? String(localized: "No template"))
+                LabeledContent("Template source", value: sourcePath(plan))
                 if let assignment = plan.assignment {
                     LabeledContent("Owning Folder", value: ownerPath(assignment.owner))
                 }
@@ -62,6 +62,12 @@ struct DocumentCreationSheet: View {
 
     private func ownerPath(_ owner: FileReference) -> String {
         workspace.url(for: owner)?.path ?? "[" + owner.rootID.uuidString + "]/" + owner.relativePath
+    }
+
+    private func sourcePath(_ plan: DocumentCreationPlan) -> String {
+        if let source = plan.source { return source.path }
+        if case .useSource(let reference) = plan.assignment?.choice { return ownerPath(reference) }
+        return String(localized: "No template")
     }
 }
 
