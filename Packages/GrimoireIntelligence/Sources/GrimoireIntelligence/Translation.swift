@@ -34,7 +34,11 @@ extension GeneratedTranslation.PartiallyGenerated {
             result += text
             cursor = range.upperBound
         }
-        return result + original.substring(from: cursor)
+        result += original.substring(from: cursor)
+        guard MarkdownParser.hasSameStructure(source.source, as: result) else {
+            throw IntelligenceError.invalidTranslation
+        }
+        return result
     }
 }
 
@@ -60,8 +64,8 @@ struct TranslationSource {
         case .codeBlock, .thematicBreak, .html, .mdx: return []
         case .linkDefinitions:
             // The block parser also uses this kind for source gaps such as closing
-            // heading hashes. Keep those bytes opaque, but refuse possible reference IDs.
-            if block.source.contains("[") || block.source.contains("]") {
+            // heading hashes. Keep those bytes opaque, but refuse possible reference IDs or markup.
+            if block.source.contains(where: { "[]<>".contains($0) }) {
                 throw IntelligenceError.unsupportedTranslationSource
             }
             return []
@@ -137,10 +141,10 @@ struct TranslationSource {
         if case .table = block.kind {
             for offset in 0..<text.length where text.character(at: offset) == 124 { protected.insert(offset) }
         }
-        // Unclaimed brackets may be reference IDs, even when their definition is outside
-        // the selection. Refuse ambiguous syntax instead of translating structural text.
+        // Unclaimed brackets may be reference IDs or inline HTML the styling scanner
+        // cannot protect. Refuse ambiguous syntax instead of translating structural text.
         for offset in 0..<text.length where !protected.contains(offset) {
-            if text.character(at: offset) == 91 || text.character(at: offset) == 93 {
+            if "[]<>".utf16.contains(text.character(at: offset)) {
                 throw IntelligenceError.unsupportedTranslationSource
             }
         }

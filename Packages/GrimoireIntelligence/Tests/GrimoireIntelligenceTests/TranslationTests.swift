@@ -12,6 +12,58 @@ private func renderTranslation(_ translations: [String], source: String) throws 
 }
 
 @MainActor @Suite struct TranslationTests {
+    @Test func refusesInlineHTMLInsteadOfProjectingAwayItsTags() throws {
+        let source = "Read <em>this</em> [page](https://x.test)."
+        let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": "Lisez ceci"]))
+        #expect(throws: IntelligenceError.unsupportedTranslationSource) { try result.markdown(source: source) }
+    }
+
+    @Test(arguments: [
+        ("Read [label](https://example.com \"Version ) stable\") now", ["Lisez", "étiquette", "suite"]),
+        ("*hello*world", ["bonjour!", "monde"]),
+        ("a**word**b", ["un", "mot!", "b"]),
+    ])
+    func refusesProjectionsThatLoseLinkOrDelimiterSemantics(source: String, translations: [String]) throws {
+        #expect(throws: IntelligenceError.invalidTranslation) {
+            try renderTranslation(translations, source: source)
+        }
+    }
+
+    @Test(arguments: [
+        "Read <em>this</em> [page](https://x.test).",
+        "Read <span class=\"warning\">this</span> [page](https://x.test).",
+        "Read <!-- hidden --> this.", "Read <unfinished", "Read this</em>", "Read 2 > 1",
+        "Read [the <em>page</em>](https://x.test).", "> Read <em>this</em>",
+        "Read [page](https://x.test).\n\nLater <em>this</em>.",
+    ])
+    func refusesUnclaimedAnglesBeforeDeliveringAnyText(source: String) async {
+        var snapshots: [String] = []
+        do {
+            for try await text in IntelligenceService.shared.stream(
+                .translate(language: "French"), context: WritingContext(source: source))
+            {
+                snapshots.append(text)
+            }
+            Issue.record("Unsupported markup was accepted")
+        } catch { #expect(error as? IntelligenceError == .unsupportedTranslationSource) }
+        #expect(snapshots.isEmpty)
+    }
+
+    @Test func preservesKnownAngleSyntaxAndStructurallySafePunctuation() throws {
+        let source =
+            "Read <https://x.test> and <reader@example.test> with `<em>literal</em>` or "
+            + "[page](<https://x.test> \"Title\").\r\n\r\n```html\r\n<em>literal</em>\r\n```\r\n"
+        let expected =
+            "Lisez <https://x.test> et <reader@example.test> avec `<em>literal</em>` ou "
+            + "[page traduite](<https://x.test> \"Title\").\r\n\r\n```html\r\n<em>literal</em>\r\n```\r\n"
+        let rendered = try renderTranslation(["Lisez", "et", "avec", "ou", "page traduite"], source: source)
+        #expect(rendered.utf8.elementsEqual(expected.utf8))
+        #expect(
+            try renderTranslation(["bonjour!", "monde"], source: "*hello* world") == "*bonjour\\!* monde")
+        #expect(
+            try renderTranslation(["un", "mot!", "b"], source: "a**word** b") == "un**mot\\!** b")
+    }
+
     @Test func projectsOneTypedPieceWithoutRequiringTheModelToCompleteAnArray() throws {
         let source = "Read [page](https://x.test) and run `build.sh` now."
         let result = try GeneratedTranslation.PartiallyGenerated(GeneratedContent(properties: ["text": "Lisez"]))
@@ -132,6 +184,21 @@ import GrimoireEditor
         for _ in 0..<100 where controller.isStreaming && !controller.isAwaitingKeep {
             try? await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+    @Test func unsupportedInlineMarkupLeavesNativeEditorSourceUnchanged() async {
+        let source = "🧪 Read <em>this</em> [page](https://x.test).\r\n"
+        let controller = EditorController()
+        controller.load(source, flavor: .markdown)
+        var failure: Error?
+        controller.streamInsertion(
+            IntelligenceService.shared.stream(.translate(language: "French"), context: WritingContext(source: source)),
+            replacing: NSRange(location: 0, length: source.utf16.count), actionName: "Translate"
+        ) { failure = $0 }
+        await waitForCompletion(controller)
+        #expect(failure as? IntelligenceError == .unsupportedTranslationSource)
+        #expect(controller.text.utf8.elementsEqual(source.utf8))
+        #expect(!controller.isStreaming)
     }
 
     @Test(arguments: [true, false])

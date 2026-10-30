@@ -4,6 +4,22 @@ import Testing
 @testable import GrimoireCore
 
 @Suite struct ParsingTests {
+    @Test(arguments: [
+        ("[page](https://x.test \"Title\")", "[étiquette](https://x.test \"Title\")", true),
+        ("[page](https://x.test \"Title\")", "[étiquette](https://x.test \"Changed\")", false),
+        ("[page](https://x.test)", "[étiquette](https://other.test)", false),
+        ("![image](photo.png \"Title\")", "![photo](other.png \"Title\")", false),
+        ("`build.sh`", "`other.sh`", false),
+        ("```swift\nlet value = 1\n```", "```text\nlet value = 1\n```", false),
+        ("```swift\nlet value = 1\n```", "```swift\nlet value = 2\n```", false),
+        ("# Hello", "## Bonjour", false), ("> **hello**", "**bonjour**", false),
+        ("- [ ] hello", "- [x] bonjour", false), ("3. hello", "1. bonjour", false),
+        ("| a | b |\n| :--- | ---: |", "| un | deux |\n| ---: | :--- |", false),
+    ])
+    func comparesStructureWithoutTreatingTranslatedProseAsSyntax(source: String, candidate: String, matches: Bool) {
+        #expect(MarkdownParser.hasSameStructure(source, as: candidate) == matches)
+    }
+
     @Test func splitsBlocksWithTheirSource() {
         let text = """
             # Title
