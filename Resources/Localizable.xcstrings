@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Folder" : {
+      "comment" : "plain: folder whose local template choice is being edited"
+    },
     "Folder Choice" : {
       "comment" : "plain: explicit choice at the folder being edited"
     },

@@ -8,6 +8,8 @@ struct ContentTemplateSheet: View {
     let workspace: Workspace
     @Environment(\.dismiss) private var dismiss
     @State private var error: Error?
+    @State private var localAssignment: Result<FolderTemplateAssignment?, Error> = .success(nil)
+    @State private var effectiveAssignment: Result<FolderTemplateAssignment?, Error> = .success(nil)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -32,6 +34,8 @@ struct ContentTemplateSheet: View {
         }
         .padding(24)
         .frame(width: 560)
+        .onAppear(perform: refreshChoices)
+        .onChange(of: workspace.project) { refreshChoices() }
         .alert(
             error?.localizedDescription ?? "",
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
@@ -41,7 +45,7 @@ struct ContentTemplateSheet: View {
     }
 
     @ViewBuilder private var localChoice: some View {
-        switch Result(catching: { try workspace.templateAssignment(for: folder) }) {
+        switch localAssignment {
         case .failure(let failure):
             Text(failure.localizedDescription).foregroundStyle(.secondary)
         case .success(.some(let assignment)):
@@ -60,11 +64,11 @@ struct ContentTemplateSheet: View {
     }
 
     @ViewBuilder private var effectiveChoice: some View {
-        switch Result(catching: { try workspace.effectiveTemplateAssignment(for: folder) }) {
+        switch effectiveAssignment {
         case .failure(let failure):
             Text(failure.localizedDescription).foregroundStyle(.secondary)
         case .success(.some(let assignment)):
-            let local = try? workspace.templateAssignment(for: folder)
+            let local = try? localAssignment.get()
             if local?.owner == assignment.owner {
                 LabeledContent("Owning Folder", value: displayPath(assignment.owner))
             } else {
@@ -89,6 +93,12 @@ struct ContentTemplateSheet: View {
 
     private func changeChoice(_ edit: () throws -> Void) {
         do { try edit() } catch { self.error = error }
+    }
+
+    private func refreshChoices() {
+        // Inspection refreshes bound-root access; do that on events, not during view evaluation.
+        localAssignment = Result(catching: { try workspace.templateAssignment(for: folder) })
+        effectiveAssignment = Result(catching: { try workspace.effectiveTemplateAssignment(for: folder) })
     }
 
     private func chooseSource() {
