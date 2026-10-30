@@ -28,6 +28,7 @@ public final class Workspace {
     @ObservationIgnored var emptyOnceCreations: Set<UUID> = []
     @ObservationIgnored var templateAuthoringResults: [UUID: TemplateAuthoringResult] = [:]
     @ObservationIgnored var lifecycleOperations = LifecycleOperations()
+    @ObservationIgnored var templateRootIdentities: [FolderRoot.ID: LifecycleIdentity] = [:]
 
     public init(projectID: Project.ID, library: ProjectLibrary, scanner: FileScanner = FileScanner()) {
         self.projectID = projectID
@@ -42,7 +43,7 @@ public final class Workspace {
     public func activate() {
         isActive = true
         sync()
-        reconcileLifecycleOperations()
+        refreshTemplateAssignments()
     }
 
     /// Stops watchers and gives up folder access.
@@ -72,6 +73,25 @@ public final class Workspace {
             return open(root)
         }
         syncLooseFiles(project)
+    }
+
+    func refreshTemplateRootLocations() {
+        for index in folders.indices {
+            let folder = folders[index]
+            guard let resolved = try? FolderBookmark.resolve(folder.root.bookmark),
+                let identity = try? LifecycleIdentity(resolved.url.resolvingSymlinksInPath()),
+                identity == templateRootIdentities[folder.id]
+            else { continue }
+            if resolved.url.standardizedFileURL != folder.url?.standardizedFileURL {
+                release(folder.id)
+                folders[index] = open(folder.root)
+            } else if resolved.isStale, project?.pendingLifecycleOperations.isEmpty == true {
+                do {
+                    try library.replaceBookmark(of: folder.id, in: projectID, with: resolved.url)
+                    folders[index].root = project?.root(folder.id) ?? folder.root
+                } catch { lastError = error }
+            }
+        }
     }
 
     /// A loose file that resolved to another place.
@@ -151,6 +171,7 @@ public final class Workspace {
             else { return }
             self.folders[index].tree = tree
             self.folders[index].status = .available
+            self.refreshTemplateAssignments()
             self.scanCount += 1
         }
     }
@@ -175,28 +196,10 @@ public final class Workspace {
         refreshAll()
     }
 
-    /// Stores access to a folder the user picked again after its bookmark stopped working.
-    public func regrantAccess(to rootID: FolderRoot.ID, with url: URL) throws {
-        try library.requireSameConfiguredRoot(rootID, in: projectID, as: url)
-        try library.replaceBookmark(of: rootID, in: projectID, with: url)
-        lastError = nil
-        release(rootID)
-        if let index = folders.firstIndex(where: { $0.id == rootID }), let root = project?.root(rootID) {
-            folders[index] = open(root)
-        }
-    }
-
     /// Removes a folder from the project. Nothing on disk changes.
     public func unbind(_ rootID: FolderRoot.ID) throws {
         // A failed commit must leave watchers and security-scoped access alive.
         try library.unbindFolder(rootID, from: projectID)
-        lastError = nil
-        sync()
-    }
-
-    /// Shows the folder under `alias` instead of its name. Empty clears it.
-    public func setAlias(_ alias: String, of rootID: FolderRoot.ID) throws {
-        try library.setAlias(alias, of: rootID, in: projectID)
         lastError = nil
         sync()
     }
@@ -248,6 +251,7 @@ public final class Workspace {
             folder.root = project?.root(root.id) ?? root
         }
         folder.url = url
+        templateRootIdentities[root.id] = try? LifecycleIdentity(url.resolvingSymlinksInPath())
         folder.status = .loading
         let id = root.id
         watchers[id] = FolderWatcher(url: url) { [weak self] _ in

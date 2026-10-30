@@ -37,16 +37,14 @@ extension Workspace {
 
     /// Inspects only this folder's saved choice, including an inactive unresolved record.
     public func templateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
-        sync()
-        try validateActiveTemplateOwners()
+        try prepareTemplateLookup(in: folder)
         let owner = try templateOwner(for: folder)
         return project?.templateAssignments.first { $0.owner == owner }
     }
 
     /// The nearest active choice inside the destination's most-specific bound root.
     public func effectiveTemplateAssignment(for folder: URL) throws -> FolderTemplateAssignment? {
-        sync()
-        try validateActiveTemplateOwners()
+        try prepareTemplateLookup(in: folder)
         guard var owner = try templateReference(for: folder) else {
             throw TemplateAssignmentError.unavailableFolder
         }
@@ -150,7 +148,7 @@ extension Workspace {
         return nil
     }
 
-    private func templateOwner(for url: URL) throws -> FileReference {
+    func templateOwner(for url: URL) throws -> FileReference {
         // Picker URLs may cache directory metadata; query disk again before committing.
         var isDirectory: ObjCBool = false
         guard let reference = try templateReference(for: url),

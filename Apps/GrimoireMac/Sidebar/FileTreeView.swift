@@ -12,6 +12,9 @@ struct FileTreeView: View {
 
     var body: some View {
         List(selection: $selectedFile) {
+            if workspace.project?.templateAssignments.isEmpty == false {
+                TemplateRecoverySection(workspace: workspace, actions: actions)
+            }
             if workspace.hasPendingLifecycleOperations {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
@@ -59,7 +62,7 @@ struct FileTreeView: View {
                         needsAccess(folder)
                     }
                 } header: {
-                    RootHeader(folder: folder, workspace: workspace, actions: actions)
+                    RootHeader(folder: folder, workspace: workspace, actions: actions, regrant: { regrant(folder) })
                 }
             }
         }
@@ -99,7 +102,31 @@ struct FileTreeView: View {
         panel.prompt = String(localized: "Grant Access")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try workspace.regrantAccess(to: folder.id, with: url)
+            let plan = try workspace.prepareRootAccess(to: folder.id, with: url)
+            if plan.requiresConfirmation {
+                let alert = NSAlert()
+                alert.messageText = String(localized: "Carry Content Templates to a Different Folder?")
+                let choices = plan.affectedAssignments.map { assignment in
+                    var scope = templateRecoveryPath(assignment.owner, workspace: workspace)
+                    if case .useSource(let source) = assignment.choice {
+                        scope += " → " + templateRecoveryPath(source, workspace: workspace)
+                    }
+                    return scope
+                }.joined(separator: "\n")
+                alert.informativeText = String(
+                    localized:
+                        """
+                        Replace binding \(plan.root.displayName) with \(url.path(percentEncoded: false))? \
+                        All owned template choices and all source references into this binding keep their \
+                        relative paths under the new folder. Inactive choices stay inactive. \
+                        Other bindings and files are unchanged.
+                        \(choices)
+                        """)
+                alert.addButton(withTitle: String(localized: "Carry Configuration"))
+                alert.addButton(withTitle: String(localized: "Cancel"))
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
+            try workspace.confirmRootAccess(plan)
         } catch {
             actions.error = error
         }
@@ -111,6 +138,7 @@ private struct RootHeader: View {
     let folder: BoundFolder
     let workspace: Workspace
     let actions: FileActions
+    let regrant: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
@@ -148,6 +176,7 @@ private struct RootHeader: View {
                 }
             }
             Divider()
+            Button("Grant Access…", action: regrant)
             Button("Unbind Folder") { actions.unbind(folder, from: workspace) }
         }
         .dropDestination(for: URL.self) { urls, _ in

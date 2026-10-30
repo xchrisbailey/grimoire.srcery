@@ -66,7 +66,8 @@ import Testing
         #expect(requester.rename(alias, to: "changed").movedURL == nil)
         #expect(throws: (any Error).self) { try requester.authorizeDocumentSave(at: alias) }
         #expect(try Data(contentsOf: fixture.library.storageURL) == bytes)
-        let independent = try fixture.scratch.file("notes/free.md", "independent")
+        let independent = try fixture.scratch.file("notes/owner/free.md", "independent")
+        try requester.authorizeDocumentSave(at: independent)
         let independentPlan = try requester.prepareTrash(independent)
         #expect(independentPlan.removedChoices.isEmpty && independentPlan.brokenDependencies.isEmpty)
         let result = requester.move(independent, into: fixture.target)

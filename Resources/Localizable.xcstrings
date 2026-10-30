@@ -1,6 +1,42 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Confirm" : {
+      "extractionState" : "manual"
+    },
+    "Folder template recovery changed. Review the folder and configuration, then retry." : {
+      "extractionState" : "manual"
+    },
+    "Content Templates" : {
+      "extractionState" : "manual"
+    },
+    "Template Source: %@" : {
+      "extractionState" : "manual"
+    },
+    "Locate Folder…" : {
+      "extractionState" : "manual"
+    },
+    "Remove Assignment" : {
+      "extractionState" : "manual"
+    },
+    "Check Folder Template Assignments" : {
+      "extractionState" : "manual"
+    },
+    "Choose the owning folder inside an accessible binding in this project." : {
+      "extractionState" : "manual"
+    },
+    "Owning folder: %@\nNew choice location: %@\nThis changes only this explicit choice and its inherited scope in this project. Nearer choices and separate bindings are unchanged. Template source references and files are unchanged; a broken source still needs separate repair." : {
+      "extractionState" : "manual"
+    },
+    "Carry Content Templates to a Different Folder?" : {
+      "extractionState" : "manual"
+    },
+    "Replace binding %@ with %@? All owned template choices and all source references into this binding keep their relative paths under the new folder. Inactive choices stay inactive. Other bindings and files are unchanged.\n%@" : {
+      "extractionState" : "manual"
+    },
+    "Carry Configuration" : {
+      "extractionState" : "manual"
+    },
     "A trash operation has an unknown outcome. Review its recorded configuration removal." : {
       "extractionState" : "manual"
     },

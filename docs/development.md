@@ -170,13 +170,12 @@ Manually restore the original item to an unambiguous recorded location, restore 
 access, then retry; retry never moves, reverses, or discards files. Verify conflicting
 assignment/source/binding operations remain blocked while unrelated name/theme edits
 remain available. Same-volume cross-root moves now migrate explicit choices and shared
-source references to the most-specific destination binding. Root relocation is not
-implemented by this slice; unsupported operations fail closed rather than silently
-dropping configuration. Unbind and trash checks are described below. The full feature
-is not shipped.
-User-facing configured regrant accepts only an observable same-root identity in this
-slice. Authoritative library bookmark updates remain allowed without conflicting
-pending intent; creation must still revalidate them rather than writing through stale access.
+source references to the most-specific destination binding. Unsupported operations
+fail closed rather than silently dropping configuration.
+Unbind, trash, and root recovery checks are described below. The full feature is not shipped.
+User-facing configured regrant uses the reviewed carry-over flow below. Authoritative
+library bookmark updates remain allowed without conflicting pending intent; creation
+must still revalidate them rather than writing through stale access.
 Core rechecks the original item/root/parent identities before returning an editor handoff,
 including moves with no configuration changes. Identity rejection retains pending intent
 without retargeting a dirty document to a replacement. Verified movement still hands off
@@ -234,6 +233,12 @@ a completed move. Check cross-kind conflicts in either record order and through 
 aliases/other projects, while unrelated files remain writable and movable. Trash repair
 must remain an explicitly confirmed settings-only action, without document saves,
 access synchronization, or relocation remapping.
+Root regrant must reserve source, destination, projection, and affected-record root IDs,
+including unavailable destination bindings that currently own no choices. Pending
+relocation/trash dependencies must keep missing or non-directory-replaced owners from
+being externally classified or recreated. A verified original-root relocation may still
+reconcile first and then use the normal reviewed regrant flow; last-known paths never
+prove that outcome. These combined native recovery interactions remain **UNVERIFIED**.
 
 After a verified move whose final settings save fails, dirty editors follow the moved
 file but must not atomically replace it until observation and settings finalization
@@ -299,6 +304,66 @@ and access (successful pre-saves are intentional). After a successful commit, al
 states must synchronously leave the deleted project without editable orphan authorizers;
 unrelated project windows stay untouched. A removed Workspace's authorizer remains
 fail-closed. These production-method regressions do not establish native GUI acceptance.
+
+### Missing owner and bound-root access recovery
+
+Native sidebar, picker and confirmation acceptance remains **UNVERIFIED**. The full
+content-template feature is not shipped. Package tests do not establish native UI behavior.
+
+Delete a configured folder externally while its root remains readable. After a completed
+scan, or **Check Folder Template Assignments** in the sidebar's **Content Templates**
+section, its choice/opt-out must appear inactive with **Locate Folder…** and **Remove
+Assignment** even though no tree row exists. Recreate its former path, then relaunch:
+the choice must stay inactive. Loss of root/ancestor access, an unavailable volume or
+bookmark, and transient read errors must not be treated as proof of deletion. Source
+loss alone must retain the distinct broken-source recovery flow above.
+
+Delete a configured owner and invoke New File immediately, before a watcher scan.
+Fresh creation/assignment lookup must reconcile pending lifecycle intent and persist
+the affected missing choice inactive before any directory recreation. Repeat with an
+opt-out, an ancestor template, and a naming sheet prepared before deletion: changed
+details require review, and the old choice must remain inactive after creation/relaunch.
+An inactive choice does not block normal ancestor inheritance. Failed retirement saves
+must block the affected creation without creating directories or changing settings;
+independent destinations and never-configured legacy subfolder creation remain usable.
+
+Replace the owner itself, then an ancestor, with an ordinary regular file while the
+root is readable. Detect the folder as gone and persist unresolved state without
+changing that replacement's bytes or inode. Restoring the directory structure must
+not reactivate the choice. Denied access and dangling/uncertain links remain distinct
+from an observed ordinary non-directory entry.
+
+Locate an accessible folder in this project's bindings. Review the old owner, new owner
+and inheritance scope before confirming; source references/files stay unchanged, including
+broken sources needing separate repair. Check cancellation, occupied choices, symlinks
+outside access, most-specific overlapping bindings, and another window changing the
+target identity, bindings or choices while confirmation is open. Remove only the shown
+choice, never neighboring choices or files. Failed persistence must retain the old snapshot
+in both windows and on relaunch, show an error, and permit explicit retry.
+
+Use **Grant Access…** from a bound root's context menu or needs-access row. An observable
+same physical bookmarked root may relocate without copying assignment/source references;
+the root UUID and relative paths stay unchanged. A different target must show all affected
+owned choices and source references before **Carry Configuration**. Cancel and failed
+persistence keep the old binding/access/configuration. Replace the picked target or change
+the displayed scope in another window before confirmation: require another review.
+
+For Locate Folder, revoke read or traversal access on the selected folder both before
+opening recovery and between preparation and confirmation without replacing its inode.
+Each failure must preserve the entire unresolved choice and stored settings. Restore
+read and traversal access and retry the same target; a read-only accessible folder is
+eligible because relinking changes project settings, not that folder's files.
+
+Repeat all recovery actions after an interrupted in-app operation, both before its
+filesystem change and after filesystem success/final-save failure. Reconcile first;
+ambiguous original-item/root/parent identities retain intent and block conflicting edits.
+Proven same-root bookmark relocation may reconcile at its new resolved root without
+weakening the pending-record/root guards. No recovery replays or reverses filesystem I/O.
+External replacements while the app was closed cannot always be correlated reliably.
+With ambiguous trash intent, repeat fresh/stale and empty-once creation while the
+owner is absent, restored, or occupied by an ordinary file. None may complete the
+trash, classify its reserved choice as externally missing, recreate its directory,
+or change the recorded settings. Only the scoped trash repair below can retire it.
 
 ### Unbind, trash, and settings-only trash repair
 

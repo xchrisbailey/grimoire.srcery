@@ -75,6 +75,18 @@ enum LifecyclePath {
         try overlaps(reservationPaths(left), reservationPaths(right), caseSensitiveNames: caseSensitiveNames)
     }
 
+    /// Scopes missing-owner observation; this is not evidence of identity or access.
+    static func contains(
+        _ reference: FileReference, in root: URL, url: URL, caseSensitiveNames: (URL) -> Bool?
+    ) throws -> Bool {
+        try reservationPaths(reference, in: root).contains { owner in
+            try reservationPaths(url).contains { destination in
+                try owner.count <= destination.count
+                    && overlaps(owner, destination, caseSensitiveNames: caseSensitiveNames)
+            }
+        }
+    }
+
     /// Lexical paths, live aliases and observed identity can deny a conflict, never prove completion.
     static func reserves(
         _ url: URL, operation: PendingLifecycleOperation, roots: [UUID: URL],

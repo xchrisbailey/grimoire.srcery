@@ -125,17 +125,16 @@ extension Workspace {
         in destination: URL, filenamePattern: String, purpose: DocumentCreationPurpose = .document,
         now: Date, calendar: Calendar
     ) throws -> DocumentCreationPlan {
-        // Other windows can replace a bookmark without this workspace having received its UI update yet.
-        sync()
-        try requireNoPendingLifecycle(at: destination)
-        guard let owner = try templateReference(for: destination) else {
-            throw TemplateAssignmentError.unavailableFolder
-        }
         let assignment: FolderTemplateAssignment?
         if purpose == .document {
             assignment = try effectiveTemplateAssignment(for: destination)
         } else {
+            try prepareTemplateLookup(in: destination)
             assignment = nil
+        }
+        try requireNoPendingLifecycle(at: destination)
+        guard let owner = try templateReference(for: destination) else {
+            throw TemplateAssignmentError.unavailableFolder
         }
         var source: URL?
         var sourceRootIdentity: CreationFolderIdentity?
@@ -263,6 +262,9 @@ extension Workspace {
 
     private func validateCreationContext(_ plan: DocumentCreationPlan) throws {
         guard isActive, project != nil else { throw TemplateAssignmentError.unavailableFolder }
+        if plan.usesSource, !emptyOnceCreations.contains(plan.id), let assignment = plan.assignment {
+            try requireAvailableTemplateDependency(assignment)
+        }
         for root in plan.context.roots {
             guard try CreationFolderIdentity(root.url) == root else { throw TemplateAssignmentError.unavailableFolder }
         }

@@ -91,7 +91,7 @@ import Testing
         #expect(ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)).projects == library.projects)
     }
 
-    @Test func missingAndInaccessibleOwnersAndUnavailableRootsArePreservedWithoutBorrowingAccess() throws {
+    @Test func onlyProvenMissingOwnerBecomesInactiveWithoutBorrowingAccess() throws {
         let fixture = try TemplateOwnerFixture()
         let unavailable = FolderRoot(
             name: "Unavailable", bookmark: Data([0xFF]), lastKnownPath: fixture.posts.deletingLastPathComponent().path)
@@ -122,7 +122,9 @@ import Testing
         #expect(try Data(contentsOf: library.storageURL) == bytes)
         try workspace.assignTemplate(fixture.source, to: fixture.posts)
         let choices = try #require(library.project(fixture.projectID)?.templateAssignments)
-        #expect(Array(choices.dropLast()) == preserved)
+        var expected = preserved
+        expected[1].state = .unresolved
+        #expect(Array(choices.dropLast()) == expected)
         #expect(choices.last?.owner == fixture.reference("posts"))
         #expect(ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)).projects == library.projects)
     }
