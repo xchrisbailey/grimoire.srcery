@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct LifecycleResult {
@@ -61,7 +62,10 @@ extension Workspace {
                 reconcileLifecycleOperations()
                 throw error
             }
-            if let operation { try finishRelocation(operation, completed: true) }
+            if let operation {
+                guard try observedCompletion(of: operation) else { throw LifecycleError.pendingRepair }
+                try finishRelocation(operation, completed: true)
+            }
             refreshAll()
             return LifecycleResult(movedURL: moved, error: nil)
         } catch {
@@ -78,10 +82,13 @@ extension Workspace {
 
     private func prepareRelocation(_ source: URL, to destination: URL) throws -> PendingLifecycleOperation? {
         guard let project, let from = try lifecycleReference(for: source),
-            let to = try lifecycleReference(for: destination), !from.relativePath.isEmpty
+            let parent = try lifecycleReference(for: destination.deletingLastPathComponent()),
+            !from.relativePath.isEmpty
         else { throw LifecycleError.unsupportedBoundary }
+        let to = Self.destinationReference(parent: parent, name: destination.lastPathComponent)
         let root = try rootURL(from.rootID)
         try requireMovableSubtree(source)
+        try requireVacantDestination(destination, moving: source)
         var before: [FolderTemplateAssignment] = []
         var after: [FolderTemplateAssignment] = []
         for assignment in project.templateAssignments {
@@ -131,6 +138,31 @@ extension Workspace {
         }
     }
 
+    private func requireVacantDestination(_ destination: URL, moving source: URL) throws {
+        var info = stat()
+        guard lstat(destination.path(percentEncoded: false), &info) == 0 else {
+            guard errno == ENOENT else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+            return
+        }
+        // Only the original entry's case alias may already answer the prospective name.
+        if source.lastPathComponent.lowercased() == destination.lastPathComponent.lowercased(),
+            try !hasExactEntry(destination),
+            let identity = try? LifecycleIdentity(destination), try identity == LifecycleIdentity(source),
+            try LifecycleIdentity(source.deletingLastPathComponent())
+                == LifecycleIdentity(destination.deletingLastPathComponent())
+        {
+            return
+        }
+        throw FileOperationError.alreadyExists(destination.lastPathComponent)
+    }
+
+    private static func destinationReference(parent: FileReference, name: String, suffix: String = "") -> FileReference
+    {
+        FileReference(
+            rootID: parent.rootID,
+            relativePath: ([parent.relativePath, name, suffix].filter { !$0.isEmpty }).joined(separator: "/"))
+    }
+
     private func relocatedReference(_ reference: FileReference, source: URL, destination: URL) throws -> FileReference {
         guard let root = templateRoots.first(where: { $0.id == reference.rootID })?.url else { return reference }
         let url = reference.url(in: root)
@@ -141,10 +173,16 @@ extension Workspace {
             canonical == reference
         else { throw TemplateAssignmentError.invalidReference }
         let movedURL = suffix.url(in: destination)
-        guard let relocated = try LifecyclePath.reference(rootID: reference.rootID, root: root, url: movedURL),
+        guard
+            let parent = try LifecyclePath.reference(
+                rootID: reference.rootID, root: root,
+                url: destination.deletingLastPathComponent()),
             try lifecycleReference(for: movedURL)?.rootID == reference.rootID
         else { throw LifecycleError.unsupportedBoundary }
-        return relocated
+        // Resolve the parent, not the prospective leaf: on case-insensitive volumes the
+        // old item can already answer the new spelling before the rename happens.
+        return Self.destinationReference(
+            parent: parent, name: destination.lastPathComponent, suffix: suffix.relativePath)
     }
 
     private func rootURL(_ id: UUID) throws -> URL {
@@ -169,32 +207,35 @@ extension Workspace {
         lastError = nil
         for operation in project?.pendingLifecycleOperations ?? [] {
             do {
-                let root = try rootURL(operation.source.rootID)
-                let source = operation.source.url(in: root)
-                let destination = operation.destination.url(in: root)
-                guard try LifecycleIdentity(root) == operation.rootIdentity,
-                    try LifecycleIdentity(source.deletingLastPathComponent()) == operation.sourceParentIdentity,
-                    try LifecycleIdentity(destination.deletingLastPathComponent())
-                        == operation.destinationParentIdentity
-                else { throw LifecycleError.pendingRepair }
-                let atSource = try observedIdentity(source)
-                let atDestination = try observedIdentity(destination)
-                if atSource == operation.itemIdentity, atDestination == nil {
-                    try finishRelocation(operation, completed: false)
-                } else if atSource == nil, atDestination == operation.itemIdentity {
-                    try finishRelocation(operation, completed: true)
-                } else {
-                    throw LifecycleError.pendingRepair
-                }
+                try finishRelocation(operation, completed: observedCompletion(of: operation))
             } catch { lastError = LifecycleRecoveryError(operation: operation, moved: false, cause: error) }
         }
     }
 
+    private func observedCompletion(of operation: PendingLifecycleOperation) throws -> Bool {
+        let root = try rootURL(operation.source.rootID)
+        let source = operation.source.url(in: root)
+        let destination = operation.destination.url(in: root)
+        guard try LifecycleIdentity(root) == operation.rootIdentity,
+            try LifecycleIdentity(source.deletingLastPathComponent()) == operation.sourceParentIdentity,
+            try LifecycleIdentity(destination.deletingLastPathComponent()) == operation.destinationParentIdentity
+        else { throw LifecycleError.pendingRepair }
+        let atSource = try observedIdentity(source)
+        let atDestination = try observedIdentity(destination)
+        if atSource == operation.itemIdentity, atDestination == nil { return false }
+        if atSource == nil, atDestination == operation.itemIdentity { return true }
+        throw LifecycleError.pendingRepair
+    }
+
     private func observedIdentity(_ url: URL) throws -> LifecycleIdentity? {
+        guard try hasExactEntry(url) else { return nil }
+        return try LifecycleIdentity(url)
+    }
+
+    private func hasExactEntry(_ url: URL) throws -> Bool {
         // Exact names distinguish a case-only rename on a case-insensitive volume.
         let names = try FileManager.default.contentsOfDirectory(atPath: url.deletingLastPathComponent().path)
-        guard names.contains(url.lastPathComponent) else { return nil }
-        return try LifecycleIdentity(url)
+        return names.contains(url.lastPathComponent)
     }
 
     private func finishRelocation(_ operation: PendingLifecycleOperation, completed: Bool) throws {

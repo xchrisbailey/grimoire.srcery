@@ -208,4 +208,67 @@ import Testing
         #expect(try String(contentsOf: moved, encoding: .utf8) == "plain")
         #expect(workspace.reference(for: moved)?.rootID == other.id)
     }
+
+}
+
+@MainActor @Suite struct LifecyclePreflightTests {
+    @Test(arguments: [false, true], [false, true])
+    func occupiedDestinationFailsPreparationWithoutLeavingUnnecessaryRepair(rename: Bool, caseAlias: Bool) async throws
+    {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])
+        defer { workspace.deactivate() }
+        let source = scratch.url.appending(path: "notes/posts")
+        let target = try scratch.folder("notes/target")
+        let destinationPath = rename ? "notes/drafts" : "notes/target/posts"
+        let competitorPath = caseAlias ? (rename ? "notes/DRAFTS" : "notes/target/POSTS") : destinationPath
+        let competitor = try scratch.file(competitorPath + "/keep.md", "competitor")
+        if !FileManager.default.fileExists(atPath: scratch.url.appending(path: destinationPath).path) {
+            try scratch.file(destinationPath + "/keep.md", "competitor")
+        }
+        try workspace.disableTemplate(in: source)
+        let before = library.projects
+        let bytes = try Data(contentsOf: library.storageURL)
+        let result = rename ? workspace.rename(source, to: "drafts") : workspace.move(source, into: target)
+        #expect(result.movedURL == nil)
+        #expect(result.error != nil)
+        #expect(!workspace.hasPendingLifecycleOperations)
+        #expect(library.projects == before)
+        #expect(try Data(contentsOf: library.storageURL) == bytes)
+        #expect(try String(contentsOf: source.appending(path: "keep.md"), encoding: .utf8) == "original")
+        #expect(try String(contentsOf: competitor, encoding: .utf8) == "competitor")
+    }
+
+    @Test func caseOnlySourceRenameRemainsRecoverableWithoutRewritingContent() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["source.md": "{title}\r\n"])
+        let root = scratch.url.appending(path: "notes")
+        let owner = try scratch.folder("notes/owner")
+        let source = root.appending(path: "source.md")
+        try workspace.assignTemplate(source, to: owner)
+        var interrupted = Data()
+        workspace.lifecycleOperations.rename = { url, name in
+            interrupted = try Data(contentsOf: library.storageURL)
+            return try FileOperations.rename(url, to: name)
+        }
+        let result = workspace.rename(source, to: "SOURCE")
+        #expect(result.error == nil)
+        let moved = try #require(result.movedURL)
+        #expect(moved.lastPathComponent == "SOURCE.md")
+        workspace.deactivate()
+        try interrupted.write(to: library.storageURL, options: .atomic)
+        let restarted = Workspace(
+            projectID: workspace.projectID,
+            library: ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)))
+        restarted.activate()
+        defer { restarted.deactivate() }
+        #expect(!restarted.hasPendingLifecycleOperations)
+        #expect(restarted.lastError == nil)
+        let rootID = try #require(restarted.project?.roots.first?.id)
+        #expect(
+            try restarted.templateAssignment(for: owner)?.choice
+                == .useSource(
+                    FileReference(rootID: rootID, relativePath: "SOURCE.md")))
+        #expect(try String(contentsOf: moved, encoding: .utf8) == "{title}\r\n")
+    }
 }

@@ -158,7 +158,8 @@ explicit choices follow, inherited content follows the new destination, every so
 reference follows, and existing document/source bytes stay unchanged. Check open
 documents inside the subtree still save at their actual new paths.
 
-Check destination-record conflicts, failed intent saves, filesystem failures, and
+Check destination-record conflicts, occupied filesystem destinations (including case
+aliases), case-only source renames, failed intent saves, filesystem failures, and
 failed final saves separately. A successful filesystem move with failed final save
 must still follow the open document while reporting pending project changes. Restart
 before and after the move; only the observable original item at exactly one recorded
@@ -174,6 +175,9 @@ closed rather than silently dropping configuration. The full feature is not ship
 User-facing configured regrant accepts only an observable same-root identity in this
 slice. Authoritative library bookmark updates remain allowed without conflicting
 pending intent; creation must still revalidate them rather than writing through stale access.
+Core also rechecks the recorded item/root/parent identities after filesystem success
+before committing configuration. A source replaced during the operation remains pending;
+the successful filesystem result is still reported without reversing or deleting either item.
 
 ## CI
 
