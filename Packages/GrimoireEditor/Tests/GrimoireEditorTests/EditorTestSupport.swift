@@ -15,10 +15,43 @@ final class EditorTestDefaults: UserDefaults, @unchecked Sendable {
         suiteName = "grimoire-tests-\(UUID())"
         super.init(suiteName: suiteName)!
     }
+}
 
-    deinit {
-        // Only this fixture's domain is ours to remove; existing test suites belong to the user.
-        removePersistentDomain(forName: suiteName)
+final class EditorTestPreferences: @unchecked Sendable {
+    private let lock = NSLock()
+    private var suites: [String] = []
+
+    func register(_ defaults: EditorTestDefaults) {
+        lock.withLock { suites.append(defaults.suiteName) }
+    }
+
+    func cleanUp() {
+        // Editors can outlive their test through AppKit; teardown owns only this scope's UUID domains.
+        for suite in lock.withLock({ suites }) {
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+        }
+    }
+}
+
+enum EditorTestContext {
+    @TaskLocal static var preferences: EditorTestPreferences?
+}
+
+nonisolated(nonsending) func withEditorFixtures<Result: Sendable>(
+    _ body: () async throws -> Result
+) async rethrows -> Result {
+    let preferences = EditorTestPreferences()
+    defer { preferences.cleanUp() }
+    return try await EditorTestContext.$preferences.withValue(preferences) { try await body() }
+}
+
+struct EditorFixtureScope: TestTrait, SuiteTrait, TestScoping {
+    var isRecursive: Bool { true }
+
+    func provideScope(
+        for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void
+    ) async throws {
+        try await withEditorFixtures(function)
     }
 }
 
@@ -31,7 +64,12 @@ final class EditorTestDefaults: UserDefaults, @unchecked Sendable {
     BrandFontTests.registerRepoFonts()
     let controller = EditorController()
     if freshDefaults {
-        controller.defaults = EditorTestDefaults()
+        guard let preferences = EditorTestContext.preferences else {
+            preconditionFailure("Fresh editor defaults require EditorFixtureScope")
+        }
+        let defaults = EditorTestDefaults()
+        preferences.register(defaults)
+        controller.defaults = defaults
     }
     controller.styler.highlightsSynchronously = synchronousHighlighting
     controller.mode = mode

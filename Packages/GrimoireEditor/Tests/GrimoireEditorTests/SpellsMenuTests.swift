@@ -5,27 +5,32 @@ import Testing
 
 @testable import GrimoireEditor
 
-@MainActor @Suite(.serialized) struct SpellsMenuTests {
-    @Test func freshEditorPreferencesAreIsolatedAndCleanedUp() throws {
-        var suite: String?
+@MainActor @Suite(.serialized, EditorFixtureScope()) struct SpellsMenuTests {
+    enum FixtureError: Error { case interrupted }
+
+    @Test(arguments: [false, true]) func freshEditorPreferencesAreIsolatedAndCleanedUp(interrupted: Bool) async throws {
+        var retained: (EditorController, String)?
+        do {
+            try await withEditorFixtures { @MainActor in
+                let controller = makeEditor("", freshDefaults: true)
+                let defaults = try #require(controller.defaults as? EditorTestDefaults)
+                retained = (controller, defaults.suiteName)
+                controller.type("/h2")
+                controller.press(#selector(NSResponder.insertNewline(_:)))
+                #expect(controller.recentSpells == ["h2"])
+                #expect(makeEditor("", freshDefaults: true).recentSpells.isEmpty)
+                #expect(defaults.persistentDomain(forName: defaults.suiteName)?["grimoire.recentSpells"] != nil)
+                if interrupted { throw FixtureError.interrupted }
+            }
+        } catch FixtureError.interrupted {
+            #expect(interrupted)
+        }
+        let (controller, suite) = try #require(retained)
         defer {
-            if let suite { UserDefaults.standard.removePersistentDomain(forName: suite) }
+            UserDefaults.standard.removePersistentDomain(forName: suite)
         }
-        weak var releasedController: EditorController?
-        try autoreleasepool {
-            let controller = editorAtEnd()
-            releasedController = controller
-            let defaults = try #require(controller.defaults as? EditorTestDefaults)
-            suite = defaults.suiteName
-            controller.type("/h2")
-            controller.press(#selector(NSResponder.insertNewline(_:)))
-            #expect(controller.recentSpells == ["h2"])
-            #expect(editorAtEnd().recentSpells.isEmpty)
-            #expect(defaults.persistentDomain(forName: defaults.suiteName)?["grimoire.recentSpells"] != nil)
-        }
-        #expect(releasedController == nil)
-        let name = try #require(suite)
-        #expect(UserDefaults.standard.persistentDomain(forName: name)?.isEmpty != false)
+        #expect(controller.recentSpells.isEmpty)
+        #expect(UserDefaults.standard.persistentDomain(forName: suite)?.isEmpty != false)
     }
 
     func editorAtEnd(_ text: String = "") -> EditorController {
