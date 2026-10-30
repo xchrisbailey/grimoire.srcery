@@ -41,7 +41,7 @@ replacement, choose an invalid or outside-project source, and simulate a setting
 save failure. Each must leave the previous choice unchanged and a failed edit
 must explain how to recover. Check that a second project using the same folder
 starts unconfigured. Source files and content folders must stay untouched. No
-inheritance, opt-out controls, source authoring, placeholder expansion, or recovery
+inheritance, opt-out controls, source authoring, or recovery
 actions are included yet.
 
 New File now uses an exact-folder assignment's saved static contents. Menu/shortcut
@@ -49,7 +49,11 @@ and palette commands resolve their existing destination before joining the same
 creation flow as the folder context menu. The naming sheet shows destination and
 source, edits a literal stem with `.md` separate, and creates nothing on cancel.
 Relevant context changes require another confirmation; saved edits to the same
-source remain live. Placeholders stay literal in this slice.
+source remain live. Content placeholders now expand once for the allocated filename
+and one local attempt timestamp. `{title}`, `{filename}`, `{date}`, and `{time}`
+support explicit `:yaml` string forms; doubled braces escape them literally.
+Untouched filename suggestions refresh at confirmation and user-visible retry;
+edited stems remain literal. Collision retries keep the same saved source and time.
 
 Native Mac acceptance is **not verified** by package tests or source wiring. Check
 each real menu, shortcut, palette, and folder-context route: destination/source
@@ -58,6 +62,14 @@ input, collision suffixes, no preview or second rename prompt, and focused edito
 with its caret at the UTF-16 content end (including emoji and a BOM). Check an open
 or last-opened-settings failure after publication separately: preserve the created
 file and do not retry creation. No native GUI automation harness is available.
+
+Placeholder-specific native QA is **not verified**: use a source with all four raw
+and YAML-safe forms, doubled braces, and unknown forms. Leave an untouched generated
+name open across midnight, then confirm; repeat with an edited literal name. Check
+matching filename/content dates, collision suffixes in inserted titles and filenames,
+and the focused caret at the expanded content end. Rename/move the created document
+and verify its content and source remain unchanged. Package tests cover the Core
+creation outcomes, not these native interactions.
 
 Also check destination review without a template: prepare creation in an unassigned
 folder, replace that directory before confirmation, review the updated destination,

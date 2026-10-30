@@ -184,7 +184,7 @@ extension Workspace {
         do {
             bytes = try creationBytes(current)
         } catch { return .sourceFailure(current, error) }
-        return publishDocument(current, named: stem, bytes: bytes, operations: operations)
+        return publishDocument(current, named: stem, bytes: bytes, now: now, calendar: calendar, operations: operations)
     }
 
     private func creationBytes(_ plan: DocumentCreationPlan) throws -> Data {
@@ -194,18 +194,24 @@ extension Workspace {
     }
 
     private func publishDocument(
-        _ current: DocumentCreationPlan, named stem: String, bytes: Data, operations: DocumentCreationOperations
+        _ current: DocumentCreationPlan, named stem: String, bytes: Data,
+        now: Date, calendar: Calendar, operations: DocumentCreationOperations
     ) -> DocumentCreationResult {
         do {
             // No suspension: MainActor stages project mutations across the whole publication attempt.
             try validateCreationContext(current)
             try FileManager.default.createDirectory(at: current.destination, withIntermediateDirectories: true)
+            var expanded = bytes
             let url = try FileOperations.createDocument(
-                in: current.destination, named: stem, operations: operations, content: { _ in bytes },
+                in: current.destination, named: stem, operations: operations,
+                content: { candidate in
+                    expanded = ContentPlaceholders.expand(bytes, filename: candidate, date: now, calendar: calendar)
+                    return expanded
+                },
                 validate: { try self.validateCreationContext(current) })
             let caret: Int?
             if current.requiresNaming {
-                guard let text = String(validating: bytes, as: UTF8.self) else {
+                guard let text = String(validating: expanded, as: UTF8.self) else {
                     return .publishedButUnavailable(url)
                 }
                 caret = text.utf16.count
