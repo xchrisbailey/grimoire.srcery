@@ -4,11 +4,28 @@ import GrimoireCore
 /// A published file is never created again just because opening its editor was deferred.
 struct DeferredDocument {
     var url: URL
-    let caretUTF16: Int?
-    let identity: any NSObjectProtocol
+    let publication: PublishedDocument
+}
+
+struct CreatedDocumentsOpenError: LocalizedError {
+    let failures: [CreatedDocumentOpenError]
+    var errorDescription: String? {
+        failures.compactMap(\.errorDescription).joined(separator: "\n\n")
+    }
 }
 
 extension WindowState {
+    func prepareProjectDeletion() -> Bool {
+        // Publication handoffs are resolved separately, without changing selection during a staged deletion.
+        guard deferredDocuments.isEmpty else { return false }
+        guard document?.save() ?? true else {
+            if let error = document?.saveError { actions.error = error }
+            bringToFront()
+            return false
+        }
+        return true
+    }
+
     func prepareForRelease() -> Bool {
         guard save() else {
             if let error = document?.saveError { actions.error = error }
@@ -33,38 +50,49 @@ extension WindowState {
     }
 
     func deferPublishedDocument(_ created: PublishedDocument) {
-        do {
-            guard
-                let identity = try created.url.resourceValues(forKeys: [.fileResourceIdentifierKey])
-                    .fileResourceIdentifier
-            else { throw CreatedDocumentOpenError(url: created.url) }
-            deferredDocuments.append(
-                DeferredDocument(
-                    url: created.url, caretUTF16: created.editorCaretUTF16,
-                    identity: identity))
-        } catch { openError = error }
+        guard receivedPublications.insert(created.id).inserted else { return }
+        deferredDocuments.append(DeferredDocument(url: created.url, publication: created))
     }
 
     func resumePublishedDocuments() {
+        var failures: [CreatedDocumentOpenError] = []
+        defer {
+            if failures.count == 1 {
+                actions.error = failures.first
+            } else if !failures.isEmpty {
+                actions.error = CreatedDocumentsOpenError(failures: failures)
+            }
+        }
         while let pending = deferredDocuments.first {
             do {
-                let current = try pending.url.resourceValues(forKeys: [.fileResourceIdentifierKey])
-                    .fileResourceIdentifier
-                guard current?.isEqual(pending.identity) == true else {
+                guard try pending.publication.matchesPublishedItem(at: pending.url) else {
                     throw CreatedDocumentOpenError(url: pending.url)
                 }
-                guard select(pending.url, initialEditorMode: pending.caretUTF16 == nil ? nil : .raw),
+                guard select(pending.url, initialEditorMode: pending.publication.editorCaretUTF16 == nil ? nil : .raw),
                     document?.url == pending.url
                 else { return }
                 deferredDocuments.removeFirst()
-                if let caret = pending.caretUTF16 {
+                if let caret = pending.publication.editorCaretUTF16 {
                     editor.revealWhenReady(NSRange(location: caret, length: 0), in: pending.url)
                 }
             } catch {
+                // Missing/replaced publications are terminal handoff failures, not dirty buffers.
+                // Drain them without opening replacements, while leaving retryable handoffs queued.
+                if error is CreatedDocumentOpenError || Self.isMissingPublishedFile(error) {
+                    deferredDocuments.removeFirst()
+                    failures.append(CreatedDocumentOpenError(url: pending.url))
+                    continue
+                }
                 openError = error
                 return
             }
         }
+    }
+
+    private static func isMissingPublishedFile(_ error: any Error) -> Bool {
+        if let error = error as? POSIXError { return error.code == .ENOENT }
+        guard let error = error as? CocoaError else { return false }
+        return error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile
     }
 
     func moveDeferredDocuments(from: URL, to: URL) {

@@ -23,6 +23,7 @@ final class ExternalOpens {
     private var windows: [WeakWindow] = []
     private var pending = PendingOpens()
     private var blockedWindows: [WindowState] = []
+    private var preparingDeletion = false
 
     private struct WeakWindow {
         weak var window: WindowState?
@@ -110,8 +111,31 @@ final class ExternalOpens {
     }
 
     func saved(_ window: WindowState) {
-        guard blockedWindows.contains(where: { $0 === window }), window.deferredDocuments.isEmpty else { return }
+        guard !preparingDeletion, blockedWindows.contains(where: { $0 === window }), window.deferredDocuments.isEmpty
+        else { return }
         window.close()
+    }
+
+    @discardableResult func deleteProject(_ id: Project.ID, in library: ProjectLibrary) throws -> Bool {
+        var affected = windows.compactMap(\.window).filter { $0.library === library && $0.projectID == id }
+        for window in blockedWindows where window.library === library && window.projectID == id {
+            if !affected.contains(where: { $0 === window }) { affected.append(window) }
+        }
+        // Saving a retained state must not release its access/ownership before the store commit.
+        preparingDeletion = true
+        defer { preparingDeletion = false }
+        var allowed = true
+        for window in affected where !window.prepareProjectDeletion() { allowed = false }
+        guard allowed else { return false }
+        try library.deleteProject(id)
+        let fallback = library.projects.first?.id
+        // No suspension between preparation, persistence, and retiring every old authorizer.
+        for window in affected {
+            let transitioned = window.selectProject(fallback, openLastFile: false)
+            precondition(transitioned, "A prepared project deletion must retire its saved documents")
+            if blockedWindows.contains(where: { $0 === window }) { window.close() }
+        }
+        return true
     }
 
     func prepareRelease(in project: Project.ID?) -> Bool {

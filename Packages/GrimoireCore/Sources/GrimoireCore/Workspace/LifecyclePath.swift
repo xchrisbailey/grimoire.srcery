@@ -76,6 +76,29 @@ enum LifecyclePath {
         try overlaps(components(left), components(right), caseSensitiveNames: caseSensitiveNames)
     }
 
+    /// Unavailable foreign roots still reserve plausible paths, but can never prove recovery.
+    static func mayOverlap(
+        _ url: URL, reference: FileReference, in root: URL,
+        caseSensitiveNames: (URL) -> Bool?
+    ) throws -> Bool {
+        let rootParts = reservationComponents(root)
+        let parts = reservationComponents(url)
+        return try overlaps(
+            rootParts + reference.relativePath.split(separator: "/").map(String.init),
+            parts, caseSensitiveNames: caseSensitiveNames)
+    }
+
+    private static func reservationComponents(_ url: URL) -> [String] {
+        var ancestor = url
+        var suffix: [String] = []
+        while ancestor.pathComponents.count > 1 {
+            if let parts = try? components(ancestor) { return parts + suffix }
+            suffix.insert(ancestor.lastPathComponent, at: 0)
+            ancestor.deleteLastPathComponent()
+        }
+        return ancestor.standardizedFileURL.pathComponents + suffix
+    }
+
     static func overlaps(
         _ left: FileReference, in leftRoot: URL, _ right: FileReference, in rightRoot: URL,
         caseSensitiveNames: (URL) -> Bool?

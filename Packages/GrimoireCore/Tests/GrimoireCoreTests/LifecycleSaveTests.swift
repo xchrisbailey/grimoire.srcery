@@ -6,6 +6,105 @@ import Testing
 private enum PendingSaveAttempt: CaseIterable, Sendable { case manual, autosave, keepMine }
 
 @MainActor @Suite struct LifecycleSaveTests {
+    @Test func removedProjectDoesNotAuthorizeAnOrphanDocument() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["page.md": "original"])
+        defer { workspace.deactivate() }
+        let file = scratch.url.appending(path: "notes/page.md")
+        let document = try OpenDocument(
+            url: file, autosaveDelay: .seconds(3600),
+            authorizeWrite: { try workspace.authorizeDocumentSave(at: $0) })
+        defer { document.discard() }
+        #expect(document.save())
+        try library.deleteProject(workspace.projectID)
+        let identity = try LifecycleIdentity(file)
+        document.text = "orphan buffer"
+        #expect(!document.save() && !document.close())
+        #expect(document.isDirty && document.savedText == "original")
+        #expect(try LifecycleIdentity(file) == identity)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "original")
+    }
+
+    @Test(arguments: [false, true], PendingSaveAttempt.allCases)
+    private func anotherProjectCannotReplacePendingPhysicalIdentity(rename: Bool, attempt: PendingSaveAttempt)
+        async throws
+    {
+        let fixture = try await PendingSaveFixture(rename: rename, separateProject: true)
+        defer { fixture.cleanup() }
+        let requester = try OpenDocument(
+            url: fixture.moved, autosaveDelay: .seconds(3600),
+            authorizeWrite: { try fixture.otherWorkspace.authorizeDocumentSave(at: $0) })
+        defer { requester.discard() }
+        requester.versions = VersionStore(folder: fixture.scratch.url.appending(path: "requester-versions"))
+        requester.text = "project B buffer"
+        if attempt == .keepMine {
+            try Data("external".utf8).write(to: fixture.moved)
+            requester.checkDisk()
+            #expect(!requester.keepMine())
+            #expect(requester.conflict == "external")
+        } else if attempt == .autosave {
+            requester.autosaveDelay = .milliseconds(1)
+            requester.text = "project B autosave buffer"
+            try await until { requester.saveError != nil }
+        } else {
+            #expect(!requester.save())
+        }
+        #expect(!requester.close())
+        #expect(requester.saveError != nil)
+        #expect(requester.isDirty && requester.savedText == "original")
+        #expect(requester.versions?.versions(of: fixture.moved).isEmpty == true)
+        #expect(try LifecycleIdentity(fixture.moved) == fixture.identity)
+        #expect(
+            try String(contentsOf: fixture.moved, encoding: .utf8) == (attempt == .keepMine ? "external" : "original"))
+        let independent = try fixture.scratch.file("notes/independent.md", "unchanged")
+        let unrelated = try OpenDocument(
+            url: independent,
+            authorizeWrite: { try fixture.otherWorkspace.authorizeDocumentSave(at: $0) })
+        unrelated.text = "independent buffer"
+        #expect(unrelated.close())
+        fixture.workspace.deactivate()
+        #expect(throws: (any Error).self) { try fixture.otherWorkspace.authorizeDocumentSave(at: fixture.moved) }
+        fixture.workspace.activate()
+        try fixture.restoreSettingsAccess()
+        #expect(throws: (any Error).self) { try fixture.otherWorkspace.authorizeDocumentSave(at: fixture.moved) }
+        fixture.workspace.reconcileLifecycleOperations()
+        #expect(!fixture.workspace.hasPendingLifecycleOperations)
+        if attempt == .keepMine { #expect(requester.keepMine()) } else { #expect(requester.save()) }
+        #expect(try String(contentsOf: fixture.moved, encoding: .utf8) == requester.text)
+        let restarted = ProjectLibrary(store: ProjectStore(fileURL: fixture.library.storageURL))
+        #expect(restarted.project(fixture.workspace.projectID)?.pendingLifecycleOperations.isEmpty == true)
+        #expect(restarted.project(fixture.otherWorkspace.projectID)?.templateAssignments.isEmpty == true)
+    }
+
+    @Test func foreignReservationsGuardAliasesEvenWhenOwnerBookmarkCannotResolve() async throws {
+        let fixture = try await PendingSaveFixture(rename: true, separateProject: true)
+        defer { fixture.cleanup() }
+        try fixture.restoreSettingsAccess()
+        var projects = fixture.library.projects
+        let owner = try #require(projects.firstIndex { $0.id == fixture.workspace.projectID })
+        projects[owner].roots[0].bookmark = Data()
+        let store = ProjectStore(fileURL: fixture.scratch.url.appending(path: "unavailable-owner.json"))
+        try store.save(projects)
+        let reloaded = ProjectLibrary(store: store)
+        let requester = Workspace(projectID: fixture.otherWorkspace.projectID, library: reloaded)
+        requester.activate()
+        defer { requester.deactivate() }
+        #expect(throws: (any Error).self) { try requester.authorizeDocumentSave(at: fixture.moved) }
+        let alias = fixture.moved.deletingLastPathComponent().appending(
+            path: fixture.moved.lastPathComponent.uppercased())
+        let sensitive = try fixture.moved.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey])
+            .volumeSupportsCaseSensitiveNames
+        if sensitive == true {
+            try requester.authorizeDocumentSave(at: alias)
+        } else {
+            #expect(throws: (any Error).self) { try requester.authorizeDocumentSave(at: alias) }
+        }
+        let independent = try fixture.scratch.file("notes/independent.md", "independent")
+        try requester.authorizeDocumentSave(at: independent)
+        #expect(try LifecycleIdentity(fixture.moved) == fixture.identity)
+        #expect(reloaded.project(fixture.workspace.projectID)?.pendingLifecycleOperations.count == 1)
+    }
+
     @Test(arguments: [false, true])
     func blockedSaveRetainsOriginalUntilConfigurationCanFinish(rename: Bool) async throws {
         let fixture = try await PendingSaveFixture(rename: rename)
@@ -95,14 +194,21 @@ private enum PendingSaveAttempt: CaseIterable, Sendable { case manual, autosave,
     let identity: LifecycleIdentity
     let directory: URL
 
-    init(rename: Bool, subtree: Bool = false) async throws {
+    init(rename: Bool, subtree: Bool = false, separateProject: Bool = false) async throws {
         scratch = try Scratch()
         (workspace, library) = try await scratch.workspace(files: ["group/source.md": "original"])
         let source = scratch.url.appending(path: "notes/group/source.md")
         let owner = try scratch.folder("notes/owner")
         let target = try scratch.folder("notes/target")
         try workspace.assignTemplate(source, to: owner)
-        otherWorkspace = Workspace(projectID: workspace.projectID, library: library)
+        let otherID: Project.ID
+        if separateProject {
+            otherID = try library.createProject(named: "Other project").id
+            try library.bindFolder(source.deletingLastPathComponent().deletingLastPathComponent(), to: otherID)
+        } else {
+            otherID = workspace.projectID
+        }
+        otherWorkspace = Workspace(projectID: otherID, library: library)
         otherWorkspace.activate()
         let context = workspace
         let otherContext = otherWorkspace

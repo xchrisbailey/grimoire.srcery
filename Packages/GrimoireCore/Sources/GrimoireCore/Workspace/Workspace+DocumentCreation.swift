@@ -17,9 +17,27 @@ public enum DocumentRecoveryIntent: Sendable {
 }
 
 public struct PublishedDocument: Sendable {
+    /// Stable for replays of one publication, including template-authoring caret adaptation.
+    public let id: UUID
     public let url: URL
     /// Nil retains the legacy preview and rename experience.
-    public let editorCaretUTF16: Int?
+    public internal(set) var editorCaretUTF16: Int?
+    private let physicalIdentity: LifecycleIdentity?
+
+    init(id: UUID = UUID(), url: URL, editorCaretUTF16: Int?, verified: Bool = true) {
+        self.id = id
+        self.url = url
+        self.editorCaretUTF16 = editorCaretUTF16
+        physicalIdentity = verified ? try? LifecycleIdentity(url) : nil
+    }
+
+    /// Checks the original published item without recapturing a replacement on a later handoff.
+    public func matchesPublishedItem(at url: URL) throws -> Bool {
+        guard let physicalIdentity else { return false }
+        do { return try LifecycleIdentity(url) == physicalIdentity } catch LifecycleError.unsupportedBoundary {
+            return false
+        }
+    }
 }
 
 public struct DocumentCreationPlan: Identifiable, Sendable {
@@ -231,12 +249,13 @@ extension Workspace {
             } else {
                 caret = nil
             }
-            let published = PublishedDocument(url: url, editorCaretUTF16: caret)
+            let published = PublishedDocument(id: current.id, url: url, editorCaretUTF16: caret)
             publishedCreations[current.id] = published
             emptyOnceCreations.remove(current.id)
             return .published(published)
         } catch DocumentPublicationError.publishedButUnavailable(let url) {
-            publishedCreations[current.id] = PublishedDocument(url: url, editorCaretUTF16: nil)
+            publishedCreations[current.id] = PublishedDocument(
+                id: current.id, url: url, editorCaretUTF16: nil, verified: false)
             emptyOnceCreations.remove(current.id)
             return .publishedButUnavailable(url)
         } catch { return .failed(error) }

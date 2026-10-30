@@ -216,6 +216,35 @@ while the old editor is blocked, then repair and retry: open that same file once
 recreate/delete it or send its caret to the old editor. Retention is in memory only;
 force-quitting, process termination, or power loss cannot guarantee unsaved edits survive.
 
+Bind the same physical folder in two projects in one library. Leave a verified source
+rename/drag pending in project A by failing final settings persistence, then open its
+destination in B. Save, autosave, and Keep Mine in B must preserve the reserved inode,
+bytes, dirty/saved/conflict state and versions. The guard applies to case aliases and
+plausible paths when A's root cannot resolve; last-known paths are guards, never recovery
+evidence or access grants. Repair/reconcile through A's own workspace, then retry B's
+save and restart. No assignments migrate to B; unrelated physical paths remain writable.
+
+Delete or replace a queued published target before repairing the old dirty editor.
+After that buffer saves, the missing/mismatched handoff must report its original URL
+and leave the queue, without opening/deleting the replacement or publishing again.
+Several failures must be reported together while valid queued handoffs still run.
+Such terminal open failures must not veto safe file/project/window/quit release or
+poison exact-state reclaim. Permission/read failures with the original identity intact
+remain retryable: repair access and retry the same selected URL, even when no document
+was opened. Repeated notifications use one stable in-memory publication ID/physical
+identity, including template-authoring caret adaptation; they must not multiply queued
+requests, recapture replacements, or repeat editor handoff. A genuinely new publication
+may reuse the same URL. No publication metadata is persisted.
+
+Delete a project shown in two windows, including a strongly retained blocked state.
+Preparation must save/check every affected buffer before persistence without changing
+selection or ownership. A dirty-save failure or unresolved publication handoff vetoes
+deletion. A failed project-store commit preserves exact documents, selections, watchers,
+and access (successful pre-saves are intentional). After a successful commit, all affected
+states must synchronously leave the deleted project without editable orphan authorizers;
+unrelated project windows stay untouched. A removed Workspace's authorizer remains
+fail-closed. These production-method regressions do not establish native GUI acceptance.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.

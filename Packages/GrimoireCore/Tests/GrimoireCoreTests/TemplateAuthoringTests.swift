@@ -4,6 +4,33 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct TemplateAuthoringTests {
+    @Test func publicationIdentitySurvivesReplayAndAuthoringCaretAdaptation() async throws {
+        let scratch = try Scratch()
+        let (workspace, _) = try await scratch.workspace()
+        defer { workspace.deactivate() }
+        let folder = scratch.url.appending(path: "notes")
+        let plan = try workspace.prepareTemplateSource(in: folder, assigningTo: folder)
+        guard case .assigned(let source) = workspace.createTemplateSource(plan, named: "Template"),
+            case .assigned(let replay) = workspace.createTemplateSource(plan, named: "Template")
+        else {
+            Issue.record("One publication must survive authoring/replayed results"); return
+        }
+        #expect(source.id == replay.id)
+        #expect(source.editorCaretUTF16 == 0 && replay.editorCaretUTF16 == 0)
+        #expect(try source.matchesPublishedItem(at: source.url))
+        try Data("replacement".utf8).write(to: source.url, options: .atomic)
+        #expect(try !source.matchesPublishedItem(at: source.url))
+        #expect(try !replay.matchesPublishedItem(at: replay.url))
+        try FileManager.default.removeItem(at: source.url)
+        let nextPlan = try workspace.prepareTemplateSource(in: folder, assigningTo: folder)
+        guard case .assigned(let next) = workspace.createTemplateSource(nextPlan, named: "Template") else {
+            Issue.record("A new publication may legitimately reuse the URL"); return
+        }
+        #expect(next.url == source.url && next.id != source.id)
+        #expect(try next.matchesPublishedItem(at: next.url))
+        #expect(try !source.matchesPublishedItem(at: next.url))
+    }
+
     @Test func inheritedSourceIsAnOrdinaryDocumentAndAuthoringOverridesOnlyTheEditedFolder() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "ancestor", "existing.md": "keep"])

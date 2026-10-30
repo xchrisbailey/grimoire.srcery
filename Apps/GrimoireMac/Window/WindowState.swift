@@ -41,6 +41,7 @@ final class WindowState {
     private(set) var selectedLooseFile: LooseFile.ID?
     private(set) var document: OpenDocument?
     var deferredDocuments: [DeferredDocument] = []
+    @ObservationIgnored var receivedPublications: Set<UUID> = []
     @ObservationIgnored var closeBridge: WindowCloseBridge?
     @ObservationIgnored var presentationID: UUID?
     /// The AppKit window this state is shown in, to bring it forward.
@@ -148,8 +149,8 @@ final class WindowState {
 
     /// Opens `url` in this window, saving and closing whatever was open.
     @discardableResult func select(_ url: URL?, initialEditorMode: EditorMode? = nil) -> Bool {
-        guard url?.standardizedFileURL != selectedFile?.standardizedFileURL else {
-            return document != nil || url == nil
+        if url?.standardizedFileURL == selectedFile?.standardizedFileURL, document != nil || url == nil {
+            return true
         }
         guard closeDocument() else { return false }
         selectedFile = url

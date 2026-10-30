@@ -50,10 +50,16 @@ extension Workspace {
             plan.creation, naming: .edited(stem), now: .now, calendar: .current, operations: operations)
         {
         case .published(let source):
-            published = PublishedDocument(url: source.url, editorCaretUTF16: 0)
+            var adapted = source
+            adapted.editorCaretUTF16 = 0
+            published = adapted
         case .publishedButUnavailable(let url):
+            var source =
+                publishedCreations[plan.creation.id]
+                ?? PublishedDocument(id: plan.creation.id, url: url, editorCaretUTF16: nil, verified: false)
+            source.editorCaretUTF16 = 0
             let result = TemplateAuthoringResult.unassigned(
-                PublishedDocument(url: url, editorCaretUTF16: 0), TemplateAuthoringError.contextChanged)
+                source, TemplateAuthoringError.contextChanged)
             templateAuthoringResults[plan.creation.id] = result
             return result
         case .invalidName(let error): return .failed(error)

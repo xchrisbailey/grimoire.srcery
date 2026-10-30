@@ -285,8 +285,12 @@ extension Workspace {
 
     /// Authorizes atomic replacement only after relevant recovery evidence is durably retired.
     /// Does not reconcile unrelated intent or take ownership of the document.
+    /// Foreign project intent denies the write until its owning workspace reconciles it.
     public func authorizeDocumentSave(at url: URL) throws {
         guard library.loadError == nil, let project else { throw LifecycleError.pendingRepair }
+        try library.requireNoForeignPendingSave(
+            at: url, requesting: projectID,
+            accessibleRoots: folders.compactMap(\.url), caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
         for operation in project.pendingLifecycleOperations {
             let root =
                 self.url(for: FileReference(rootID: operation.source.rootID, relativePath: ""))
