@@ -38,13 +38,20 @@ extension Workspace {
         let target = destination.resolvingSymlinksInPath()
         let identity = try LifecycleIdentity(target)
         _ = try FileManager.default.contentsOfDirectory(atPath: target.path)
-        try requireNoPendingLifecycle(at: target)
+        // Picking the very folder a stuck relocation recorded for this binding is how an unresolvable
+        // bookmark is repaired. A different folder, or a root recorded only through references, stays refused.
+        let exempt = Set(
+            project.pendingLifecycleOperations
+                .filter { $0.kind != .trash && $0.rootIdentities[rootID] == identity }.map(\.id))
+        try requireNoPendingLifecycle(at: target, excluding: exempt)
         if let previous = folders.first(where: { $0.id == rootID })?.url {
-            try requireNoPendingLifecycle(at: previous)
+            try requireNoPendingLifecycle(at: previous, excluding: exempt)
         }
         guard
             !project.pendingLifecycleOperations.contains(where: { operation in
-                operation.rootIdentities[rootID] != nil || operation.recordReferences.contains { $0.rootID == rootID }
+                !exempt.contains(operation.id)
+                    && (operation.rootIdentities[rootID] != nil
+                        || operation.recordReferences.contains { $0.rootID == rootID })
             })
         else {
             throw LifecycleError.pendingRepair
@@ -54,11 +61,11 @@ extension Workspace {
             if case .useSource(let source) = assignment.choice { return source.rootID == rootID }
             return false
         }
-        for assignment in affected { try requireAvailableTemplateDependency(assignment) }
+        for assignment in affected { try requireAvailableTemplateDependency(assignment, excluding: exempt) }
         let previousIdentity = previousRootIdentity(root)
         return RootAccessPlan(
             root: root, destination: destination, affectedAssignments: affected,
-            requiresConfirmation: !affected.isEmpty && previousIdentity != identity,
+            requiresConfirmation: !affected.isEmpty && previousIdentity != identity && exempt.isEmpty,
             projectID: projectID, roots: project.roots, destinationIdentity: identity)
     }
 

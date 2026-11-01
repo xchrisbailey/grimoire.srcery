@@ -26,6 +26,30 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: target.appending(path: "posts").path))
     }
 
+    @Test(arguments: [false, true])
+    func unavailableOuterRootNamesItselfWhenAnInnerItemMoves(rename: Bool) async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["inner/keep.md": "original"])
+        defer { workspace.deactivate() }
+        let inner = scratch.url.appending(path: "notes/inner")
+        let elsewhere = try scratch.folder("notes/other")
+        let outer = try #require(workspace.project?.roots.first)
+        try library.bindFolder(inner, to: workspace.projectID)
+        try library.update(workspace.projectID) { $0.roots[0].bookmark = Data([0]) }
+        let before = library.projects
+        let bytes = try Data(contentsOf: library.storageURL)
+        let file = inner.appending(path: "keep.md")
+        let result = rename ? workspace.rename(file, to: "renamed") : workspace.move(file, into: elsewhere)
+        let expected = LifecycleError.containingFolderUnavailable(outer.displayName)
+        #expect(result.error as? LifecycleError == expected)
+        #expect(result.error?.localizedDescription.contains(outer.displayName) == true)
+        #expect(result.movedURL == nil && result.legacyMovedURL == nil)
+        #expect(!workspace.hasPendingLifecycleOperations)
+        #expect(library.projects == before)
+        #expect(try Data(contentsOf: library.storageURL) == bytes)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "original")
+    }
+
     @Test(arguments: ["filesystem", "record", "unavailable", "intent save", "filesystem failure", "cross volume"])
     func rejectedMovePreservesFilesAndBothConfigurations(reason: String) async throws {
         let scratch = try Scratch()

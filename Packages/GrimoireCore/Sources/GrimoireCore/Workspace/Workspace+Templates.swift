@@ -2,8 +2,10 @@ import Darwin
 import Foundation
 
 extension Workspace {
-    func requireAvailableTemplateDependency(_ assignment: FolderTemplateAssignment) throws {
-        for operation in project?.pendingLifecycleOperations ?? [] {
+    func requireAvailableTemplateDependency(
+        _ assignment: FolderTemplateAssignment, excluding exempt: Set<UUID> = []
+    ) throws {
+        for operation in project?.pendingLifecycleOperations ?? [] where !exempt.contains(operation.id) {
             if operation.touches(assignment)
                 || (operation.before + operation.after).contains(where: { $0.owner == assignment.owner })
             {
@@ -11,9 +13,9 @@ extension Workspace {
             }
         }
         // Check recorded reservations before resolving a source alias or opening saved bytes.
-        if let owner = url(for: assignment.owner) { try requireNoPendingLifecycle(at: owner) }
+        if let owner = url(for: assignment.owner) { try requireNoPendingLifecycle(at: owner, excluding: exempt) }
         if case .useSource(let reference) = assignment.choice, let source = url(for: reference) {
-            try requireNoPendingLifecycle(at: source)
+            try requireNoPendingLifecycle(at: source, excluding: exempt)
         }
     }
 

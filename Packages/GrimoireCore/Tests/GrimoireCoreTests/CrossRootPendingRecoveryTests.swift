@@ -33,6 +33,39 @@ import Testing
         #expect(try String(contentsOf: moved, encoding: .utf8) == "original {title}")
     }
 
+    @Test(arguments: ["source", "destination", "projection"])
+    func regrantingTheRecordedFolderLetsAStuckRelocationReconcile(role: String) async throws {
+        let fixture = try await LifecycleSourceCoordinateFixture()
+        let (intent, result) = try fixture.captureMove(completed: true)
+        let moved = try #require(result.movedURL)
+        fixture.workspace.deactivate()
+        let store = ProjectStore(fileURL: fixture.library.storageURL)
+        try intent.write(to: store.fileURL, options: .atomic)
+        var projects = try store.load()
+        let id =
+            role == "source"
+            ? fixture.innerRootID : role == "destination" ? fixture.destinationRootID : fixture.outerRootID
+        let folder =
+            role == "source"
+            ? fixture.source.deletingLastPathComponent()
+            : role == "destination" ? fixture.target : fixture.scratch.url.appending(path: "notes")
+        let index = try #require(projects[0].roots.firstIndex { $0.id == id })
+        projects[0].roots[index].bookmark = Data([0])
+        try store.save(projects)
+        let restarted = Workspace(projectID: fixture.workspace.projectID, library: ProjectLibrary(store: store))
+        restarted.activate()
+        defer { restarted.deactivate() }
+        #expect(restarted.hasPendingLifecycleOperations)
+        #expect(restarted.folders.first { $0.id == id }?.url == nil)
+        let plan = try restarted.prepareRootAccess(to: id, with: folder)
+        #expect(!plan.requiresConfirmation)
+        try restarted.confirmRootAccess(plan)
+        restarted.reconcileLifecycleOperations()
+        #expect(restarted.lastError == nil)
+        #expect(!restarted.hasPendingLifecycleOperations)
+        #expect(try String(contentsOf: moved, encoding: .utf8) == "original {title}")
+    }
+
     @Test(arguments: [false, true], [false, true])
     func pendingKindsKeepProjectedMissingOrReplacedOwnersActiveWithoutCreationSideEffects(
         trash: Bool, replacement: Bool

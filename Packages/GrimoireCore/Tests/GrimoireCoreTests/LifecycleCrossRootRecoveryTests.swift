@@ -4,6 +4,63 @@ import Testing
 @testable import GrimoireCore
 
 @MainActor @Suite struct LifecycleCrossRootRecoveryTests {
+    @Test func unconfiguredCrossRootMoveWritesNoRecordSoLaterRewritesStaySavable() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])
+        defer { workspace.deactivate() }
+        let posts = scratch.url.appending(path: "notes/posts")
+        let target = try scratch.folder("destination")
+        try library.bindFolder(target, to: workspace.projectID)
+        let directory = library.storageURL.deletingLastPathComponent()
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path) }
+        let bytes = try Data(contentsOf: library.storageURL)
+        // Settings become unwritable right after the physical move, as in a failed final save.
+        workspace.lifecycleOperations.move = { url, folder in
+            let moved = try FileOperations.move(url, into: folder)
+            try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+            return moved
+        }
+        let result = workspace.move(posts, into: target)
+        let moved = try #require(result.movedURL)
+        #expect(result.error == nil)
+        #expect(!workspace.hasPendingLifecycleOperations)
+        #expect(workspace.lifecycleRepairURLs.isEmpty)
+        #expect(try Data(contentsOf: library.storageURL) == bytes)
+        // An editor's atomic save replaces the inode; no record may exist to hold that save.
+        let document = moved.appending(path: "keep.md")
+        try Data("edited".utf8).write(to: document, options: .atomic)
+        try workspace.authorizeDocumentSave(at: document)
+        #expect(try String(contentsOf: document, encoding: .utf8) == "edited")
+    }
+
+    @Test(arguments: [false, true])
+    func storedEmptyBeforeCrossRootRecordsStillReconcile(completed: Bool) async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])
+        let posts = scratch.url.appending(path: "notes/posts")
+        let target = try scratch.folder("destination")
+        let targetRoot = try library.bindFolder(target, to: workspace.projectID)
+        let sourceRoot = try #require(workspace.project?.roots.first?.id)
+        let operation = PendingLifecycleOperation(
+            id: UUID(), projectID: workspace.projectID,
+            source: FileReference(rootID: sourceRoot, relativePath: "posts"),
+            destination: FileReference(rootID: targetRoot.id, relativePath: "posts"),
+            rootIdentity: try LifecycleIdentity(posts.deletingLastPathComponent()),
+            itemIdentity: try LifecycleIdentity(posts),
+            sourceParentIdentity: try LifecycleIdentity(posts.deletingLastPathComponent()),
+            destinationParentIdentity: try LifecycleIdentity(target), before: [], after: [],
+            destinationRootIdentity: try LifecycleIdentity(target), sourceProjections: nil)
+        try library.update(workspace.projectID) { $0.pendingLifecycleOperations.append(operation) }
+        workspace.deactivate()
+        if completed { try FileManager.default.moveItem(at: posts, to: target.appending(path: "posts")) }
+        let restarted = Workspace(
+            projectID: workspace.projectID, library: ProjectLibrary(store: ProjectStore(fileURL: library.storageURL)))
+        restarted.activate()
+        defer { restarted.deactivate() }
+        #expect(restarted.lastError == nil)
+        #expect(!restarted.hasPendingLifecycleOperations)
+    }
+
     @Test(arguments: [false, true])
     func restartCompletesOnlyTheObservedOriginalItemAcrossBothRoots(completed: Bool) async throws {
         let scratch = try Scratch()

@@ -153,7 +153,9 @@ extension Workspace {
                 hasConfiguration: !before.isEmpty)
             return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
         }
-        if before.isEmpty, from.rootID == to.rootID {
+        // Nothing in settings changes, so a record could only strand the item behind a repair lock
+        // if the final save failed. Integration builds stored such records; they still reconcile.
+        if before.isEmpty {
             return LifecyclePreparation(operation: nil, observation: observation)
         }
         try FolderTemplateAssignment.validate(remaining + after)
@@ -250,6 +252,10 @@ extension Workspace {
             // through their last-known paths or let an outer binding silently take over.
             let hint = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
             if try LifecyclePath.overlaps(url, hint, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) {
+                // No record is involved: tell the user which binding to grant instead of asking for a repair.
+                if try LifecyclePath.reference(rootID: root.id, root: hint, url: url) != nil {
+                    throw LifecycleError.containingFolderUnavailable(root.displayName)
+                }
                 throw LifecycleError.pendingRepair
             }
         }
@@ -309,16 +315,17 @@ extension Workspace {
         try library.finishLifecycleOperation(operation, in: projectID, completed: completed)
     }
 
-    func requireNoPendingLifecycle(at url: URL) throws {
+    func requireNoPendingLifecycle(at url: URL, excluding exempt: Set<UUID> = []) throws {
         try library.requireNoForeignPendingSave(
             at: url, requesting: projectID, accessibleRoots: folders.compactMap(\.url),
             caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
-        for operation in project?.pendingLifecycleOperations ?? []
-        where try LifecyclePath.reserves(
-            url, operation: operation, roots: reservationRoots(for: operation),
-            caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
-        {
-            throw LifecycleError.pendingRepair
+        for operation in project?.pendingLifecycleOperations ?? [] where !exempt.contains(operation.id) {
+            if try LifecyclePath.reserves(
+                url, operation: operation, roots: reservationRoots(for: operation),
+                caseSensitiveNames: lifecycleOperations.caseSensitiveNames)
+            {
+                throw LifecycleError.pendingRepair
+            }
         }
     }
 

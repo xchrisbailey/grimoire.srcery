@@ -209,11 +209,16 @@ Check filesystem and destination-record conflicts before mutation, unavailable a
 failed intent/final saves, and selected dirty documents following only verified movement.
 Restart with either root unavailable or either parent replaced: retain intent and block
 conflicting own/foreign-project writes at both recorded paths; retry never moves files.
+A same-volume cross-root move that changes no choice or source reference writes no
+recovery record, so a failed final save leaves nothing to block later atomic saves of the
+moved files; records with no changes stored by integration builds still load and reconcile.
 Both root identities are required to reconcile. Cross-volume moves of folders with template
 choices or source references (including choices on a destination ancestor or descendant) are
 refused before any filesystem or settings change; they never enter the unconfigured legacy
 route. The message says nothing changed and to choose **Inherit** in **Content Template…**
-for the involved folders, then move again; check that doing so lets the move proceed. A move
+for the involved folders, then move again; check that doing so lets the move proceed. An
+unresolved (inactive) choice has no folder to edit, so the message sends the user to
+**Remove Assignment** under **Content Templates** in the sidebar; check that too. A move
 that needs repair still reports repair. Managed cross-volume copy and source retirement are
 deferred to #98. Native GUI verification is still **UNVERIFIED**.
 Outer-root references retained after adding an inner source binding now follow verified
@@ -241,7 +246,14 @@ including unavailable destination bindings that currently own no choices. Pendin
 relocation/trash dependencies must keep missing or non-directory-replaced owners from
 being externally classified or recreated. A verified original-root relocation may still
 reconcile first and then use the normal reviewed regrant flow; last-known paths never
-prove that outcome. These combined native recovery interactions remain **UNVERIFIED**.
+prove that outcome. Regranting the very folder a stuck relocation recorded for that binding
+(source, destination, or source projection) is allowed without confirmation even when the old
+bookmark no longer resolves, after which reconciliation can finish; a different folder, or a
+binding recorded only through choice references (no recorded identity), stays refused. Check
+a stuck move after its destination bookmark stops resolving. When an unavailable bound folder
+contains the item being renamed or moved, the sidebar names that folder and asks for access
+instead of reporting a repair with no paths; nothing changes. These combined native recovery
+interactions remain **UNVERIFIED**.
 
 After a verified move whose final settings save fails, dirty editors follow the moved
 file but must not atomically replace it until observation and settings finalization

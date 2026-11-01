@@ -309,19 +309,28 @@ extension Project {
     }
 }
 
-public enum LifecycleError: Error, LocalizedError {
+public enum LifecycleError: Error, LocalizedError, Equatable {
     case conflict, pendingRepair, unsupportedBoundary, invalidRecord, configurationProtected, unknownNameEquivalence
     case crossVolumeConfiguration
+    /// A bound folder containing the item can't be reached, so ownership can't be decided. Carries its display name.
+    case containingFolderUnavailable(String)
 
     public var errorDescription: String? {
         switch self {
+        case .containingFolderUnavailable(let name):
+            String(
+                localized: """
+                    The bound folder “\(name)” that contains this item is unavailable. Nothing changed. \
+                    Grant access to “\(name)” again, then retry.
+                    """
+            )
         case .crossVolumeConfiguration:
             String(
                 localized: """
                     Folders with template choices can't be moved to another volume. Nothing changed. \
                     In Content Template…, choose Inherit for the choices on this folder, its subfolders, \
                     or the destination, and for any folder that uses a file inside this one as its template. \
-                    Then move it again.
+                    Remove inactive choices with Remove Assignment under Content Templates. Then move it again.
                     """
             )
         case .unknownNameEquivalence:

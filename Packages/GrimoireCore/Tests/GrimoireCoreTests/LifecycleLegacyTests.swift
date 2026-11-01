@@ -6,6 +6,7 @@ import Testing
 private enum LegacyProtection: CaseIterable, Sendable {
     case none, sourceAncestor, descendant, sourceReference, destinationAncestor, destinationDescendant
     case pendingAssignment, destinationPending, inactiveAlias, destinationAlias, sourceOwner
+    case unresolvedDescendant
 
     var needsRepair: Bool { self == .pendingAssignment || self == .destinationPending }
 
@@ -51,6 +52,28 @@ private enum LegacyProtection: CaseIterable, Sendable {
         #expect(library.projects == before)
         #expect(try Data(contentsOf: library.storageURL) == bytes)
         #expect(workspace.hasPendingLifecycleOperations == protection.needsRepair)
+    }
+
+    @Test func removingAnUnresolvedChoiceWithRemoveAssignmentLetsTheCrossVolumeMoveProceed() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["posts/document.md": "legacy bytes"])
+        defer { workspace.deactivate() }
+        let source = scratch.url.appending(path: "notes/posts")
+        let destination = try scratch.folder("other")
+        try library.bindFolder(destination, to: workspace.projectID)
+        try configure(
+            .unresolvedDescendant, destination: destination, workspace: workspace, library: library, scratch: scratch)
+        workspace.lifecycleOperations.isSameVolume = { _, _ in false }
+        let refused = workspace.move(source, into: destination).error
+        #expect(refused as? LifecycleError == .crossVolumeConfiguration)
+        #expect(refused?.localizedDescription.contains("Remove Assignment") == true)
+        // Inherit needs an existing folder, so the recovery section's Remove Assignment is the only exit.
+        let inactive = try #require(workspace.project?.templateAssignments.first { $0.state == .unresolved })
+        try workspace.confirmTemplateRecovery(workspace.prepareTemplateRecovery(inactive, locating: nil))
+        let result = workspace.move(source, into: destination)
+        #expect(result.error == nil)
+        let legacy = try #require(result.legacyMovedURL)
+        #expect(try String(contentsOf: legacy.appending(path: "document.md"), encoding: .utf8) == "legacy bytes")
     }
 
     @Test(arguments: [
@@ -113,6 +136,8 @@ private enum LegacyProtection: CaseIterable, Sendable {
         let source = scratch.url.appending(path: "notes/posts")
         switch protection {
         case .none: break
+        case .unresolvedDescendant:
+            try appendUnresolvedChoice(at: "posts/ghost", workspace: workspace, library: library)
         case .sourceOwner:
             try workspace.disableTemplate(in: source)
         case .sourceAncestor:
@@ -127,23 +152,28 @@ private enum LegacyProtection: CaseIterable, Sendable {
             let ghost = try scratch.folder("other/posts/child")
             try workspace.disableTemplate(in: ghost)
             try FileManager.default.removeItem(at: ghost.deletingLastPathComponent())
-        case .pendingAssignment:
-            try leavePendingSourceMove(workspace, library: library, source: source, scratch: scratch)
-        case .destinationPending:
+        case .pendingAssignment, .destinationPending:
             try leavePendingSourceMove(
-                workspace, library: library, source: source, scratch: scratch, destinationContext: true)
+                workspace, library: library, source: source, scratch: scratch,
+                destinationContext: protection == .destinationPending)
         case .inactiveAlias, .destinationAlias:
-            let alias = scratch.url.appending(path: "notes/alias")
             try FileManager.default.createSymbolicLink(
-                at: alias,
-                withDestinationURL: protection == .inactiveAlias ? source : destination)
-            let root = try #require(workspace.project?.roots.first?.id)
-            try library.update(workspace.projectID) {
-                $0.templateAssignments.append(
-                    FolderTemplateAssignment(
-                        owner: FileReference(rootID: root, relativePath: "alias"), choice: .noTemplate,
-                        state: .unresolved))
-            }
+                at: scratch.url.appending(path: "notes/alias"),
+                withDestinationURL: aliasTarget(protection, source: source, destination: destination))
+            try appendUnresolvedChoice(at: "alias", workspace: workspace, library: library)
+        }
+    }
+
+    private func aliasTarget(_ protection: LegacyProtection, source: URL, destination: URL) -> URL {
+        protection == .inactiveAlias ? source : destination
+    }
+
+    private func appendUnresolvedChoice(at path: String, workspace: Workspace, library: ProjectLibrary) throws {
+        let root = try #require(workspace.project?.roots.first?.id)
+        try library.update(workspace.projectID) {
+            $0.templateAssignments.append(
+                FolderTemplateAssignment(
+                    owner: FileReference(rootID: root, relativePath: path), choice: .noTemplate, state: .unresolved))
         }
     }
 
