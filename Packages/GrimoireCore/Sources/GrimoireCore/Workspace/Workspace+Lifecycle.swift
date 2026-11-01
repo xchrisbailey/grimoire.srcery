@@ -147,7 +147,9 @@ extension Workspace {
             || observation.itemIdentity.device != observation.destinationParentIdentity.device
         {
             try requireLegacyRoute(
-                source: source, destination: destination, from: from, to: to, observation: observation,
+                source: source, destination: destination,
+                distinctRoots: from.rootID != to.rootID
+                    && observation.roots[0].identity != observation.roots[1].identity,
                 hasConfiguration: !before.isEmpty)
             return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
         }
@@ -174,11 +176,9 @@ extension Workspace {
     /// so refuse with advice instead of the generic boundary text. Admission runs first
     /// so a move that needs repair still reports repair, not the advice to change choices.
     private func requireLegacyRoute(
-        source: URL, destination: URL, from: FileReference, to: FileReference,
-        observation: LifecycleObservation, hasConfiguration: Bool
+        source: URL, destination: URL, distinctRoots: Bool, hasConfiguration: Bool
     ) throws {
-        guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity
-        else { throw LifecycleError.unsupportedBoundary }
+        guard distinctRoots else { throw LifecycleError.unsupportedBoundary }
         do {
             try requireLegacyAdmission(source: source, destination: destination)
         } catch LifecycleError.configurationProtected {
