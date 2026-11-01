@@ -146,17 +146,9 @@ extension Workspace {
         if try !lifecycleOperations.isSameVolume(source, destination.deletingLastPathComponent())
             || observation.itemIdentity.device != observation.destinationParentIdentity.device
         {
-            guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity
-            else { throw LifecycleError.unsupportedBoundary }
-            // Without a managed copy there is no way to carry configuration across volumes,
-            // so refuse with advice instead of the generic boundary text. Admission runs first
-            // so a move that needs repair still reports repair, not the advice to change choices.
-            do {
-                try requireLegacyAdmission(source: source, destination: destination)
-            } catch LifecycleError.configurationProtected {
-                throw LifecycleError.crossVolumeConfiguration
-            }
-            guard before.isEmpty else { throw LifecycleError.crossVolumeConfiguration }
+            try requireLegacyRoute(
+                source: source, destination: destination, from: from, to: to, observation: observation,
+                hasConfiguration: !before.isEmpty)
             return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
         }
         if before.isEmpty, from.rootID == to.rootID {
@@ -176,6 +168,23 @@ extension Workspace {
             throw LifecycleError.pendingRepair
         }
         return LifecyclePreparation(operation: operation, observation: observation)
+    }
+
+    /// Without a managed copy there is no way to carry configuration across volumes,
+    /// so refuse with advice instead of the generic boundary text. Admission runs first
+    /// so a move that needs repair still reports repair, not the advice to change choices.
+    private func requireLegacyRoute(
+        source: URL, destination: URL, from: FileReference, to: FileReference,
+        observation: LifecycleObservation, hasConfiguration: Bool
+    ) throws {
+        guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity
+        else { throw LifecycleError.unsupportedBoundary }
+        do {
+            try requireLegacyAdmission(source: source, destination: destination)
+        } catch LifecycleError.configurationProtected {
+            throw LifecycleError.crossVolumeConfiguration
+        }
+        guard !hasConfiguration else { throw LifecycleError.crossVolumeConfiguration }
     }
 
     private func validateDestinationChoices(_ assignments: [FolderTemplateAssignment], destination: URL) throws {

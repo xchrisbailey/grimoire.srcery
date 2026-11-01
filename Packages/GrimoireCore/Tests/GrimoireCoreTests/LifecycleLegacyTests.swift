@@ -40,7 +40,7 @@ private enum LegacyProtection: CaseIterable, Sendable {
             #expect(try String(contentsOf: legacy.appending(path: "document.md"), encoding: .utf8) == "legacy bytes")
         } else {
             #expect(result.error != nil)
-            // Repair and destination conflicts keep their own messages; other configured cases name the cross-volume refusal.
+            // Repair and destination conflicts keep their own messages; the rest name the cross-volume refusal.
             #expect(result.error as? LifecycleError == protection.refusal)
             #expect(result.legacyMovedURL == nil)
             #expect(FileManager.default.fileExists(atPath: source.path))
