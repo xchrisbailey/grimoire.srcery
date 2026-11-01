@@ -245,7 +245,7 @@ extension Workspace {
         return root
     }
 
-    /// `isItem` marks the moved item itself: a bound root's own folder can't be moved, and granting access wouldn't help.
+    /// `isItem` marks the moved item: a bound root's own folder can't be moved, and granting access won't help.
     func lifecycleReference(for url: URL, isItem: Bool = false) throws -> FileReference? {
         let roots = templateRoots
         for root in project?.roots ?? [] where !roots.contains(where: { $0.id == root.id }) {
