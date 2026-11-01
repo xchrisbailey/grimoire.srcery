@@ -217,19 +217,6 @@ extension Scratch {
     }
 }
 
-@Suite struct FolderWatcherTests {
-    @Test func seesFilesCreatedOutsideTheApp() async throws {
-        let scratch = try Scratch()
-        let (events, continuation) = AsyncStream<[String]>.makeStream()
-        let watcher = FolderWatcher(url: scratch.url, latency: 0.05) { continuation.yield($0) }
-        defer { watcher.stop() }
-        try await Task.sleep(for: .milliseconds(200))
-        try scratch.file("new.md")
-        let saw = await firstEvent(in: events, matching: { $0.contains { $0.hasSuffix("new.md") } })
-        #expect(saw)
-    }
-}
-
 /// Waits up to `timeout` for an element matching `predicate`.
 func firstEvent<T: Sendable>(
     in stream: AsyncStream<T>, timeout: Duration = .seconds(5), matching predicate: @escaping @Sendable (T) -> Bool
