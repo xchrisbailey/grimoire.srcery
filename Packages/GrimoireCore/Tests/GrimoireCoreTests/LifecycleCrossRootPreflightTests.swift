@@ -50,6 +50,49 @@ import Testing
         #expect(try String(contentsOf: file, encoding: .utf8) == "original")
     }
 
+    @Test func movingAnUnavailableBoundRootsOwnFolderIsUnsupportedBecauseRegrantingCannotHelp() async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["inner/keep.md": "original"])
+        defer { workspace.deactivate() }
+        let inner = scratch.url.appending(path: "notes/inner")
+        let elsewhere = try scratch.folder("notes/other")
+        let root = try library.bindFolder(inner, to: workspace.projectID)
+        let index = try #require(workspace.project?.roots.firstIndex { $0.id == root.id })
+        try library.update(workspace.projectID) { $0.roots[index].bookmark = Data([0]) }
+        let before = library.projects
+        let bytes = try Data(contentsOf: library.storageURL)
+        let result = workspace.move(inner, into: elsewhere)
+        #expect(result.error as? LifecycleError == .unsupportedBoundary)
+        #expect(result.movedURL == nil && result.legacyMovedURL == nil)
+        #expect(library.projects == before)
+        #expect(try Data(contentsOf: library.storageURL) == bytes)
+        #expect(try String(contentsOf: inner.appending(path: "keep.md"), encoding: .utf8) == "original")
+    }
+
+    @Test(arguments: ["", "sub"])
+    func unavailableDestinationFolderIsNamedWithoutClaimingItContainsTheItem(subfolder: String) async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: ["file.md": "original", "inner/sub/keep.md": "x"])
+        defer { workspace.deactivate() }
+        let inner = scratch.url.appending(path: "notes/inner")
+        let root = try library.bindFolder(inner, to: workspace.projectID)
+        let index = try #require(workspace.project?.roots.firstIndex { $0.id == root.id })
+        try library.update(workspace.projectID) { $0.roots[index].bookmark = Data([0]) }
+        let before = library.projects
+        let bytes = try Data(contentsOf: library.storageURL)
+        let file = scratch.url.appending(path: "notes/file.md")
+        let destination = subfolder.isEmpty ? inner : inner.appending(path: subfolder)
+        let result = workspace.move(file, into: destination)
+        let error = try #require(result.error as? LifecycleError)
+        #expect(error == .containingFolderUnavailable(root.displayName))
+        let message = error.localizedDescription
+        #expect(message.contains(root.displayName) && message.contains("so this move can't be checked"))
+        #expect(!message.contains("contains this item"))
+        #expect(library.projects == before)
+        #expect(try Data(contentsOf: library.storageURL) == bytes)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "original")
+    }
+
     @Test(arguments: ["filesystem", "record", "unavailable", "intent save", "filesystem failure", "cross volume"])
     func rejectedMovePreservesFilesAndBothConfigurations(reason: String) async throws {
         let scratch = try Scratch()

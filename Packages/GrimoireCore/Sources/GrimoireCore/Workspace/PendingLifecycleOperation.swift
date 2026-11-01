@@ -312,15 +312,24 @@ extension Project {
 public enum LifecycleError: Error, LocalizedError, Equatable {
     case conflict, pendingRepair, unsupportedBoundary, invalidRecord, configurationProtected, unknownNameEquivalence
     case crossVolumeConfiguration
-    /// A bound folder containing the item can't be reached, so ownership can't be decided. Carries its display name.
+    /// A bound folder holding the item or its destination can't be reached, so ownership can't be decided.
     case containingFolderUnavailable(String)
+    /// The recorded folder was found at a different path while a move still needs repair. Carries its original path.
+    case movedWhileRepairing(String)
 
     public var errorDescription: String? {
         switch self {
+        case .movedWhileRepairing(let path):
+            String(
+                localized: """
+                    This folder was moved while a move still needs repair. Nothing changed. \
+                    Put it back at “\(path)”, then grant access again.
+                    """
+            )
         case .containingFolderUnavailable(let name):
             String(
                 localized: """
-                    The bound folder “\(name)” that contains this item is unavailable. Nothing changed. \
+                    The bound folder “\(name)” is unavailable, so this move can't be checked. Nothing changed. \
                     Grant access to “\(name)” again, then retry.
                     """
             )

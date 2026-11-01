@@ -25,7 +25,8 @@ extension ProjectLibrary {
                     root.lastKnownPath == old.root(reference.rootID)?.lastKnownPath
                 else { throw LifecycleError.pendingRepair }
                 // A recorded identity was already matched against the replacement above, which is the only
-                // proof available when the previous bookmark no longer resolves.
+                // proof available when the previous bookmark no longer resolves. This relies on
+                // validatePendingRootEdits having run first.
                 if let previous = old.root(reference.rootID), previous.bookmark != root.bookmark,
                     operation.rootIdentities[reference.rootID] == nil
                 {

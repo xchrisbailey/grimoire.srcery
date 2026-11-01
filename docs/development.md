@@ -248,11 +248,14 @@ being externally classified or recreated. A verified original-root relocation ma
 reconcile first and then use the normal reviewed regrant flow; last-known paths never
 prove that outcome. Regranting the very folder a stuck relocation recorded for that binding
 (source, destination, or source projection) is allowed without confirmation even when the old
-bookmark no longer resolves, after which reconciliation can finish; a different folder, or a
-binding recorded only through choice references (no recorded identity), stays refused. Check
+bookmark no longer resolves, after which reconciliation can finish, but only while that folder
+is still at the binding's last-known path. The same folder at a new path is refused, naming the
+original path to put it back at; a different folder, or a binding recorded only through choice
+references (no recorded identity), stays refused. Check
 a stuck move after its destination bookmark stops resolving. When an unavailable bound folder
-contains the item being renamed or moved, the sidebar names that folder and asks for access
-instead of reporting a repair with no paths; nothing changes. These combined native recovery
+holds the item being renamed or moved, or the destination, the sidebar names that folder and
+asks for access instead of reporting a repair with no paths; nothing changes. Dragging an
+unavailable bound root's own folder is unsupported, since granting access would not help. These combined native recovery
 interactions remain **UNVERIFIED**.
 
 After a verified move whose final settings save fails, dirty editors follow the moved

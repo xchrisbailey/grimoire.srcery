@@ -66,6 +66,36 @@ import Testing
         #expect(try String(contentsOf: moved, encoding: .utf8) == "original {title}")
     }
 
+    @Test func regrantingTheRecordedFolderAtANewPathIsRefusedBeforeAnythingChanges() async throws {
+        let fixture = try await LifecycleSourceCoordinateFixture()
+        let (intent, _) = try fixture.captureMove(completed: true)
+        fixture.workspace.deactivate()
+        let store = ProjectStore(fileURL: fixture.library.storageURL)
+        try intent.write(to: store.fileURL, options: .atomic)
+        var projects = try store.load()
+        let index = try #require(projects[0].roots.firstIndex { $0.id == fixture.destinationRootID })
+        projects[0].roots[index].bookmark = Data([0])
+        let originalPath = projects[0].roots[index].lastKnownPath
+        try store.save(projects)
+        let bytes = try Data(contentsOf: store.fileURL)
+        let restarted = Workspace(projectID: fixture.workspace.projectID, library: ProjectLibrary(store: store))
+        restarted.activate()
+        defer { restarted.deactivate() }
+        let renamed = fixture.scratch.url.appending(path: "destination-renamed")
+        try FileManager.default.moveItem(at: fixture.target, to: renamed)
+        #expect(throws: LifecycleError.movedWhileRepairing(originalPath)) {
+            try restarted.prepareRootAccess(to: fixture.destinationRootID, with: renamed)
+        }
+        #expect(restarted.hasPendingLifecycleOperations)
+        #expect(try Data(contentsOf: store.fileURL) == bytes)
+        // Putting the folder back at the named path is the documented way out.
+        try FileManager.default.moveItem(at: renamed, to: fixture.target)
+        let plan = try restarted.prepareRootAccess(to: fixture.destinationRootID, with: fixture.target)
+        try restarted.confirmRootAccess(plan)
+        restarted.reconcileLifecycleOperations()
+        #expect(!restarted.hasPendingLifecycleOperations)
+    }
+
     @Test(arguments: [false, true], [false, true])
     func pendingKindsKeepProjectedMissingOrReplacedOwnersActiveWithoutCreationSideEffects(
         trash: Bool, replacement: Bool

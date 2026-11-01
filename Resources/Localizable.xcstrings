@@ -124,7 +124,10 @@
     "Folders with template choices can't be moved to another volume. Nothing changed. In Content Template…, choose Inherit for the choices on this folder, its subfolders, or the destination, and for any folder that uses a file inside this one as its template. Remove inactive choices with Remove Assignment under Content Templates. Then move it again." : {
       "extractionState" : "manual"
     },
-    "The bound folder “%@” that contains this item is unavailable. Nothing changed. Grant access to “%@” again, then retry." : {
+    "The bound folder “%@” is unavailable, so this move can't be checked. Nothing changed. Grant access to “%@” again, then retry." : {
+      "extractionState" : "manual"
+    },
+    "This folder was moved while a move still needs repair. Nothing changed. Put it back at “%@”, then grant access again." : {
       "extractionState" : "manual"
     },
     "Invalid folder move recovery record. Repair the project settings before retrying." : {

@@ -122,7 +122,7 @@ extension Workspace {
     }
 
     private func prepareRelocation(_ source: URL, to destination: URL) throws -> LifecyclePreparation {
-        guard let project, let from = try lifecycleReference(for: source),
+        guard let project, let from = try lifecycleReference(for: source, isItem: true),
             let parent = try lifecycleReference(for: destination.deletingLastPathComponent()),
             !from.relativePath.isEmpty
         else { throw LifecycleError.unsupportedBoundary }
@@ -245,7 +245,8 @@ extension Workspace {
         return root
     }
 
-    func lifecycleReference(for url: URL) throws -> FileReference? {
+    /// `isItem` marks the moved item itself: a bound root's own folder can't be moved, and granting access wouldn't help.
+    func lifecycleReference(for url: URL, isItem: Bool = false) throws -> FileReference? {
         let roots = templateRoots
         for root in project?.roots ?? [] where !roots.contains(where: { $0.id == root.id }) {
             // Inaccessible bindings can deny an ambiguous boundary, never grant ownership
@@ -253,7 +254,8 @@ extension Workspace {
             let hint = (try? FolderBookmark.resolve(root.bookmark).url) ?? root.lastKnownURL
             if try LifecyclePath.overlaps(url, hint, caseSensitiveNames: lifecycleOperations.caseSensitiveNames) {
                 // No record is involved: tell the user which binding to grant instead of asking for a repair.
-                if try LifecyclePath.reference(rootID: root.id, root: hint, url: url) != nil {
+                if let inside = try LifecyclePath.reference(rootID: root.id, root: hint, url: url) {
+                    if isItem, inside.relativePath.isEmpty { throw LifecycleError.unsupportedBoundary }
                     throw LifecycleError.containingFolderUnavailable(root.displayName)
                 }
                 throw LifecycleError.pendingRepair
