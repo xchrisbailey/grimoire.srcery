@@ -209,10 +209,13 @@ Check filesystem and destination-record conflicts before mutation, unavailable a
 failed intent/final saves, and selected dirty documents following only verified movement.
 Restart with either root unavailable or either parent replaced: retain intent and block
 conflicting own/foreign-project writes at both recorded paths; retry never moves files.
-Both root identities are required to reconcile. Managed cross-volume moves remain blocked
-pending the separately approved copy/publication/source-retirement contract; they must not
-enter the genuinely unconfigured legacy route. This is a #92 implementation checkpoint,
-not completion of its cross-volume acceptance criteria or native GUI verification.
+Both root identities are required to reconcile. Cross-volume moves of folders with template
+choices or source references (including choices on a destination ancestor or descendant) are
+refused before any filesystem or settings change; they never enter the unconfigured legacy
+route. The message says nothing changed and to choose **Inherit** in **Content Template…**
+for the involved folders, then move again; check that doing so lets the move proceed. A move
+that needs repair still reports repair. Managed cross-volume copy and source retirement are
+deferred to #98. Native GUI verification is still **UNVERIFIED**.
 Outer-root references retained after adding an inner source binding now follow verified
 same-volume moves through recorded alternative source coordinates. Only affected
 coordinates and their observed bound-root identities are recorded. Each must project
@@ -222,7 +225,7 @@ outer-owned choices and inner-owned choices/sources, including unresolved choice
 must remain inactive. Unavailable alternative roots or substituted projection parents
 retain repair and both-root/alias save reservations. Malformed projections must report
 settings diagnostics without replacing the original store. Native checks remain
-**UNVERIFIED**; cross-volume completion is still awaiting the user's policy decision.
+**UNVERIFIED**; configured cross-volume moves are refused for now (#98).
 
 Recovery records distinguish relocation from trash. An absent operation kind remains
 a legacy relocation; explicit null/unknown kinds or malformed optional fields must

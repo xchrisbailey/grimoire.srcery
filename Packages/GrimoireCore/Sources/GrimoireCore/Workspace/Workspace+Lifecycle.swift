@@ -146,10 +146,17 @@ extension Workspace {
         if try !lifecycleOperations.isSameVolume(source, destination.deletingLastPathComponent())
             || observation.itemIdentity.device != observation.destinationParentIdentity.device
         {
-            guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity,
-                before.isEmpty
+            guard from.rootID != to.rootID, observation.roots[0].identity != observation.roots[1].identity
             else { throw LifecycleError.unsupportedBoundary }
-            try requireLegacyAdmission(source: source, destination: destination)
+            // Without a managed copy there is no way to carry configuration across volumes,
+            // so refuse with advice instead of the generic boundary text. Admission runs first
+            // so a move that needs repair still reports repair, not the advice to change choices.
+            do {
+                try requireLegacyAdmission(source: source, destination: destination)
+            } catch LifecycleError.configurationProtected {
+                throw LifecycleError.crossVolumeConfiguration
+            }
+            guard before.isEmpty else { throw LifecycleError.crossVolumeConfiguration }
             return LifecyclePreparation(operation: nil, observation: observation, isLegacy: true)
         }
         if before.isEmpty, from.rootID == to.rootID {

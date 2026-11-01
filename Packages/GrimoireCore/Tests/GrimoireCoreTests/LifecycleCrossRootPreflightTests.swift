@@ -63,6 +63,7 @@ import Testing
             let result = workspace.move(posts, into: target)
             #expect(result.movedURL == nil && result.legacyMovedURL == nil && result.error != nil)
             if reason == "record" { #expect(result.error as? LifecycleError == .conflict) }
+            if reason == "cross volume" { #expect(result.error as? LifecycleError == .crossVolumeConfiguration) }
         }
         #expect(library.projects == before)
         #expect(try Data(contentsOf: store.fileURL) == bytes)

@@ -69,7 +69,7 @@ Assignments belong to a project. The nearest explicit folder choice wins within 
 49. As a writer, I want failed creation to preserve existing files, sources, and assignments, so that recovery does not put my data at risk.
 50. As a writer, I want only complete documents published and opened, so that partial writes are not presented as successful creation.
 51. As a writer, I want an open failure after successful publication distinguished from creation failure, so that retry does not create duplicates or delete the created document.
-52. As a writer, I want explicit choices to follow in-app folder renames and moves, including descendants and cross-root moves, so that reorganizing folders preserves deliberate configuration.
+52. As a writer, I want explicit choices to follow in-app folder renames and moves, including descendants and cross-root moves, so that reorganizing folders preserves deliberate configuration. (Cross-root moves to another volume are refused for now when configured; see the lifecycle table and #98.)
 53. As a writer, I want inherited behavior recalculated after a move, so that a folder without an explicit choice follows its new surroundings.
 54. As a writer, I want assignment conflicts explained before a move, so that neither side's configuration is silently overwritten.
 55. As a writer, I want source references to follow in-app source moves, so that source reorganization does not break every assignment using it.
@@ -239,7 +239,7 @@ Failed destination writes must preserve existing documents, source files, and as
 
 | Event | Required behavior |
 | --- | --- |
-| In-app folder rename/move | Carry explicit choices and descendant choices, including across bound roots in the same project. Recompute inherited behavior at the destination. |
+| In-app folder rename/move | Carry explicit choices and descendant choices, including across bound roots in the same project. Recompute inherited behavior at the destination. Cross-root migration applies to same-volume moves; for now a move to another volume is refused, with nothing changed, when it involves template choices or source references (managed copy is deferred to [#98](https://github.com/xchrisbailey/grimoire.srcery/issues/98)). Unconfigured cross-volume moves keep their existing route. |
 | Destination-side assignment conflict | Stop before moving anything; explain the conflict and require resolution without overwriting either configuration. |
 | In-app source rename/move | Update all affected source references in the active project while the source remains in its bound folders. |
 | Same bound root relocated | Preserve assignments and source references when the bookmark still identifies that root. |

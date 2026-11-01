@@ -5,7 +5,14 @@ import Testing
 
 private enum LegacyProtection: CaseIterable, Sendable {
     case none, sourceAncestor, descendant, sourceReference, destinationAncestor, destinationDescendant
-    case pendingAssignment, destinationPending, inactiveAlias, destinationAlias
+    case pendingAssignment, destinationPending, inactiveAlias, destinationAlias, sourceOwner
+
+    var needsRepair: Bool { self == .pendingAssignment || self == .destinationPending }
+
+    /// A ghost destination record is an ordinary destination conflict, rejected before the volume check.
+    var refusal: LifecycleError {
+        needsRepair ? .pendingRepair : self == .destinationDescendant ? .conflict : .crossVolumeConfiguration
+    }
 }
 
 @MainActor @Suite struct LifecycleLegacyTests {
@@ -33,15 +40,50 @@ private enum LegacyProtection: CaseIterable, Sendable {
             #expect(try String(contentsOf: legacy.appending(path: "document.md"), encoding: .utf8) == "legacy bytes")
         } else {
             #expect(result.error != nil)
+            // Repair and destination conflicts keep their own messages; other configured cases name the cross-volume refusal.
+            #expect(result.error as? LifecycleError == protection.refusal)
             #expect(result.legacyMovedURL == nil)
             #expect(FileManager.default.fileExists(atPath: source.path))
+            #expect(
+                try String(contentsOf: source.appending(path: "document.md"), encoding: .utf8) == "legacy bytes")
             #expect(!FileManager.default.fileExists(atPath: destination.appending(path: "posts").path))
         }
         #expect(library.projects == before)
         #expect(try Data(contentsOf: library.storageURL) == bytes)
-        #expect(
-            workspace.hasPendingLifecycleOperations
-                == (protection == .pendingAssignment || protection == .destinationPending))
+        #expect(workspace.hasPendingLifecycleOperations == protection.needsRepair)
+    }
+
+    @Test(arguments: [
+        LegacyProtection.sourceOwner, .sourceAncestor, .descendant, .sourceReference, .destinationAncestor,
+    ])
+    private func removingTheNamedChoicesLetsTheCrossVolumeMoveProceed(protection: LegacyProtection) async throws {
+        let scratch = try Scratch()
+        let (workspace, library) = try await scratch.workspace(files: [
+            "posts/document.md": "legacy bytes", "template.md": "template",
+        ])
+        defer { workspace.deactivate() }
+        let notes = scratch.url.appending(path: "notes")
+        let source = notes.appending(path: "posts")
+        let destination = try scratch.folder("other")
+        try library.bindFolder(destination, to: workspace.projectID)
+        try configure(protection, destination: destination, workspace: workspace, library: library, scratch: scratch)
+        workspace.lifecycleOperations.isSameVolume = { _, _ in false }
+        let refused = workspace.move(source, into: destination)
+        #expect(refused.error as? LifecycleError == .crossVolumeConfiguration)
+
+        let owner: URL =
+            switch protection {
+            case .sourceOwner: source
+            case .sourceAncestor: notes
+            case .descendant: source.appending(path: "child")
+            case .sourceReference: notes.appending(path: "owner")
+            default: destination
+            }
+        try workspace.inheritTemplate(in: owner)
+        let result = workspace.move(source, into: destination)
+        #expect(result.error == nil)
+        let legacy = try #require(result.legacyMovedURL)
+        #expect(try String(contentsOf: legacy.appending(path: "document.md"), encoding: .utf8) == "legacy bytes")
     }
 
     @Test(arguments: [false, true])
@@ -71,6 +113,8 @@ private enum LegacyProtection: CaseIterable, Sendable {
         let source = scratch.url.appending(path: "notes/posts")
         switch protection {
         case .none: break
+        case .sourceOwner:
+            try workspace.disableTemplate(in: source)
         case .sourceAncestor:
             try workspace.disableTemplate(in: source.deletingLastPathComponent())
         case .descendant:

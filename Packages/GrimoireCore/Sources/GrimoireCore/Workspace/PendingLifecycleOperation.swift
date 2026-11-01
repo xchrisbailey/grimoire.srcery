@@ -311,9 +311,15 @@ extension Project {
 
 public enum LifecycleError: Error, LocalizedError {
     case conflict, pendingRepair, unsupportedBoundary, invalidRecord, configurationProtected, unknownNameEquivalence
+    case crossVolumeConfiguration
 
     public var errorDescription: String? {
         switch self {
+        case .crossVolumeConfiguration:
+            String(
+                localized:
+                    "Folders with template choices can't be moved to another volume. Nothing changed. In Content Template…, choose Inherit for the choices on this folder, its subfolders, or the destination, and for any folder that uses a file inside this one as its template. Then move it again."
+            )
         case .unknownNameEquivalence:
             String(
                 localized:

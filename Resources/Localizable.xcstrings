@@ -121,6 +121,9 @@
     "This move crosses an unsupported filesystem or bound-root boundary. Nothing changed." : {
       "extractionState" : "manual"
     },
+    "Folders with template choices can't be moved to another volume. Nothing changed. In Content Template…, choose Inherit for the choices on this folder, its subfolders, or the destination, and for any folder that uses a file inside this one as its template. Then move it again." : {
+      "extractionState" : "manual"
+    },
     "Invalid folder move recovery record. Repair the project settings before retrying." : {
       "extractionState" : "manual"
     },
