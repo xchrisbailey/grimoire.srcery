@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateRecoveryAccessTests {
+@MainActor @Suite(.mainActorGate) struct TemplateRecoveryAccessTests {
     @Test(arguments: [false, true], [0o000, 0o400, 0o100])
     func locateRequiresLiveReadAndTraversalBeforeConsumingRecovery(prepareBeforeLoss: Bool, permissions: Int)
         async throws

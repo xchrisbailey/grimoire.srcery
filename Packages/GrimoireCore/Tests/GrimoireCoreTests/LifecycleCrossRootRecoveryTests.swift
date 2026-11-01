@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleCrossRootRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleCrossRootRecoveryTests {
     @Test func unconfiguredCrossRootMoveWritesNoRecordSoLaterRewritesStaySavable() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])

@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TrashRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct TrashRecoveryTests {
     @Test func successfulFilesystemReturnForReplacementDoesNotAuthorizeOriginalSelectionCleanup() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "original"])

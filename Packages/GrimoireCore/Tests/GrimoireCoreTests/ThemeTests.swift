@@ -298,7 +298,7 @@ extension Scratch {
     }
 }
 
-@MainActor @Suite struct ThemeLibraryTests {
+@MainActor @Suite(.mainActorGate) struct ThemeLibraryTests {
     let fixture = TestPreferences()
 
     func makeLibrary(_ scratch: Scratch) -> (ThemeLibrary, UserDefaults) {

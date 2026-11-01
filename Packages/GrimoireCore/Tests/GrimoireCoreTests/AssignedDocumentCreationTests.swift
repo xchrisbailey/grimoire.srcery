@@ -4,7 +4,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct AssignedDocumentCreationTests {
+@MainActor @Suite(.mainActorGate) struct AssignedDocumentCreationTests {
     @Test(arguments: ["", " ", " name", "name ", ".", "..", ".hidden", "a/b", "a\\b", "a\n", "a\0b", "a\u{7f}b"])
     func invalidLiteralNamesAndCancellationHaveNoSideEffects(_ name: String) async throws {
         let scratch = try Scratch()

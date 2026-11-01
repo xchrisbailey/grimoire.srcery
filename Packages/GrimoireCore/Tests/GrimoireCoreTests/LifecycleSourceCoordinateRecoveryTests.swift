@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleSourceCoordinateRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleSourceCoordinateRecoveryTests {
     @Test(arguments: [
         "missing", "null", "empty", "wrong type", "duplicate", "unknown root", "primary root", "invalid identity",
         "broader prefix", "traversal",

@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplatePersistenceTests {
+@MainActor @Suite(.mainActorGate) struct TemplatePersistenceTests {
     nonisolated private static let root = "6F9619FF-8B86-D011-B42D-00C04FC964FF"
     nonisolated private static let owner = "\"owner\":{\"rootID\":\"\(root)\",\"relativePath\":\"\"}"
     nonisolated private static let source = "\"source\":{\"rootID\":\"\(root)\",\"relativePath\":\"base.md\"}"

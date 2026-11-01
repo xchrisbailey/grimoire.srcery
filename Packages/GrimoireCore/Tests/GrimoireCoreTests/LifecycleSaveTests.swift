@@ -5,7 +5,7 @@ import Testing
 
 private enum PendingSaveAttempt: CaseIterable, Sendable { case manual, autosave, keepMine }
 
-@MainActor @Suite struct LifecycleSaveTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleSaveTests {
     @Test(arguments: [false, true])
     func crossRootPendingSubtreeProtectsDirtyEditorsInBothProjects(separateProject: Bool) async throws {
         let fixture = try await PendingSaveFixture(

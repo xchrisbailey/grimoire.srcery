@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateAuthoringTests {
+@MainActor @Suite(.mainActorGate) struct TemplateAuthoringTests {
     @Test func publicationIdentitySurvivesReplayAndAuthoringCaretAdaptation() async throws {
         let scratch = try Scratch()
         let (workspace, _) = try await scratch.workspace()

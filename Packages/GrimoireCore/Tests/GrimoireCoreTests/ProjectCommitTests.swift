@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct ProjectCommitTests {
+@MainActor @Suite(.mainActorGate) struct ProjectCommitTests {
     enum Edit: CaseIterable {
         case create, delete, settings, bind, unbind, alias, bookmark, addLoose, removeLoose, looseBookmark
     }

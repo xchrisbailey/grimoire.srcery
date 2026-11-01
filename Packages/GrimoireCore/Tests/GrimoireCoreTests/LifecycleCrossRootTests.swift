@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleCrossRootTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleCrossRootTests {
     @Test func configuredSubtreeAndSharedSourcesFollowTheMostSpecificDestinationRoot() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: [

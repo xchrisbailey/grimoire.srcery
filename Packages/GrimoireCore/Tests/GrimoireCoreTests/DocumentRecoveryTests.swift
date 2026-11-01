@@ -4,7 +4,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct DocumentRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct DocumentRecoveryTests {
     enum SourceLoss: CaseIterable { case missing, inaccessible, outsideLink }
 
     @Test(arguments: SourceLoss.allCases)

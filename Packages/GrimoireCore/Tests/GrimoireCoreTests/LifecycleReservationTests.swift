@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleReservationTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleReservationTests {
     @Test(arguments: [false, true], [false, true])
     func pendingAssignmentBlocksItsOtherEndpointBeforeRenameOrDrag(ownerPending: Bool, rename: Bool) async throws {
         let fixture = try await ReservationFixture()

@@ -4,7 +4,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct ContentPlaceholderCreationTests {
+@MainActor @Suite(.mainActorGate) struct ContentPlaceholderCreationTests {
     @Test(arguments: [false, true])
     func allocatedTitlesPreserveUnicodeBeforeTheKnownExtension(_ collision: Bool) async throws {
         let scratch = try Scratch()

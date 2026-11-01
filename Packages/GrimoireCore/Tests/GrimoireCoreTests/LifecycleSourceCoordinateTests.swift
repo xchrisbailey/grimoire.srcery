@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleSourceCoordinateTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleSourceCoordinateTests {
     @Test(arguments: [false, true])
     func retainedOuterAndInnerSourceReferencesFollowTheVerifiedMove(destinationIsOuterRoot: Bool) async throws {
         let fixture = try await LifecycleSourceCoordinateFixture(targetWithinOuter: destinationIsOuterRoot)

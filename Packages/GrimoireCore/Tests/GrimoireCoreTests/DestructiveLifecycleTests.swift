@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct DestructiveLifecycleTests {
+@MainActor @Suite(.mainActorGate) struct DestructiveLifecycleTests {
     @Test func trashRemovesSubtreeChoicesButKeepsOtherRootsBrokenAndRestorationUnconfigured() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: [

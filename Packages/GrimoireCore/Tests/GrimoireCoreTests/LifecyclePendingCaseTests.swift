@@ -14,7 +14,7 @@ private enum PendingNameCapability: CaseIterable, Sendable {
     }
 }
 
-@MainActor @Suite struct LifecyclePendingCaseTests {
+@MainActor @Suite(.mainActorGate) struct LifecyclePendingCaseTests {
     @Test func unknownCaseOnlyRenameStopsBeforeMutation() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "original"])
@@ -239,7 +239,7 @@ private enum PendingNameCapability: CaseIterable, Sendable {
     }
 }
 
-@MainActor @Suite struct LifecyclePendingLibraryCaseTests {
+@MainActor @Suite(.mainActorGate) struct LifecyclePendingLibraryCaseTests {
     @Test func directLibraryAliasAssignmentUsesActualVolumeSemantics() async throws {
         let fixture = try await PendingCaseFixture(capability: nil)
         defer { fixture.workspace.deactivate() }

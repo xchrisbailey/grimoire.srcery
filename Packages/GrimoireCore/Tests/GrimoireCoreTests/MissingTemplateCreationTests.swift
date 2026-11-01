@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct MissingTemplateCreationTests {
+@MainActor @Suite(.mainActorGate) struct MissingTemplateCreationTests {
     @Test(arguments: [false, true])
     func failedRetirementSaveBlocksOnlyAffectedCreation(useSource: Bool) async throws {
         let scratch = try Scratch()

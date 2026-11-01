@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleKindCompatibilityTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleKindCompatibilityTests {
     @Test(arguments: [
         "root identity", "projections", "empty projections", "null root", "null projections", "bad root",
         "bad projections", "null kind", "unknown kind", "missing kind",

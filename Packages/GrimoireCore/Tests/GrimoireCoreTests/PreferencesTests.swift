@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct PreferencesTests {
+@MainActor @Suite(.mainActorGate) struct PreferencesTests {
     let fixture = TestPreferences()
 
     func makeDefaults() -> UserDefaults {

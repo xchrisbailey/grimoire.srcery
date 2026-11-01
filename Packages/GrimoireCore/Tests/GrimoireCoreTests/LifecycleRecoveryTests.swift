@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleRecoveryTests {
     @Test(arguments: [false, true], [false, true])
     func replacedSourceDuringMoveCannotCommitConfigurationForTheWrongItem(rename: Bool, configured: Bool) async throws {
         let scratch = try Scratch()

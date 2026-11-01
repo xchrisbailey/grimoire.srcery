@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct RootAccessRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct RootAccessRecoveryTests {
     @Test(arguments: [false, true])
     func relocatedOriginalRootReconcilesPendingIntentWithoutChangingRootGuards(restart: Bool) async throws {
         let scratch = try Scratch()

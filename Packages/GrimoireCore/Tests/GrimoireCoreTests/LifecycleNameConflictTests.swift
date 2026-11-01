@@ -28,7 +28,7 @@ private struct NameScenario: Sendable {
     }
 }
 
-@MainActor @Suite struct LifecycleNameConflictTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleNameConflictTests {
     @Test(arguments: [false, true], NameScenario.cases)
     private func missingDestinationRecordsRespectVolumeNames(rename: Bool, scenario: NameScenario) async throws {
         let capability = scenario.capability

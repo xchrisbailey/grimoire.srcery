@@ -22,7 +22,7 @@ private struct AliasSaveCase: Sendable {
     }
 }
 
-@MainActor @Suite struct LifecycleParentAliasTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleParentAliasTests {
     @Test(arguments: [false, true], AliasSaveCase.all)
     private func parentAliasCannotHidePendingSave(rename: Bool, scenario: AliasSaveCase) async throws {
         let fixture = try await ParentAliasFixture(rename: rename, foreign: scenario.foreign, subtree: scenario.subtree)

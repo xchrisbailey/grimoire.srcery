@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleKindReservationTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleKindReservationTests {
     @Test(arguments: [false, true])
     func crossKindSourceDependencyConflictIsRejectedInEitherStoredOrder(trashFirst: Bool) async throws {
         let fixture = try await LifecycleSourceCoordinateFixture()

@@ -45,7 +45,7 @@ import Testing
     }
 }
 
-@MainActor @Suite struct ProjectIndexTests {
+@MainActor @Suite(.mainActorGate) struct ProjectIndexTests {
     @Test func listsAndSearchesEveryDocument() async throws {
         let scratch = try Scratch()
         let (workspace, _) = try await scratch.workspace(

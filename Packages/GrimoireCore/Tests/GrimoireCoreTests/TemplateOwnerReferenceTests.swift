@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateOwnerReferenceTests {
+@MainActor @Suite(.mainActorGate) struct TemplateOwnerReferenceTests {
     @Test(arguments: [false, true])
     func decodedActiveOwnerAliasBlocksInspectionAndAssignmentWithoutChangingSettings(conflicting: Bool) throws {
         let fixture = try TemplateOwnerFixture()

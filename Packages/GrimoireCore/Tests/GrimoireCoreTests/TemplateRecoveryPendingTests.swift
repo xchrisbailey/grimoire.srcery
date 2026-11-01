@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateRecoveryPendingTests {
+@MainActor @Suite(.mainActorGate) struct TemplateRecoveryPendingTests {
     @Test(arguments: ["locate", "remove", "regrant"], [false, true])
     func restartRepairsPendingIntentBeforeAnyConflictingRecovery(action: String, completed: Bool) async throws {
         let scratch = try Scratch()

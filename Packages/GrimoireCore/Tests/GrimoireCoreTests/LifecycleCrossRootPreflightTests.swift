@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleCrossRootPreflightTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleCrossRootPreflightTests {
     @Test func unavailableInnerDestinationNeverMigratesChoicesIntoTheAccessibleOuterRoot() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["posts/keep.md": "original"])

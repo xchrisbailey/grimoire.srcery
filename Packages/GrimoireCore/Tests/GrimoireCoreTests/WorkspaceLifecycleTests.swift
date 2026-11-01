@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct WorkspaceLifecycleTests {
+@MainActor @Suite(.mainActorGate) struct WorkspaceLifecycleTests {
     @Test func renameCarriesSubtreeChoicesAndEverySourceReferenceWithoutChangingBytes() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "{title}\r\n"])
@@ -209,7 +209,7 @@ import Testing
 
 }
 
-@MainActor @Suite struct LifecyclePreflightTests {
+@MainActor @Suite(.mainActorGate) struct LifecyclePreflightTests {
     @Test(arguments: [false, true], [false, true])
     func occupiedDestinationFailsPreparationWithoutLeavingUnnecessaryRepair(rename: Bool, caseAlias: Bool) async throws
     {

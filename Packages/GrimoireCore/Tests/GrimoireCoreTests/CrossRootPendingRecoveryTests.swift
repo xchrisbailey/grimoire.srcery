@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct CrossRootPendingRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct CrossRootPendingRecoveryTests {
     @Test(arguments: ["source", "destination", "projection"])
     func unavailablePendingRootsCannotOfferDifferentFolderRegrant(role: String) async throws {
         let fixture = try await LifecycleSourceCoordinateFixture()

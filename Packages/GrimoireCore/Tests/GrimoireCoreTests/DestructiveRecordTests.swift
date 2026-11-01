@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct DestructiveRecordTests {
+@MainActor @Suite(.mainActorGate) struct DestructiveRecordTests {
     @Test func legacyMoveWithoutKindStillLoadsButUnknownAndNullKindsFailWithoutOverwriting() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "saved"])

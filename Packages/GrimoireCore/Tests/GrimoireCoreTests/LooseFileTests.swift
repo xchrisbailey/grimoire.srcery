@@ -92,7 +92,7 @@ private let betaTwoProjects = """
     }
 }
 
-@MainActor @Suite struct PlacementTests {
+@MainActor @Suite(.mainActorGate) struct PlacementTests {
     private func library(_ scratch: Scratch) -> ProjectLibrary {
         ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
     }
@@ -230,7 +230,7 @@ private let betaTwoProjects = """
     }
 }
 
-@MainActor @Suite struct LooseFileWorkspaceTests {
+@MainActor @Suite(.mainActorGate) struct LooseFileWorkspaceTests {
     private func unsorted(_ scratch: Scratch, files: [URL]) -> (Workspace, ProjectLibrary) {
         let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
         library.place(files, unsortedName: "Unsorted")

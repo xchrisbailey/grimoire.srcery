@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateInheritanceTests {
+@MainActor @Suite(.mainActorGate) struct TemplateInheritanceTests {
     @Test func optOutStopsInheritanceDeeperChoiceReenablesAndInheritRemovesOnlyLocalChoice() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "root source"])

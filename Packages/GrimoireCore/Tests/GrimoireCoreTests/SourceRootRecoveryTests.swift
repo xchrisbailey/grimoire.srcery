@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct SourceRootRecoveryTests {
+@MainActor @Suite(.mainActorGate) struct SourceRootRecoveryTests {
     @Test(arguments: [true, false])
     func lostLiveSourceRootAllowsExplicitEmptyOnceWithoutChangingSettings(_ prepareBeforeLoss: Bool) async throws {
         let scratch = try Scratch()

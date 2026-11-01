@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateRecoveryBoundaryTests {
+@MainActor @Suite(.mainActorGate) struct TemplateRecoveryBoundaryTests {
     @Test func locateUsesMostSpecificBindingAndRetainsMaskedOuterAndOtherProjectChoices() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "source"])

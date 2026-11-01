@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct ReplacedTemplateOwnerTests {
+@MainActor @Suite(.mainActorGate) struct ReplacedTemplateOwnerTests {
     @Test(arguments: [false, true], [false, true])
     func anObservedRegularFileRetiresTheFolderChoiceWithoutTouchingItsReplacement(ancestor: Bool, useSource: Bool)
         async throws

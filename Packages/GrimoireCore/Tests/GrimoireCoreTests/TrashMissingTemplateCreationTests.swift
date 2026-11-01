@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TrashMissingTemplateCreationTests {
+@MainActor @Suite(.mainActorGate) struct TrashMissingTemplateCreationTests {
     @Test(arguments: ["absent", "restored", "file"])
     func lookupCannotClassifyOrRecreateAnOwnerReservedByAmbiguousTrash(scenario: String) async throws {
         let scratch = try Scratch()

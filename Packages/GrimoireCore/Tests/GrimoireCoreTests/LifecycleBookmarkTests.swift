@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleBookmarkTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleBookmarkTests {
     @Test(arguments: [false, true])
     func authoritativeBookmarkUpdateIsAllowedUnlessItConflictsWithPendingIntent(pending: Bool) async throws {
         let scratch = try Scratch()

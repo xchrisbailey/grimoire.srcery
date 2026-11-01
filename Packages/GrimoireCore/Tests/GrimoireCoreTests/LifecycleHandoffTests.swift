@@ -7,7 +7,7 @@ private enum HandoffState: CaseIterable, Sendable {
     case unconfigured, configured, settingsFailure, throwsAfterMove
 }
 
-@MainActor @Suite struct LifecycleHandoffTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleHandoffTests {
     @Test(arguments: [false, true], HandoffState.allCases)
     private func verifiedOriginalStillFollowsTheActualMove(rename: Bool, state: HandoffState) async throws {
         let scratch = try Scratch()

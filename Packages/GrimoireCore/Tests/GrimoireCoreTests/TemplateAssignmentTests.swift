@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateAssignmentTests {
+@MainActor @Suite(.mainActorGate) struct TemplateAssignmentTests {
     @Test func exactChoiceSurvivesRelaunchWithoutCopyingSource() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "---\r\nnot: [yaml\r\n"])

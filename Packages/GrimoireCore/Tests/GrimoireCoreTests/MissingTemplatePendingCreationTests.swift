@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct MissingTemplatePendingCreationTests {
+@MainActor @Suite(.mainActorGate) struct MissingTemplatePendingCreationTests {
     @Test(arguments: [false, true])
     func freshCreationReconcilesObservedPendingOutcomeBeforeClassifyingTheOldOwner(completed: Bool) async throws {
         let scratch = try Scratch()

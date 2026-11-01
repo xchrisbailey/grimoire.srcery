@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TemplateEligibilityTests {
+@MainActor @Suite(.mainActorGate) struct TemplateEligibilityTests {
     @Test func invalidSelectionsNeverReplaceTheSavedChoice() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "keep"])

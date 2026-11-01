@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct DestructiveScopeTests {
+@MainActor @Suite(.mainActorGate) struct DestructiveScopeTests {
     @Test func removingInnerBindingExposesRetainedOuterChoicesWithoutResurrectingInnerOnRebind() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "outer"])

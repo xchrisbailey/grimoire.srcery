@@ -16,7 +16,7 @@ private enum LegacyProtection: CaseIterable, Sendable {
     }
 }
 
-@MainActor @Suite struct LifecycleLegacyTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleLegacyTests {
     @Test(arguments: LegacyProtection.allCases)
     private func onlyGenuinelyUnconfiguredCrossVolumeMovesUseLegacy(protection: LegacyProtection) async throws {
         let scratch = try Scratch()

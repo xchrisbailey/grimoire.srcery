@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleReferenceTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleReferenceTests {
     @Test func unresolvedAliasRemainsInactiveDuringUnrelatedAndContainingSubtreeMoves() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["plain.md": "untouched"])

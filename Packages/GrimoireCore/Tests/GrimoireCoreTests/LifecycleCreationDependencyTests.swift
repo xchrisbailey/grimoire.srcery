@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct LifecycleCreationDependencyTests {
+@MainActor @Suite(.mainActorGate) struct LifecycleCreationDependencyTests {
     @Test(arguments: [false, true], [false, true])
     func pendingSourceBlocksFreshAndStalePlansBeforeReadingReplacement(stale: Bool, invalidBytes: Bool) async throws {
         let replacement = invalidBytes ? Data([0xff, 0]) : Data("unrelated replacement {title}".utf8)

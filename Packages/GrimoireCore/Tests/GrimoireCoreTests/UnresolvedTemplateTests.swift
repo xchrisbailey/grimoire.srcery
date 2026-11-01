@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct UnresolvedTemplateTests {
+@MainActor @Suite(.mainActorGate) struct UnresolvedTemplateTests {
     @Test(arguments: [false, true])
     func explicitRecoveryIsStagedAndKeepsBrokenSourceSeparate(remove: Bool) async throws {
         let scratch = try Scratch()

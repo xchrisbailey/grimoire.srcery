@@ -141,6 +141,6 @@ func until(timeout: Duration = .seconds(5), _ condition: () -> Bool) async throw
             Issue.record("Timed out waiting for condition")
             return
         }
-        try await Task.sleep(for: .milliseconds(20))
+        try await Task.sleep(for: .milliseconds(2))
     }
 }

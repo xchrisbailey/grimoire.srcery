@@ -3,7 +3,7 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct TrashReservationTests {
+@MainActor @Suite(.mainActorGate) struct TrashReservationTests {
     @Test func settingsOnlyRepairDoesNotSynchronizeUnrelatedBindingAccess() async throws {
         let scratch = try Scratch()
         let (workspace, library) = try await scratch.workspace(files: ["source.md": "original"])

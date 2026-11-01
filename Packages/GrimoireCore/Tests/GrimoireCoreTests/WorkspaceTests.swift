@@ -236,7 +236,7 @@ func firstEvent<T: Sendable>(
     }
 }
 
-@MainActor @Suite struct WorkspaceTests {
+@MainActor @Suite(.mainActorGate) struct WorkspaceTests {
     @Test(arguments: ["{broken", "{\"version\": 2, \"projects\": []}"])
     func failedProjectLoadPreservesStoredBytesDuringDefaultCreation(json: String) throws {
         let scratch = try Scratch()
