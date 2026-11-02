@@ -16,6 +16,7 @@ out=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 [ -f "$appcast" ] || { echo "No appcast at $appcast; refusing to assemble a site without the update feed." >&2; exit 1; }
+command -v xmllint >/dev/null || { echo "xmllint is not installed; it is needed to check the feed." >&2; exit 1; }
 xmllint --noout "$appcast" || { echo "$appcast is not valid XML." >&2; exit 1; }
 
 mkdir -p "$out"

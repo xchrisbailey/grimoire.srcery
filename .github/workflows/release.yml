@@ -141,6 +141,9 @@ jobs:
         with:
           name: feed
           path: feed
+      # assemble-pages.sh validates the feed with xmllint, which the runner lacks.
+      - name: Install xmllint
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
       - name: Assemble the site and feed
         run: scripts/assemble-pages.sh feed/appcast.xml pages
       # Named by attempt, because the Pages artifact can't be replaced within a run
