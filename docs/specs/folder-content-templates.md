@@ -1,6 +1,6 @@
 # Folder content templates
 
-Status: decisions complete; ready for implementation planning. No feature implementation is included.
+Status: implemented and shipped in v1.0.0-beta.4. This file records the decisions it was built from.
 
 Published as [Spec: Folder content templates](https://github.com/xchrisbailey/grimoire.srcery/issues/82), labeled `ready-for-agent`.
 
@@ -324,7 +324,7 @@ Focused expansion examples are appropriate; avoid trivial tests of language/libr
 
 Manual Mac acceptance covers each real menu/shortcut, palette, and folder-context route: destination/source display, name validation, cancel, suffix handling, no preview/second rename, focused editor/caret, inherited repair scope, warnings, and recovery dialogs. There is no established automated app test harness.
 
-Implementation must pass the checks in [Development](../development.md): both app builds, all three package test suites, both linters, and the DMG-layout test. Report results under the repo's [orchestration rules](../agents/orchestration.md) and apply the required adversarial review for stored-project, workspace, and saving changes. Implementation and test writing go through the `coder` role; the lead reviews and merges.
+Implementation must pass `scripts/check.sh`, described in [Development](../development.md). Report results under the repo's [orchestration rules](../agents/orchestration.md) and apply the required adversarial review for stored-project, workspace, and saving changes. Implementation and test writing go through the `coder` role; the lead reviews and merges.
 
 ## Out of Scope
 
@@ -340,11 +340,9 @@ Implementation must pass the checks in [Development](../development.md): both ap
 
 ### Shipping prerequisite
 
-Fix [A projects.json that fails to load is overwritten with an empty library](https://github.com/xchrisbailey/grimoire.srcery/issues/68) before shipping. It remains open as of this spec's assembly.
+[A projects.json that fails to load is overwritten with an empty library](https://github.com/xchrisbailey/grimoire.srcery/issues/68) had to be fixed before shipping. It was fixed and closed before v1.0.0-beta.4.
 
-Failed project loads must preserve the existing file. Assignment changes also require observable save failures and staged commits; they must not appear successfully saved when persistence fails. These requirements are part of the implementation contract, not claims that storage has already been fixed.
-
-The spec is fully specified for agent implementation, but the prerequisite remains a shipping dependency. Implementation breakdown has not been performed, and the feature is not one small implementation ticket.
+Failed project loads must preserve the existing file. Assignment changes also require observable save failures and staged commits; they must not appear successfully saved when persistence fails. These requirements are part of the implementation contract.
 
 Use [GLOSSARY.md](../../GLOSSARY.md) for domain terminology and follow [CODING_STANDARDS.md](../../CODING_STANDARDS.md). The repository file is the spec's single home; the published issue contains the problem, solution, and a link here rather than a second full copy.
 
@@ -360,4 +358,4 @@ The spec consolidates the following closed decisions without reopening them:
 - [Define the new-document experience when applying a content template](https://github.com/xchrisbailey/grimoire.srcery/issues/80)
 - [Define folder-template integration contracts and verification](https://github.com/xchrisbailey/grimoire.srcery/issues/81)
 
-No further product or technical decision is currently outstanding. Implementation breakdown and the persistence prerequisite are the next work; this spec does not claim they are complete.
+No product or technical decision was outstanding when this shipped in v1.0.0-beta.4.
