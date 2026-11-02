@@ -338,7 +338,7 @@ extension WindowState {
 
     /// Root changes must not release access while this window still needs it to save.
     func projectRootsChanged() {
-        guard prepareForRelease(offeringDiscard: true) else { return }
+        guard prepareForRelease() else { return }
         workspace?.sync()
         reportWorkspaceError()
         let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
