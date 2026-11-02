@@ -13,6 +13,19 @@ Issues and specs for this repo live in GitHub Issues at `xchrisbailey/grimoire.s
 
 Run `gh` inside this clone so it identifies the repository from the Git remote.
 
+## Status comments
+
+Post progress on a ticket as a short comment:
+
+```
+Head: <full sha>
+Check: <result lines from build/check-logs/<sha>/summary.txt>
+Decision needed: <question for the lead, or none>
+Left: <what remains>
+```
+
+Evidence is a commit SHA, a pushed branch, or text pasted into the comment, so the next reader can follow it.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.**

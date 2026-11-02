@@ -16,7 +16,7 @@
 
 - These roles override a skill's own wording about who does the work. A skill's "implementer subagent" is a `coder`, its "exploration subagent" is a `scout`, and its "merger subagent" is Opus.
 - A skill that writes code or tests meant to merge (`/implement`, `/implement-spec`, `/tdd`) runs that work through a `coder`. Opus doesn't write it in the main checkout, and "commit to the current branch" means the coder's branch.
-- `/implement-spec` may use an integration branch. Opus keeps it in its own worktree under `.claude/worktrees/`, names it as the base in each coder's brief, and merges each reviewed ticket branch into it. The review, the checks, and the adversarial pass below apply to each ticket branch, and again to the integration branch before it merges to `main`.
+- `/implement-spec` may use an integration branch. Opus keeps it in its own worktree under `.claude/worktrees/`, names it as the base in each coder's brief, and merges each reviewed ticket branch into it. The review, the checks, and the adversarial pass below apply to each ticket branch, and again to the integration branch before it merges to `main`. The integration branch runs `scripts/check.sh` after each ticket merge into it, and `scripts/check.sh --core-runs 10` before it merges to `main`.
 - `/tdd` wants its seams confirmed with the user, and a coder can't ask. The seams in the spec's Testing Decisions count as confirmed, and the brief points at them. A coder that needs a seam the spec doesn't name stops and reports it.
 - Throwaway code is the exception: Opus may write a `/prototype` or a `/diagnosing-bugs` reproduction itself, in a scratch worktree that is never merged. The fix or the real implementation goes to a coder.
 
@@ -31,7 +31,7 @@
   - the build and test commands;
   - what to report back: the branch, a summary, and anything left open.
 - Coders don't widen scope or make product or architecture decisions. They stop and report any open question to Opus.
-- A coder that goes idle with checks still running may never wake to report. When one says it is waiting on a run, Opus watches the branch head or the run's output itself, with a background wait, and doesn't wait on the coder's message alone.
+- Coders run `scripts/check.sh` in the foreground, so their report arrives with the result. The lead reads `build/check-logs/<sha>/summary.txt` in the coder's worktree for the head under review.
 
 **Agent teams.**
 
@@ -50,9 +50,10 @@
 
 **Adversarial pass.**
 
-- Run the `adversary` subagent at two points:
+- Run the `adversary` subagent at three points:
   - on the ticket breakdown, before delegating work that spans two or more tickets;
-  - on a ticket's branch, before the Opus review, when it touches saving or external-change handling (`OpenDocument`, `Workspace/`), the parser, serialization, or the block index, `VersionStore`, or the shape of something an installed build has stored (`projects.json`, a preferences key).
+  - on a ticket's branch, before the Opus review, when it touches saving or external-change handling (`OpenDocument`, `Workspace/`), the parser, serialization, or the block index, `VersionStore`, or the shape of something an installed build has stored (`projects.json`, a preferences key);
+  - on an integration branch at its first checkpoint, and again at its last.
 - Give it the tickets or the branch and the spec. Keep your own conclusions and the reviewer's pass out of the brief, so its read isn't anchored on them.
 - A finding counts when it comes with a scenario that reproduces it. Opus decides each one: fix the breakdown, send it to the coder, or set it aside with the reason on the ticket.
 
@@ -63,7 +64,12 @@
   - the spec and ADRs;
   - the glossary;
   - `CODING_STANDARDS.md` and `AGENTS.md`.
-- Opus also confirms that both app schemes build, the package tests pass, and lint is clean. The coder runs the checks listed in `docs/development.md` and quotes the final `** BUILD SUCCEEDED **` line of each build and the final `Test run with … passed` line of each package, and Opus reruns them on the ticket's branch before merging it, or on a team reads the shepherd's `verify` result for the branch's current head. A report without those lines doesn't count. When the branch has a pull request, its CI run is green before the merge as well.
+- Opus also confirms that both app schemes build, the package tests pass, and lint is clean. The coder runs `scripts/check.sh` and reports the contents of `build/check-logs/<sha>/summary.txt`. Opus reads the summary for the branch's current head, or on a team the shepherd's `verify` result, and runs the script itself when there is none. A report without the summary of the branch's current head doesn't count.
+- A non-model failure is real until it has a ticket or a measured cause; the word "flake" needs one of those. Only the model-gated suites in `docs/development.md` get a rerun.
 - On a team, the `reviewer` passes a branch before Opus reviews it. Its pass covers the coding standards, the glossary, and the acceptance criteria; the spec, the ADRs, and the verdict stay with Opus.
 - Review findings go back to the same coder, which keeps its context, until the review passes.
 - Opus reports the result to the user.
+
+**Merging to main.**
+
+- Run `scripts/check.sh` on the merge result at a clean head; the `pre-push` hook refuses `main` without it. A pull request is optional.

@@ -29,6 +29,11 @@ Hunt for behaviour the acceptance criteria never mention and the tests never exe
 - **State across launches**: quitting mid-write, relaunching into a project whose folder moved, a stored key or the projects file changing shape under an installed build.
 - **Size**: a document large enough that work done per keystroke becomes visible.
 
+A branch that will ship also gets two passes, whatever its ticket says:
+
+- **Users who don't use the feature**: compare with `main` what launching, opening, saving, renaming and quitting do for them, and what the branch writes to disk or defaults for them.
+- **Upgrade and rollback against the last release tag** (`git tag --sort=-v:refname | head -1`): files and settings that release wrote, loaded by this branch, and files this branch wrote, loaded by that release.
+
 Read the tests as evidence of what was considered, then look hardest at what they leave out.
 
 ## Findings

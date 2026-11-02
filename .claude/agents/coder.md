@@ -23,11 +23,9 @@ You are the coder for Grimoire, a native markdown editor for macOS with an iOS c
 
 ## Before reporting back
 
-- Run every check in the Checks section of `docs/development.md`, from your worktree: both app builds, `swift test` in each package, and both linters. Narrower `swift test --filter` runs are fine while you work, but not as the final check.
+- Run `scripts/check.sh` from your worktree at a clean tree, in the foreground with a long timeout (`timeout` 1800000, or 0 for none), as the final check. Narrower `swift test --filter` runs and `--only` runs are for while you work. The docs/development.md Checks section says what it covers and how to read it.
 - WebKit never loads inside `swift test`. Check anything that renders through `WKWebView`, such as PDF export or print, in the built Mac app, and say in your report how you checked it.
-- Quote the final `** BUILD SUCCEEDED **` or `** BUILD FAILED **` line of each build and the final `Test run with …` line of each package in your report, and report any failures with their output.
-- Start a check that may outlast a foreground command with the Bash tool's `run_in_background` option. The harness tracks that run and wakes you when it exits. Never detach a check with `&`, `nohup`, or `disown`: the harness can't see it, so nothing wakes you when it ends, and a plain `&` job dies with the shell that started it.
-- Don't end your turn while a check you started is still running unless the harness is tracking it. When the last one finishes, send the report straight away; the orchestrator isn't polling for it.
+- Quote the contents of `build/check-logs/<sha>/summary.txt` verbatim in your report, and report any failures with their output. End your turn with that report once the script has finished.
 - Push your branch.
 - Report the branch, what you built, the check results, and anything you left open or were unsure about. Leave merging to the orchestrator, which also owns review.
 
@@ -37,6 +35,6 @@ When you were spawned as a teammate, the shared task list and the `reviewer` tea
 
 - Claim your ticket's coding task and mark it in progress.
 - Push your branch as soon as your first commit exists, so the work survives a lost session.
-- Once the checks pass, message `reviewer` with your branch, its head commit, and the result lines. Its findings arrive as a comment on the ticket. Fix them, push, and reply until it passes the branch.
+- Once the checks pass, message `reviewer` with your branch, its head commit, and the check summary. Its findings arrive as a comment on the ticket. Fix them, push, and reply until it passes the branch.
 - A question about the spec, an ADR, or product behaviour goes to the lead, whoever raised it.
 - When the reviewer has passed the branch, mark your task completed and send the lead your report.
