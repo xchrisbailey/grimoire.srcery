@@ -168,8 +168,15 @@ import Testing
             try handle.write(contentsOf: Data("Last".utf8))
         }
         operations.publish = { directory, temporary, candidate in
-            #expect(fcntl(descriptor, F_GETFD) == -1)
-            #expect(errno == EBADF)
+            // Another test in the process can reuse the closed descriptor's number, so ask what
+            // it refers to instead of whether it exists.
+            var path = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+            if fcntl(descriptor, F_GETPATH, &path) == 0 {
+                let held = URL(filePath: String(cString: path)).resolvingSymlinksInPath()
+                #expect(held != scratch.url.appending(path: temporary).resolvingSymlinksInPath())
+            } else {
+                #expect(errno == EBADF)
+            }
             #expect(try Data(contentsOf: scratch.url.appending(path: temporary)) == Data("First\r\nLast".utf8))
             try DocumentCreationOperations.publish(directory, temporary, candidate)
         }
