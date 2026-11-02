@@ -66,6 +66,22 @@ extension WindowState {
         prepareForRelease(offeringDiscard: true)
     }
 
+    /// After the open document refused to close: true once its edits were discarded. Otherwise the
+    /// refusal stands, and a refusal that wasn't offered for discarding is shown rather than silent.
+    func resolveRefusedClose() -> Bool {
+        switch offerToDiscard() {
+        case .discarded:
+            return true
+        case .keptEditing:
+            break
+        case .notOffered:
+            if let error = document?.saveError { actions.error = error }
+            bringToFront()
+        }
+        refusedSelections += 1
+        return false
+    }
+
     /// Asks about discarding the open document's unsaved edits, once it has refused to be released.
     /// A pending move or trash holding the file is not offered: recovery settles that, and
     /// discarding here would not.

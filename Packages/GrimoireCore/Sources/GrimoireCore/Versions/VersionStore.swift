@@ -10,14 +10,13 @@ public struct Version: Codable, Identifiable, Hashable, Sendable {
         case replaceAll
         /// The text on disk before another app's change was loaded.
         case externalChange
-        /// The editor's text before "Load Theirs" replaced it.
+        /// The editor's text before "Load Theirs" replaced it, or when the user discarded edits
+        /// that a conflict or a failing save kept from being written.
         case conflict
         /// The text before an older version was restored.
         case restore
         /// Before an AI edit (#19).
         case intelligence
-        /// The editor's text when the user chose to discard edits that couldn't be saved.
-        case discard
     }
 
     public var id: UUID

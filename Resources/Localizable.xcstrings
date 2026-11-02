@@ -1764,9 +1764,6 @@
     "If you discard them now, they will be lost. The file itself isn't touched." : {
       "comment" : "plain: alert text warning that discarding without a kept version loses the changes"
     },
-    "Changes you discarded" : {
-      "comment" : "plain: why a version was kept"
-    },
     "Zoom" : {
       "comment" : "plain: Window menu item"
     }

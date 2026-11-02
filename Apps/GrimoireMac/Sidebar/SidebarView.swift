@@ -27,7 +27,10 @@ struct SidebarView: View {
                     FileTreeView(
                         workspace: workspace,
                         selectedFile: Binding(get: { window.selectedFile }, set: { window.select($0) }),
-                        actions: window.actions)
+                        actions: window.actions
+                    )
+                    // A refused switch leaves the list highlighting the row that was clicked.
+                    .id(window.refusedSelections)
                 }
                 footer
             } else {

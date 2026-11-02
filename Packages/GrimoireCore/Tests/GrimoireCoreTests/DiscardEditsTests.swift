@@ -85,7 +85,7 @@ private struct DiskRefusedWrite: Error {}
         #expect(document.discardEdits() == .discarded)
 
         let kept = try #require(store.versions(of: file).first)
-        #expect(kept.reason == .discard)
+        #expect(kept.reason == .conflict)
         #expect(store.text(of: kept, for: file) == "my edits")
         #expect(try String(contentsOf: file, encoding: .utf8) == onDisk)
         // Nothing is left to refuse the release, and closing does not write.
@@ -133,6 +133,25 @@ private struct DiskRefusedWrite: Error {}
         #expect(!document.close())
 
         #expect(document.discardEdits() == .discarded)
+        #expect(store.versions(of: file).count == 1)
+    }
+
+    /// Builds before this one drop a file's whole history when its index fails to decode, so a
+    /// discard may only store reasons they already know (v1.0.0-beta.3's `Version.Reason`).
+    @Test func aDiscardStoresOnlyReasonsEarlierBuildsKnow() throws {
+        let known: Set<String> = ["edit", "replaceAll", "externalChange", "conflict", "restore", "intelligence"]
+        let scratch = try Scratch()
+        let store = VersionStore(folder: scratch.url.appending(path: "versions"))
+        let (document, file) = try failingDocument(scratch, versions: store)
+        #expect(!document.close())
+        #expect(document.discardEdits() == .discarded)
+
+        let folder = try #require(
+            try FileManager.default.contentsOfDirectory(at: store.folder, includingPropertiesForKeys: nil).first)
+        let index = try JSONSerialization.jsonObject(with: Data(contentsOf: folder.appending(path: "index.json")))
+        let stored = try #require((index as? [String: Any])?["versions"] as? [[String: Any]])
+        #expect(stored.count == 1)
+        #expect(stored.allSatisfy { known.contains($0["reason"] as? String ?? "") })
         #expect(store.versions(of: file).count == 1)
     }
 }

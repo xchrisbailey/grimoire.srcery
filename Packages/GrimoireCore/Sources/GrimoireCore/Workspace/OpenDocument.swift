@@ -94,7 +94,9 @@ public final class OpenDocument {
     @discardableResult
     public func discardEdits(requiringKeptVersion: Bool = true) -> DiscardOutcome {
         if isDirty, requiringKeptVersion {
-            guard versions?.keepConfirmed(text, of: url, reason: .discard) == true else { return .versionNotKept }
+            // `.conflict` rather than a new reason: older builds can't decode reasons they don't know,
+            // and then rewrite the whole index, losing the file's history on a rollback.
+            guard versions?.keepConfirmed(text, of: url, reason: .conflict) == true else { return .versionNotKept }
         }
         discard()
         conflict = nil

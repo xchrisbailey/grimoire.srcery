@@ -101,7 +101,6 @@ struct VersionBrowser: View {
         case .conflict: String(localized: "Before a conflict was resolved")
         case .restore: String(localized: "Before restoring a version")
         case .intelligence: String(localized: "Before an AI edit")
-        case .discard: String(localized: "Changes you discarded")
         }
     }
 

@@ -37,6 +37,8 @@ final class WindowState {
     private(set) var projectID: Project.ID?
     private(set) var workspace: Workspace?
     private(set) var selectedFile: URL?
+    /// Counts refused switches, so the sidebar re-reads the selection it was asked to move away from.
+    var refusedSelections = 0
     /// The loose file the selected file is, if it is one.
     private(set) var selectedLooseFile: LooseFile.ID?
     private(set) var document: OpenDocument?
@@ -156,7 +158,7 @@ final class WindowState {
         if url?.standardizedFileURL == selectedFile?.standardizedFileURL, document != nil || url == nil {
             return true
         }
-        guard closeDocument() || offerToDiscard() == .discarded else { return false }
+        guard closeDocument() || resolveRefusedClose() else { return false }
         selectedFile = url
         selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
         guard let url else { return true }
@@ -222,13 +224,6 @@ final class WindowState {
             let root = workspace?.folder(containing: url)?.url
         else { return nil }
         return root.appending(path: "assets", directoryHint: .isDirectory)
-    }
-
-    /// Settings changed which files are listed, or how long edits wait to save.
-    func preferencesChanged() {
-        workspace?.setExtensions(Set(preferences.fileExtensions(for: project)))
-        workspace?.setListing(preferences.fileListing)
-        document?.autosaveDelay = .seconds(preferences.autosaveDelay)
     }
 
     // MARK: - Search and palettes
@@ -328,6 +323,13 @@ extension WindowState {
         selectedLooseFile = nil
     }
 
+    /// Settings changed which files are listed, or how long edits wait to save.
+    func preferencesChanged() {
+        workspace?.setExtensions(Set(preferences.fileExtensions(for: project)))
+        workspace?.setListing(preferences.fileListing)
+        document?.autosaveDelay = .seconds(preferences.autosaveDelay)
+    }
+
     @discardableResult func save() -> Bool {
         guard document?.save() ?? true else { return false }
         resumePublishedDocuments()
@@ -360,37 +362,6 @@ extension WindowState {
         } catch {
             actions.error = error
         }
-    }
-}
-
-/// The mode each file was last shown in. Files not listed open in the default mode.
-enum FileModes {
-    private static let key = "grimoire.fileModes"
-    /// Before files remembered Preview too, only Raw files were listed here.
-    private static let legacyKey = "grimoire.rawFiles"
-    /// Enough to cover the files anyone works in, without growing forever.
-    private static let limit = 300
-
-    static func mode(for url: URL, default fallback: EditorMode = .preview) -> EditorMode {
-        let path = url.standardizedFileURL.path(percentEncoded: false)
-        if let stored = entries.first(where: { $0.first == path }), stored.count == 2,
-            let mode = EditorMode(rawValue: stored[1])
-        {
-            return mode
-        }
-        let legacy = UserDefaults.standard.stringArray(forKey: legacyKey) ?? []
-        return legacy.contains(path) ? .raw : fallback
-    }
-
-    static func remember(_ mode: EditorMode, for url: URL) {
-        let path = url.standardizedFileURL.path(percentEncoded: false)
-        let rest = entries.filter { $0.first != path }
-        UserDefaults.standard.set(Array(([[path, mode.rawValue]] + rest).prefix(limit)), forKey: key)
-    }
-
-    /// `[path, mode]` pairs, most recent first.
-    private static var entries: [[String]] {
-        UserDefaults.standard.array(forKey: key) as? [[String]] ?? []
     }
 }
 
