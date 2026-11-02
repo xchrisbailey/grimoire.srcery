@@ -1,0 +1,51 @@
+{
+  "release": "v1.0.0-beta.3",
+  "enums": {
+    "Version.Reason": ["edit", "replaceAll", "externalChange", "conflict", "restore", "intelligence"],
+    "ProjectKind": ["standard", "unsorted"],
+    "ProjectColor": ["magic", "caret", "callout", "sparkle", "lavender", "link", "string", "quote"],
+    "ImageLocation": ["besideFile", "projectFolder"]
+  },
+  "records": {
+    "projects.json": {
+      "required": ["version", "projects"],
+      "optional": [],
+      "ignoredByRelease": []
+    },
+    "Project": {
+      "required": ["id", "name", "icon", "color", "roots", "expandedFolders"],
+      "optional": ["looseFiles", "kind", "lastOpenedFile", "overrides", "dictionary"],
+      "ignoredByRelease": ["templateAssignments", "pendingLifecycleOperations"]
+    },
+    "FolderRoot": {
+      "required": ["id", "name", "bookmark", "lastKnownPath"],
+      "optional": ["alias"],
+      "ignoredByRelease": []
+    },
+    "LooseFile": {
+      "required": ["id", "name", "bookmark", "lastKnownPath"],
+      "optional": [],
+      "ignoredByRelease": []
+    },
+    "FileReference": {
+      "required": ["rootID", "relativePath"],
+      "optional": [],
+      "ignoredByRelease": []
+    },
+    "ProjectOverrides": {
+      "required": [],
+      "optional": ["fileExtensions", "imageLocation", "intelligenceOff"],
+      "ignoredByRelease": []
+    },
+    "Versions/<hash>/index.json": {
+      "required": ["path", "versions"],
+      "optional": [],
+      "ignoredByRelease": []
+    },
+    "Version": {
+      "required": ["id", "date", "reason", "size"],
+      "optional": [],
+      "ignoredByRelease": []
+    }
+  }
+}

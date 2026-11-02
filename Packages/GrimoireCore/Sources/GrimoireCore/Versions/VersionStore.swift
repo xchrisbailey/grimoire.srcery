@@ -3,7 +3,7 @@ import Foundation
 
 /// One kept copy of a file's text.
 public struct Version: Codable, Identifiable, Hashable, Sendable {
-    public enum Reason: String, Codable, Sendable {
+    public enum Reason: String, Codable, CaseIterable, Sendable {
         /// The text on disk before the first save after a pause.
         case edit
         /// Before Replace All rewrote the file.

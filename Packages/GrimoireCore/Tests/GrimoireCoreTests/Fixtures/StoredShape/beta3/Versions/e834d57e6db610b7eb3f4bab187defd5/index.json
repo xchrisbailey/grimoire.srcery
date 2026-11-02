@@ -1,0 +1,41 @@
+{
+  "path" : "\/Users\/tester\/Notes\/draft.md",
+  "versions" : [
+    {
+      "date" : "2026-02-06T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000001",
+      "reason" : "intelligence",
+      "size" : 40
+    },
+    {
+      "date" : "2026-02-05T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000002",
+      "reason" : "restore",
+      "size" : 35
+    },
+    {
+      "date" : "2026-02-04T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000003",
+      "reason" : "conflict",
+      "size" : 36
+    },
+    {
+      "date" : "2026-02-03T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000004",
+      "reason" : "externalChange",
+      "size" : 42
+    },
+    {
+      "date" : "2026-02-02T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000005",
+      "reason" : "replaceAll",
+      "size" : 38
+    },
+    {
+      "date" : "2026-02-01T04:05:06Z",
+      "id" : "BBBBBBBB-0000-4000-8000-000000000006",
+      "reason" : "edit",
+      "size" : 32
+    }
+  ]
+}

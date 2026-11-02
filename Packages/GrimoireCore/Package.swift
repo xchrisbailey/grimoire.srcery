@@ -18,7 +18,7 @@ let package = Package(
         .testTarget(
             name: "GrimoireCoreTests",
             dependencies: ["GrimoireCore"],
-            resources: [.copy("Corpus")]
+            resources: [.copy("Corpus"), .copy("Fixtures")]
         ),
     ]
 )

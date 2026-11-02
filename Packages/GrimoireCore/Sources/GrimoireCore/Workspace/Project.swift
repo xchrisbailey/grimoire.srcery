@@ -89,7 +89,7 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// What a project is for.
-public enum ProjectKind: String, Codable, Sendable {
+public enum ProjectKind: String, Codable, CaseIterable, Sendable {
     case standard
     /// Holds the Markdown files opened from Finder that belong to no other project. Marked
     /// by kind rather than by name, so renaming it, or another language, doesn't make a
