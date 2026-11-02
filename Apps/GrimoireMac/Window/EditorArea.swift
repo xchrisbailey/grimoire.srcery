@@ -132,6 +132,15 @@ private struct WordCountStatus: View {
     }
 }
 
+/// What went wrong saving `name`, for the banner above the editor and the alert that offers to discard.
+func saveFailureMessage(_ error: Error, name: String) -> String {
+    let code = (error as? CocoaError)?.code
+    if code == .fileWriteNoPermission || code == .fileWriteVolumeReadOnly {
+        return String(localized: "Couldn't save \(name). The folder is read-only.")
+    }
+    return String(localized: "Couldn't save \(name). \(error.localizedDescription)")
+}
+
 /// The conflict banner (keep mine / load theirs) and save errors, above the editor.
 private struct DocumentBanners: View {
     let document: OpenDocument
@@ -147,21 +156,12 @@ private struct DocumentBanners: View {
             }
         }
         if let error = document.saveError {
-            banner(saveMessage(error), tint: Color.brand(\.error)) {
+            banner(saveFailureMessage(error, name: document.url.lastPathComponent), tint: Color.brand(\.error)) {
                 if document.conflict == nil {
                     Button("Try Again") { document.save() }
                 }
             }
         }
-    }
-
-    private func saveMessage(_ error: Error) -> String {
-        let name = document.url.lastPathComponent
-        let code = (error as? CocoaError)?.code
-        if code == .fileWriteNoPermission || code == .fileWriteVolumeReadOnly {
-            return String(localized: "Couldn't save \(name). The folder is read-only.")
-        }
-        return String(localized: "Couldn't save \(name). \(error.localizedDescription)")
     }
 
     private func banner(_ text: String, tint: Color, @ViewBuilder actions: () -> some View) -> some View {

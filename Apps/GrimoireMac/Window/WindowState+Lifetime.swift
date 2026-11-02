@@ -37,11 +37,23 @@ extension WindowState {
         return true
     }
 
-    func prepareForRelease() -> Bool {
-        guard save() else {
-            if let error = document?.saveError { actions.error = error }
-            bringToFront()
-            return false
+    enum DiscardOffer { case discarded, keptEditing, notOffered }
+
+    /// Saves the document so its window, project access or the app can let go of it.
+    /// With `offeringDiscard`, a conflict or a failing save asks the user whether to give up
+    /// the edits instead of only refusing. Destructive file operations never offer it.
+    func prepareForRelease(offeringDiscard: Bool = false) -> Bool {
+        if !save() {
+            switch offeringDiscard ? offerToDiscard() : .notOffered {
+            case .discarded:
+                resumePublishedDocuments()
+            case .keptEditing:
+                return false
+            case .notOffered:
+                if let error = document?.saveError { actions.error = error }
+                bringToFront()
+                return false
+            }
         }
         guard deferredDocuments.isEmpty else {
             if let openError { actions.error = openError }
@@ -51,7 +63,39 @@ extension WindowState {
     }
 
     func prepareWindowClose() -> Bool {
-        prepareForRelease()
+        prepareForRelease(offeringDiscard: true)
+    }
+
+    /// After the open document refused to close: true once its edits were discarded. Otherwise the
+    /// refusal stands, and a refusal that wasn't offered for discarding is shown rather than silent.
+    func resolveRefusedClose() -> Bool {
+        switch offerToDiscard() {
+        case .discarded:
+            return true
+        case .keptEditing:
+            break
+        case .notOffered:
+            if let error = document?.saveError { actions.error = error }
+            bringToFront()
+        }
+        refusedSelections += 1
+        return false
+    }
+
+    /// Asks about discarding the open document's unsaved edits, once it has refused to be released.
+    /// A pending move or trash holding the file is not offered: recovery settles that, and
+    /// discarding here would not.
+    func offerToDiscard() -> DiscardOffer {
+        guard let document, let refusal = document.releaseRefusal else { return .notOffered }
+        let name = document.url.lastPathComponent
+        bringToFront()
+        guard DiscardPrompt.ask(about: refusal, name: name) == .discard else { return .keptEditing }
+        if document.discardEdits() == .versionNotKept {
+            guard DiscardPrompt.confirmLoss(name: name) == .discard else { return .keptEditing }
+            document.discardEdits(requiringKeptVersion: false)
+        }
+        releaseDiscardedDocument()
+        return .discarded
     }
 
     func retryRecovery() {
