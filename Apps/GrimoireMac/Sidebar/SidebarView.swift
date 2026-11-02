@@ -27,7 +27,10 @@ struct SidebarView: View {
                     FileTreeView(
                         workspace: workspace,
                         selectedFile: Binding(get: { window.selectedFile }, set: { window.select($0) }),
-                        actions: window.actions)
+                        actions: window.actions
+                    )
+                    // A refused switch leaves the list highlighting the row that was clicked.
+                    .id(window.refusedSelections)
                 }
                 footer
             } else {
@@ -35,7 +38,7 @@ struct SidebarView: View {
             }
         }
         .background(Color.brand(\.sidebar))
-        .fileActionPrompts(window.actions, workspace: window.workspace)
+        .fileActionPrompts(window.actions, workspace: window.workspace, select: { window.select($0) })
     }
 
     /// Looks like a search field, as in the brand mockup; opens Summon a page.

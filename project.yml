@@ -94,8 +94,10 @@ targets:
         type: syncedFolder
       - path: Apps/Shared
         type: syncedFolder
+        name: Shared iOS
       - path: Resources
         type: syncedFolder
+        name: Resources iOS
       - path: Brand/Grimoire.icon
         type: file
         buildPhase: resources

@@ -25,9 +25,20 @@ extension ProjectLibrary {
     /// that can't be bookmarked is left out and reported in `lastError`.
     @discardableResult
     public func place(_ urls: [URL], unsortedName: String) -> [Placement] {
+        guard loadError == nil else {
+            lastError = loadError
+            return []
+        }
         var placements: [Placement] = []
+        var placementError: Error?
         for url in urls {
-            guard let id = projectID(for: url, unsortedName: unsortedName) else { continue }
+            let id: Project.ID
+            do {
+                id = try projectID(for: url, unsortedName: unsortedName)
+            } catch {
+                placementError = error
+                continue
+            }
             let path = url.standardizedFileURL.path(percentEncoded: false)
             if let index = placements.firstIndex(where: { $0.projectID == id }) {
                 if !placements[index].urls.contains(where: {
@@ -39,6 +50,8 @@ extension ProjectLibrary {
                 placements.append(Placement(projectID: id, urls: [url]))
             }
         }
+        // A later successful file must not erase an earlier per-file failure.
+        lastError = placementError
         return placements
     }
 
@@ -56,13 +69,14 @@ extension ProjectLibrary {
             return existing
         }
         let file = try Self.looseFile(for: url)
-        update(projectID) { $0.looseFiles.append(file) }
+        try update(projectID) { $0.looseFiles.append(file) }
         return file
     }
 
     /// Takes a file off the project's list. Nothing on disk changes.
-    public func removeLooseFile(_ fileID: LooseFile.ID, from projectID: Project.ID) {
-        update(projectID) { project in
+    public func removeLooseFile(_ fileID: LooseFile.ID, from projectID: Project.ID) throws {
+        try requireLooseFile(fileID, in: projectID)
+        try update(projectID) { project in
             project.looseFiles.removeAll { $0.id == fileID }
         }
     }
@@ -70,9 +84,9 @@ extension ProjectLibrary {
     /// Stores a fresh bookmark for a loose file: after the file was replaced by a save or
     /// moved, when the old bookmark still resolved but was stale.
     public func replaceBookmark(ofLooseFile fileID: LooseFile.ID, in projectID: Project.ID, with url: URL) throws {
-        guard project(projectID) != nil else { throw LibraryError.unknownProject }
+        try requireLooseFile(fileID, in: projectID)
         let bookmark = try FolderBookmark.make(for: url)
-        update(projectID) { project in
+        try update(projectID) { project in
             guard let index = project.looseFiles.firstIndex(where: { $0.id == fileID }) else { return }
             project.looseFiles[index].bookmark = bookmark
             project.looseFiles[index].name = url.lastPathComponent
@@ -82,19 +96,24 @@ extension ProjectLibrary {
 
     // MARK: - Private
 
-    private func projectID(for url: URL, unsortedName: String) -> Project.ID? {
+    private func requireLooseFile(_ fileID: LooseFile.ID, in projectID: Project.ID) throws {
+        guard let project = project(projectID) else { throw LibraryError.unknownProject }
+        guard project.looseFiles.contains(where: { $0.id == fileID }) else { throw LibraryError.unknownLooseFile }
+    }
+
+    private func projectID(for url: URL, unsortedName: String) throws -> Project.ID {
         if let id = projectHolding(folderOf: url) ?? projectListingLoosely(url) { return id }
         // Bookmark first, so a file that can't be bookmarked doesn't leave an empty Unsorted behind.
-        let file: LooseFile
-        do {
-            file = try Self.looseFile(for: url)
-        } catch {
-            lastError = error
-            return nil
+        let file = try Self.looseFile(for: url)
+        if let project = unsortedProject {
+            try update(project.id) { $0.looseFiles.append(file) }
+            return project.id
         }
-        let projectID = unsortedProject?.id ?? createProject(named: unsortedName, icon: "tray", kind: .unsorted).id
-        update(projectID) { $0.looseFiles.append(file) }
-        return projectID
+        // Creation and the first placement are one commit: no empty temporary project
+        // or placement may escape if saving the file's project fails.
+        let project = Project(name: unsortedName, icon: "tray", looseFiles: [file], kind: .unsorted)
+        try commit(projects + [project])
+        return project.id
     }
 
     private static func looseFile(for url: URL) throws -> LooseFile {

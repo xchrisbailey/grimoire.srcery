@@ -243,6 +243,8 @@ public enum IntelligenceError: LocalizedError, Equatable {
     case unsupportedLanguage
     case busy
     case noText
+    case unsupportedTranslationSource
+    case invalidTranslation
     case failed(String)
 
     init(_ error: Error) {
@@ -277,6 +279,14 @@ public enum IntelligenceError: LocalizedError, Equatable {
         case .unsupportedLanguage: String(localized: "The model doesn't support this language yet.")
         case .busy: String(localized: "The model is busy. Try again in a moment.")
         case .noText: String(localized: "There's no text in this image to read.")
+        case .unsupportedTranslationSource:
+            String(
+                localized:
+                    // swiftlint:disable:next line_length
+                    "This selection contains Markdown that can't be translated safely. Try a selection with explicit links and plain prose."
+            )
+        case .invalidTranslation:
+            String(localized: "The translation couldn't preserve this selection. Your original text hasn't changed.")
         case .failed(let message): message
         }
     }

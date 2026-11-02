@@ -92,7 +92,7 @@ private let betaTwoProjects = """
     }
 }
 
-@MainActor @Suite struct PlacementTests {
+@MainActor @Suite(.mainActorGate) struct PlacementTests {
     private func library(_ scratch: Scratch) -> ProjectLibrary {
         ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
     }
@@ -102,7 +102,7 @@ private let betaTwoProjects = """
         let notes = try scratch.folder("notes")
         let page = try scratch.file("notes/brews/elixir.md")
         let library = library(scratch)
-        let project = library.createProject(named: "Potions")
+        let project = try library.createProject(named: "Potions")
         try library.bindFolder(notes, to: project.id)
 
         let placements = library.place([page], unsortedName: "Unsorted")
@@ -135,7 +135,7 @@ private let betaTwoProjects = """
         let library = library(scratch)
         library.place([first], unsortedName: "Unsorted")
         let id = try #require(library.unsortedProject?.id)
-        library.update(id) { $0.name = "Strays" }
+        try library.update(id) { $0.name = "Strays" }
 
         library.place([second], unsortedName: "Nicht sortiert")
         #expect(library.projects.map(\.name) == ["Strays"])
@@ -148,7 +148,7 @@ private let betaTwoProjects = """
         let library = library(scratch)
         library.place([page], unsortedName: "Unsorted")
         let old = try #require(library.unsortedProject?.id)
-        library.deleteProject(old)
+        try library.deleteProject(old)
 
         library.place([page], unsortedName: "Unsorted")
         let unsorted = try #require(library.unsortedProject)
@@ -161,8 +161,8 @@ private let betaTwoProjects = """
         let notes = try scratch.folder("notes")
         let pages = try (1...5).map { try scratch.file("notes/page\($0).md") }
         let library = library(scratch)
-        let other = library.createProject(named: "Other")
-        let project = library.createProject(named: "Notes")
+        let other = try library.createProject(named: "Other")
+        let project = try library.createProject(named: "Notes")
         try library.bindFolder(notes, to: project.id)
 
         let placements = library.place(pages + [pages[0]], unsortedName: "Unsorted")
@@ -176,8 +176,8 @@ private let betaTwoProjects = """
         let inner = try scratch.folder("notes/brews")
         let page = try scratch.file("notes/brews/elixir.md")
         let library = library(scratch)
-        let wide = library.createProject(named: "Wide")
-        let narrow = library.createProject(named: "Narrow")
+        let wide = try library.createProject(named: "Wide")
+        let narrow = try library.createProject(named: "Narrow")
         try library.bindFolder(outer, to: wide.id)
         try library.bindFolder(inner, to: narrow.id)
 
@@ -189,7 +189,7 @@ private let betaTwoProjects = """
         let notes = try scratch.folder("notes")
         try scratch.file("notes/elixir.md")
         let library = library(scratch)
-        let project = library.createProject(named: "Potions")
+        let project = try library.createProject(named: "Potions")
         try library.bindFolder(notes, to: project.id)
 
         let moved = scratch.url.appending(path: "archive/notes", directoryHint: .isDirectory)
@@ -230,7 +230,7 @@ private let betaTwoProjects = """
     }
 }
 
-@MainActor @Suite struct LooseFileWorkspaceTests {
+@MainActor @Suite(.mainActorGate) struct LooseFileWorkspaceTests {
     private func unsorted(_ scratch: Scratch, files: [URL]) -> (Workspace, ProjectLibrary) {
         let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
         library.place(files, unsortedName: "Unsorted")
@@ -256,7 +256,7 @@ private let betaTwoProjects = """
         #expect(workspace.looseFile(at: kept) != nil)
 
         // Removing the unavailable file leaves the rest of the project alone.
-        workspace.removeLooseFile(workspace.looseFiles[1].id)
+        try workspace.removeLooseFile(workspace.looseFiles[1].id)
         #expect(workspace.looseFiles.map(\.name) == ["kept.md"])
         #expect(library.project(id)?.looseFiles.count == 1)
     }
@@ -290,7 +290,7 @@ private let betaTwoProjects = """
         let (workspace, _) = unsorted(scratch, files: [page])
         defer { workspace.deactivate() }
 
-        workspace.removeLooseFile(workspace.looseFiles[0].id)
+        try workspace.removeLooseFile(workspace.looseFiles[0].id)
         #expect(workspace.looseFiles.isEmpty)
         #expect(try String(contentsOf: page, encoding: .utf8) == "ink")
     }
@@ -300,7 +300,7 @@ private let betaTwoProjects = """
         let page = try scratch.file("elsewhere/page.md")
         let (workspace, library) = unsorted(scratch, files: [page])
         let id = workspace.projectID
-        library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
+        try library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
         workspace.deactivate()
 
         workspace.activate()
@@ -315,7 +315,7 @@ private let betaTwoProjects = """
         let (workspace, library) = unsorted(scratch, files: [page])
         let id = workspace.projectID
         defer { workspace.deactivate() }
-        library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
+        try library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
         workspace.sync()
         #expect(throws: (any Error).self) { try FolderBookmark.resolve(library.project(id)!.looseFiles[0].bookmark) }
 
@@ -330,10 +330,10 @@ private let betaTwoProjects = """
         let (workspace, library) = unsorted(scratch, files: [page])
         let id = workspace.projectID
         defer { workspace.deactivate() }
-        library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
+        try library.update(id) { $0.looseFiles[0].bookmark = Data([0, 1, 2]) }
         workspace.sync()
         // The project goes while its window is still open, so there is nowhere to store a new bookmark.
-        library.deleteProject(id)
+        try library.deleteProject(id)
         #expect(workspace.lastError == nil)
 
         workspace.didSave(page)

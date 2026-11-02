@@ -55,7 +55,7 @@ extension IntelligenceService {
             let request = IntelligenceRequest(instructions: Prompts.todo, text: source)
             return streamGenerated(GeneratedTasks.self, for: request) { $0.markdown }
         case .translate(let language):
-            return stream(IntelligenceRequest(instructions: Prompts.translate(into: language), text: source))
+            return translate(source, into: language)
         case .rewrite, .shorten, .expand:
             return stream(IntelligenceRequest(instructions: Self.editInstructions(command), text: source))
         case .explainCode:
@@ -189,8 +189,9 @@ enum Prompts {
 
     static func translate(into language: String) -> String {
         """
-        You translate markdown into \(language). Keep every markdown marker, link destination, code span \
-        and code block exactly as they are; translate only the prose. Answer with the translation alone.
+        Translate this one prose fragment into \(language). It may be part of a sentence or a link label. \
+        Return only its plain prose translation, without Markdown, code, URLs, commentary, or extra text. \
+        Preserve the fragment's meaning; do not finish the surrounding sentence.
         """
     }
 }

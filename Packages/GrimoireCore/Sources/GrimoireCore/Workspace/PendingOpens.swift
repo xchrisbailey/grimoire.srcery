@@ -5,9 +5,24 @@ import Foundation
 /// instead of restoring what it last had open.
 public struct PendingOpens: Equatable, Sendable {
     private var placements: [ProjectLibrary.Placement] = []
+    private var unplacedURLs: [URL] = []
     private var requestedWindows = 0
 
     public init() {}
+
+    /// Keeps raw requests while loading is blocked, so Retry can place them against the
+    /// recovered projects rather than a temporary Unsorted project. Pass no new URLs to
+    /// drain these requests after a successful load.
+    @MainActor
+    public mutating func place(_ urls: [URL], in library: ProjectLibrary, unsortedName: String)
+        -> [ProjectLibrary.Placement]
+    {
+        unplacedURLs.append(contentsOf: urls)
+        guard library.loadError == nil else { return [] }
+        let placed = library.place(unplacedURLs, unsortedName: unsortedName)
+        unplacedURLs = []
+        return placed
+    }
 
     /// Queues `placement`. Files for a project already waiting join its list.
     public mutating func add(_ placement: ProjectLibrary.Placement) {

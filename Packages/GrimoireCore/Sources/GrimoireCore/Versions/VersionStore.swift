@@ -10,7 +10,8 @@ public struct Version: Codable, Identifiable, Hashable, Sendable {
         case replaceAll
         /// The text on disk before another app's change was loaded.
         case externalChange
-        /// The editor's text before "Load Theirs" replaced it.
+        /// The editor's text before "Load Theirs" replaced it, or when the user discarded edits
+        /// that a conflict or a failing save kept from being written.
         case conflict
         /// The text before an older version was restored.
         case restore
@@ -66,22 +67,50 @@ public final class VersionStore: @unchecked Sendable {
     /// Keeps `text` as a version of `url`, unless it matches the newest one already kept.
     @discardableResult
     public func keep(_ text: String, of url: URL, reason: Version.Reason, now: Date = Date()) -> Version? {
+        if case .kept(let version) = store(text, of: url, reason: reason, now: now) { return version }
+        return nil
+    }
+
+    /// Keeps `text` and reports whether it can now be read back from the store. A copy already
+    /// kept as the newest version counts. Used where the text is about to be given up, so a
+    /// silent failure would lose it.
+    public func keepConfirmed(_ text: String, of url: URL, reason: Version.Reason, now: Date = Date()) -> Bool {
+        switch store(text, of: url, reason: reason, now: now) {
+        case .kept, .alreadyKept: true
+        case .failed: false
+        }
+    }
+
+    private enum Stored {
+        case kept(Version)
+        case alreadyKept
+        case failed
+    }
+
+    private func store(_ text: String, of url: URL, reason: Version.Reason, now: Date) -> Stored {
         let data = Data(text.utf8)
         return lock.withLock {
             var versions = load(url)
-            if let newest = versions.first, newest.size == data.count, read(newest, of: url) == data { return nil }
+            if let newest = versions.first, newest.size == data.count, read(newest, of: url) == data {
+                return .alreadyKept
+            }
             let version = Version(id: UUID(), date: now, reason: reason, size: data.count)
             let directory = self.directory(for: url)
+            let file = directory.appending(path: version.id.uuidString + ".md")
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                try data.write(to: directory.appending(path: version.id.uuidString + ".md"), options: .atomic)
+                try data.write(to: file, options: .atomic)
             } catch {
-                return nil
+                return .failed
             }
             versions.insert(version, at: 0)
             versions = prune(versions, of: url, now: now)
-            save(versions, of: url)
-            return version
+            // A version missing from the index can't be found again, so it isn't kept.
+            guard versions.contains(where: { $0.id == version.id }), save(versions, of: url) else {
+                try? FileManager.default.removeItem(at: file)
+                return .failed
+            }
+            return .kept(version)
         }
     }
 
@@ -136,10 +165,16 @@ public final class VersionStore: @unchecked Sendable {
         return index.versions
     }
 
-    private func save(_ versions: [Version], of url: URL) {
+    @discardableResult
+    private func save(_ versions: [Version], of url: URL) -> Bool {
         let index = Index(path: Self.key(for: url), versions: versions)
-        guard let data = try? JSONEncoder.versions.encode(index) else { return }
-        try? data.write(to: directory(for: url).appending(path: "index.json"), options: .atomic)
+        guard let data = try? JSONEncoder.versions.encode(index) else { return false }
+        do {
+            try data.write(to: directory(for: url).appending(path: "index.json"), options: .atomic)
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func read(_ version: Version, of url: URL) -> Data? {

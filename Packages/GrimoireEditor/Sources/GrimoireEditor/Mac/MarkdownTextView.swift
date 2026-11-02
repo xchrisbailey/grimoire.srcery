@@ -4,6 +4,12 @@ import AppKit
 /// The editor's text view: TextKit 2, a centered column of readable width, clickable
 /// checkboxes, and ⌘-click on links.
 public final class MarkdownTextView: NSTextView {
+    var onWindowAttached: (() -> Void)?
+
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil { onWindowAttached?() }
+    }
     /// Called for a ⌘-click on a link, with the destination as written.
     var onOpenLink: ((String) -> Void)?
     /// Called for a click on a drawn checkbox, with the offset of the task's line.

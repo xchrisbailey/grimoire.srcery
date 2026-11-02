@@ -7,6 +7,57 @@ import Testing
     private let first = ProjectLibrary.Placement(projectID: UUID(), urls: [URL(filePath: "/tmp/a.md")])
     private let second = ProjectLibrary.Placement(projectID: UUID(), urls: [URL(filePath: "/tmp/b.md")])
 
+    @MainActor @Test func finderRequestsWaitForProjectLoadRecovery() throws {
+        let scratch = try Scratch()
+        let folder = try scratch.folder("notes")
+        let boundFile = try scratch.file("notes/requested.md", "# Requested")
+        let looseFile = try scratch.file("loose.md", "# Loose")
+        let file = scratch.url.appending(path: "projects.json")
+        let store = ProjectStore(fileURL: file)
+        let original = ProjectLibrary(store: store)
+        let project = try original.createProject(named: "Recovered")
+        try original.bindFolder(folder, to: project.id)
+        let savedProjects = try store.load()
+        let backup = try Data(contentsOf: file)
+        let corrupt = Data("{broken".utf8)
+        try corrupt.write(to: file)
+
+        let library = ProjectLibrary(store: store)
+        var pending = PendingOpens()
+        for placement in pending.place([boundFile, looseFile], in: library, unsortedName: "Unsorted") {
+            pending.add(placement)
+        }
+        #expect(library.projects.isEmpty)
+        #expect(pending.windowsToRequest() == 0)
+        #expect(pending.claim(preferring: nil, isNew: true) == nil)
+        #expect(try Data(contentsOf: file) == corrupt)
+
+        library.retryLoad()
+        #expect(library.loadError != nil)
+        #expect(pending.place([boundFile], in: library, unsortedName: "Unsorted").isEmpty)
+        #expect(try Data(contentsOf: file) == corrupt)
+
+        try backup.write(to: file)
+        library.retryLoad()
+        #expect(library.loadError == nil)
+        for placement in pending.place([], in: library, unsortedName: "Unsorted") {
+            pending.add(placement)
+        }
+        #expect(pending.windowsToRequest() == 2)
+        #expect(pending.claim(preferring: project.id, isNew: false) == .init(projectID: project.id, urls: [boundFile]))
+        let claimed = pending.claim(preferring: nil, isNew: true)
+        let loosePlacement = try #require(claimed)
+        let unsorted = try #require(library.unsortedProject)
+        #expect(loosePlacement == .init(projectID: unsorted.id, urls: [looseFile]))
+        #expect(pending.claim(preferring: nil, isNew: true) == nil)
+        #expect(library.project(project.id) == savedProjects.first)
+        #expect(try store.load() == library.projects)
+        let bookmark = try #require(unsorted.looseFiles.first).bookmark
+        #expect(
+            try FolderBookmark.resolve(bookmark).url.resolvingSymlinksInPath() == looseFile.resolvingSymlinksInPath())
+        #expect(pending.place([], in: library, unsortedName: "Unsorted").isEmpty)
+    }
+
     @Test func aNewWindowTakesTheProjectThatHasWaitedLongest() {
         var pending = PendingOpens()
         pending.add(first)

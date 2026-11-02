@@ -4,6 +4,40 @@ import Testing
 @testable import GrimoireCore
 
 @Suite struct ParsingTests {
+    @Test func requiresVerifiableEditProvenance() {
+        let source = "*hello*"
+        let candidate = "bonjour *monde*"
+        let edit = TextEdit(range: 0..<7, replacement: candidate, selection: 0..<0)
+        #expect(!MarkdownParser.hasSameStructure(source, as: candidate, replacing: [edit]))
+        let rewrittenMarkers = TextEdit(range: 0..<7, replacement: "*bonjour*", selection: 0..<0)
+        #expect(!MarkdownParser.hasSameStructure(source, as: "*bonjour*", replacing: [rewrittenMarkers]))
+        #expect(!MarkdownParser.hasSameStructure(source, as: "*bonjour*", replacing: []))
+        let wrong = TextEdit(range: 1..<6, replacement: "other", selection: 0..<0)
+        #expect(!MarkdownParser.hasSameStructure(source, as: "*bonjour*", replacing: [wrong]))
+        let generatedBoundary = TextEdit(range: 1..<6, replacement: "bonjour* monde", selection: 0..<0)
+        #expect(
+            !MarkdownParser.hasSameStructure(
+                "*hello* tail", as: "*bonjour* monde* tail", replacing: [generatedBoundary]))
+        #expect(MarkdownParser.hasSameStructure(source, as: source, replacing: []))
+    }
+
+    @Test(arguments: [
+        ("[page](https://x.test \"Title\")", "[étiquette](https://x.test \"Title\")", true),
+        ("[page](https://x.test \"Title\")", "[étiquette](https://x.test \"Changed\")", false),
+        ("[page](https://x.test)", "[étiquette](https://other.test)", false),
+        ("![image](photo.png \"Title\")", "![photo](other.png \"Title\")", false),
+        ("`build.sh`", "`other.sh`", false),
+        ("```swift\nlet value = 1\n```", "```text\nlet value = 1\n```", false),
+        ("```swift\nlet value = 1\n```", "```swift\nlet value = 2\n```", false),
+        ("# Hello", "## Bonjour", false), ("> **hello**", "**bonjour**", false),
+        ("- [ ] hello", "- [x] bonjour", false), ("3. hello", "1. bonjour", false),
+        ("| a | b |\n| :--- | ---: |", "| un | deux |\n| ---: | :--- |", false),
+    ])
+    func comparesStructureWithoutTreatingTranslatedProseAsSyntax(source: String, candidate: String, matches: Bool) {
+        let edit = TextEdit.difference(from: source, to: candidate, selection: 0..<0)
+        #expect(MarkdownParser.hasSameStructure(source, as: candidate, replacing: [edit]) == matches)
+    }
+
     @Test func splitsBlocksWithTheirSource() {
         let text = """
             # Title

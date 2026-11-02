@@ -35,6 +35,7 @@ public final class EditorProxy {
     }
 
     @ObservationIgnored weak var controller: EditorController?
+    @ObservationIgnored private var pendingReveal: (url: URL, range: NSRange)?
 
     public init() {}
 
@@ -74,6 +75,23 @@ public final class EditorProxy {
     /// Selects `range` in the document, scrolls to it and puts the focus in the editor.
     public func reveal(_ range: NSRange) {
         controller?.reveal(range)
+    }
+
+    /// A newly opened document may reuse an editor or mount after its naming sheet closes.
+    public func revealWhenReady(_ range: NSRange, in url: URL) {
+        pendingReveal = (url, range)
+        applyPendingReveal()
+    }
+
+    public func cancelPendingReveal() { pendingReveal = nil }
+
+    func applyPendingReveal() {
+        guard let pending = pendingReveal, let controller,
+            controller.fileURL == pending.url, controller.textView.window != nil,
+            pending.range.location <= controller.textView.string.utf16.count
+        else { return }
+        pendingReveal = nil
+        controller.reveal(pending.range)
     }
 
     /// Casts a spell at the caret, as if it were chosen from the Spells menu.

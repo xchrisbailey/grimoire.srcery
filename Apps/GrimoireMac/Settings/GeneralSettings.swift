@@ -79,7 +79,7 @@ struct GeneralSettings: View {
                         isOn: Binding(
                             get: { project.overrides.fileExtensions != nil },
                             set: { useOwn in
-                                library.update(id) {
+                                library.editProject(id) {
                                     $0.overrides.fileExtensions = useOwn ? preferences.fileExtensions : nil
                                 }
                                 loadProjectExtensions()
@@ -92,7 +92,7 @@ struct GeneralSettings: View {
                         "Save pasted images in",
                         selection: Binding(
                             get: { project.overrides.imageLocation },
-                            set: { location in library.update(id) { $0.overrides.imageLocation = location } })
+                            set: { location in library.editProject(id) { $0.overrides.imageLocation = location } })
                     ) {
                         Text("Same as above").tag(ImageLocation?.none)
                         Text("Next to the page").tag(Optional(ImageLocation.besideFile))
@@ -117,6 +117,7 @@ struct GeneralSettings: View {
     private func saveProjectExtensions() {
         guard let id = overrideProject, library.project(id)?.overrides.fileExtensions != nil else { return }
         let parsed = Preferences.parseExtensions(projectExtensionsText)
-        library.update(id) { $0.overrides.fileExtensions = parsed }
+        library.editProject(id) { $0.overrides.fileExtensions = parsed }
+        loadProjectExtensions()
     }
 }

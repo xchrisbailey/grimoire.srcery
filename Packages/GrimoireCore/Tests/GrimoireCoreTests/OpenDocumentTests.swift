@@ -110,6 +110,27 @@ import Testing
         document.close()
         #expect(try String(contentsOf: file, encoding: .utf8) == "b")
     }
+
+    @Test func failedUnmanagedCloseKeepsWatchingAndCanRetry() async throws {
+        let scratch = try Scratch()
+        let folder = try scratch.folder("notes")
+        let file = try scratch.file("notes/page.md", "original")
+        let document = try OpenDocument(url: file, autosaveDelay: .seconds(3600))
+        defer { document.discard() }
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path) }
+        document.text = "mine"
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: folder.path)
+        #expect(!document.close())
+        #expect(document.isDirty)
+        #expect(document.saveError != nil)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+        try Data("theirs".utf8).write(to: file, options: .atomic)
+        try await until { document.conflict == "theirs" }
+        #expect(!document.close())
+        #expect(document.keepMine())
+        #expect(document.close())
+        #expect(try String(contentsOf: file, encoding: .utf8) == "mine")
+    }
 }
 
 @MainActor
@@ -120,6 +141,6 @@ func until(timeout: Duration = .seconds(5), _ condition: () -> Bool) async throw
             Issue.record("Timed out waiting for condition")
             return
         }
-        try await Task.sleep(for: .milliseconds(20))
+        try await Task.sleep(for: .milliseconds(2))
     }
 }

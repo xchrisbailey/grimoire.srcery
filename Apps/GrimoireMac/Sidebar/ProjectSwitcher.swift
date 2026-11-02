@@ -90,19 +90,26 @@ struct ProjectSwitcher: View {
     private func finishNaming() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, let prompt = window.projectPrompt else { return }
-        switch prompt {
-        case .new:
-            window.selectProject(library.createProject(named: trimmed).id)
-        case .rename(let id):
-            library.update(id) { $0.name = trimmed }
+        do {
+            switch prompt {
+            case .new:
+                let project = try library.createProject(named: trimmed)
+                window.selectProject(project.id)
+            case .rename(let id):
+                try library.update(id) { $0.name = trimmed }
+            }
+            window.projectPrompt = nil
+        } catch {
+            window.actions.error = error
         }
-        window.projectPrompt = nil
     }
 
     private func deleteCurrent() {
         guard let current else { return }
-        window.selectProject(nil)
-        library.deleteProject(current.id)
-        window.selectProject(library.projects.first?.id)
+        do {
+            try ExternalOpens.shared.deleteProject(current.id, in: library)
+        } catch {
+            window.actions.error = error
+        }
     }
 }

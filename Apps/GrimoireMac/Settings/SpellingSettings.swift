@@ -45,7 +45,7 @@ struct SpellingSettings: View {
                         Text(word)
                         Spacer()
                         Button {
-                            library.update(id) { $0.dictionary.removeAll { $0 == word } }
+                            library.editProject(id) { $0.dictionary.removeAll { $0 == word } }
                         } label: {
                             Image(systemName: "minus.circle")
                                 .accessibilityLabel(Text("Remove \(word)"))
@@ -73,15 +73,19 @@ struct SpellingSettings: View {
     private func add(to id: Project.ID) {
         let word = newWord.trimmingCharacters(in: .whitespaces)
         guard !word.isEmpty else { return }
-        library.learnWord(word, in: id)
-        newWord = ""
+        do {
+            try library.learnWord(word, in: id)
+            newWord = ""
+        } catch {
+            library.lastError = error
+        }
     }
 }
 
 extension ProjectLibrary {
     /// Adds `word` to the project's dictionary, once.
-    func learnWord(_ word: String, in id: Project.ID) {
-        update(id) { project in
+    func learnWord(_ word: String, in id: Project.ID) throws {
+        try update(id) { project in
             guard !project.dictionary.contains(where: { $0.caseInsensitiveCompare(word) == .orderedSame }) else {
                 return
             }

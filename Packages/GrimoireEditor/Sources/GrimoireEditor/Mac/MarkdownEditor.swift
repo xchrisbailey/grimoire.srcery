@@ -184,6 +184,7 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.styler.mode = mode
         controller.load(text, flavor: flavor)
         wire(controller)
+        DispatchQueue.main.async { proxy?.applyPendingReveal() }
         return controller.scrollView
     }
 
@@ -207,6 +208,7 @@ public struct MarkdownEditor: NSViewRepresentable {
         controller.mode = mode
         controller.theme = theme
         controller.dimsAroundCaret = dimsAroundCaret
+        DispatchQueue.main.async { proxy?.applyPendingReveal() }
     }
 
     private func wire(_ controller: EditorController) {
@@ -231,6 +233,7 @@ public struct MarkdownEditor: NSViewRepresentable {
             controller.proxy = proxy
             proxy?.controller = controller
         }
+        controller.textView.onWindowAttached = { [weak proxy] in proxy?.applyPendingReveal() }
         controller.onEscape = onEscape
         let binding = $text
         controller.onTextChange = { binding.wrappedValue = $0 }

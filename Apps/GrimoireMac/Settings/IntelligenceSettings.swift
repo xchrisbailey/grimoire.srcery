@@ -51,7 +51,9 @@ struct IntelligenceSettings: View {
                             "Turn off intelligence for this project",
                             isOn: Binding(
                                 get: { current.overrides.intelligenceOff == true },
-                                set: { off in library.update(id) { $0.overrides.intelligenceOff = off ? true : nil } }))
+                                set: { off in
+                                    library.editProject(id) { $0.overrides.intelligenceOff = off ? true : nil }
+                                }))
                     }
                 }
             }

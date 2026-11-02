@@ -1,6 +1,20 @@
 import Foundation
 import Observation
 
+/// Why an open document can't be released with its edits intact.
+public enum ReleaseRefusal {
+    /// The file changed on disk while there were unsaved edits.
+    case conflict
+    /// Writing the file failed.
+    case saveFailed(any Error)
+}
+
+public enum DiscardOutcome: Equatable {
+    case discarded
+    /// The edits couldn't be recorded as a kept version, so they were not discarded.
+    case versionNotKept
+}
+
 /// The file a window is editing: its text, whether that text is saved, and what to do
 /// when the file changes on disk.
 ///
@@ -33,23 +47,29 @@ public final class OpenDocument {
 
     private var autosave: Task<Void, Never>?
     private var watcher: FolderWatcher?
+    private let authorizeWrite: ((URL) throws -> Void)?
 
     /// Reads `url`. Throws if it can't be read.
-    public init(url: URL, autosaveDelay: Duration = .seconds(1)) throws {
+    public init(
+        url: URL, autosaveDelay: Duration = .seconds(1),
+        authorizeWrite: ((URL) throws -> Void)? = nil
+    ) throws {
         let text = try Self.read(url)
         self.url = url
         self.text = text
         self.savedText = text
         self.autosaveDelay = autosaveDelay
+        self.authorizeWrite = authorizeWrite
         watch()
     }
 
-    /// Stops watching and saves any pending edits. Call before letting go of the document.
-    public func close() {
-        save()
+    /// Releases the watcher only after all edits are saved. A false result requires retaining this document.
+    @discardableResult public func close() -> Bool {
+        guard save() else { return false }
         autosave?.cancel()
         watcher?.stop()
         watcher = nil
+        return true
     }
 
     /// Stops watching without saving, for a file that was moved to the Trash.
@@ -59,12 +79,43 @@ public final class OpenDocument {
         watcher = nil
     }
 
+    /// Why the text can't be saved, when giving up the edits is a way out. Nil when nothing
+    /// blocks a release, and also while a pending move or trash holds the file: that
+    /// hold is settled by recovery, not by discarding.
+    public var releaseRefusal: ReleaseRefusal? {
+        if conflict != nil { return .conflict }
+        guard isDirty, let saveError, !Self.isLifecycleHold(saveError) else { return nil }
+        return .saveFailed(saveError)
+    }
+
+    /// Gives up the unsaved edits and stops watching, never writing to the file. The text goes
+    /// to the version store first so it can be recovered; if that can't be confirmed and
+    /// `requiringKeptVersion` is true, nothing changes and the edits stay in the editor.
+    @discardableResult
+    public func discardEdits(requiringKeptVersion: Bool = true) -> DiscardOutcome {
+        if isDirty, requiringKeptVersion {
+            // `.conflict` rather than a new reason: older builds can't decode reasons they don't know,
+            // and then rewrite the whole index, losing the file's history on a rollback.
+            guard versions?.keepConfirmed(text, of: url, reason: .conflict) == true else { return .versionNotKept }
+        }
+        discard()
+        conflict = nil
+        saveError = nil
+        text = savedText
+        return .discarded
+    }
+
+    private static func isLifecycleHold(_ error: any Error) -> Bool {
+        error is LifecycleError || error is LifecycleRecoveryError || error is TrashRecoveryError
+    }
+
     /// Writes the text to disk if it has unsaved changes. Holds off while there's a
     /// conflict, so the user's choice decides what wins.
-    public func save() {
+    @discardableResult public func save() -> Bool {
         autosave?.cancel()
-        guard isDirty, conflict == nil else { return }
-        write()
+        guard isDirty else { return conflict == nil }
+        guard conflict == nil else { return false }
+        return write()
     }
 
     /// The file was renamed or moved (from the tree); follow it.
@@ -92,11 +143,9 @@ public final class OpenDocument {
     }
 
     /// Resolves a conflict by writing the editor's text over the disk.
-    public func keepMine() {
-        guard let disk = conflict else { return }
-        conflict = nil
-        versions?.keep(disk, of: url, reason: .conflict)
-        write()
+    @discardableResult public func keepMine() -> Bool {
+        guard let disk = conflict else { return save() }
+        return write(conflictingText: disk)
     }
 
     /// Resolves a conflict by taking the disk's text.
@@ -115,15 +164,21 @@ public final class OpenDocument {
         versions?.keep(text, of: url, reason: reason)
     }
 
-    private func write() {
-        if savedText != text { versions?.willSave(url, previous: savedText) }
+    private func write(conflictingText: String? = nil) -> Bool {
         do {
+            // Finalize pending filesystem intent before atomic replacement destroys its identity evidence.
+            try authorizeWrite?(url)
             try Data(text.utf8).write(to: url, options: .atomic)
+            if let conflictingText { versions?.keep(conflictingText, of: url, reason: .conflict) }
+            if savedText != text { versions?.willSave(url, previous: savedText) }
+            conflict = nil
             savedText = text
             saveError = nil
             didSave?(url)
+            return true
         } catch {
             saveError = error
+            return false
         }
     }
 

@@ -4,6 +4,8 @@ import SwiftUI
 
 /// The Settings window (⌘,). Every setting applies as soon as it changes.
 struct SettingsView: View {
+    @Environment(ProjectLibrary.self) private var library
+
     var body: some View {
         TabView {
             Tab("General", systemImage: "gearshape") {
@@ -27,6 +29,33 @@ struct SettingsView: View {
         }
         .frame(width: 600)
         .tint(Color.brand(\.magic))
+        .alert(
+            String(localized: "Project changes couldn’t be saved"),
+            isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })
+        ) {
+            Button("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([library.storageURL])
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your project changes were not saved. Check access to the projects file, then try the change again.")
+            Text(library.lastError?.localizedDescription ?? "")
+        }
+    }
+}
+
+extension ProjectLibrary {
+    /// Settings bindings cannot throw. Keep their displayed value in the committed
+    /// snapshot and report failures in the Settings window instead of accepting the edit.
+    @discardableResult
+    func editProject(_ id: Project.ID, _ change: (inout Project) -> Void) -> Bool {
+        do {
+            try update(id, change)
+            return true
+        } catch {
+            lastError = error
+            return false
+        }
     }
 }
 
