@@ -1,0 +1,123 @@
+#!/bin/bash
+# Runs before every push once scripts/install-hooks.sh has pointed core.hooksPath here.
+#
+#  - A push with code in it runs swift-format and SwiftLint, both strict.
+#  - Pushing refs/heads/main or a refs/tags/v* tag needs the commit to have passed
+#    scripts/check.sh, which records it in <git common dir>/grimoire-check-passed. A commit that
+#    differs from a stamped ancestor only in docs also passes, as it did under the old CI path
+#    filter.
+#  - Deleting a ref skips both.
+#
+# `git push --no-verify` bypasses the hook.
+set -u
+
+remote=$1
+zeros=0000000000000000000000000000000000000000
+top=$(git rev-parse --show-toplevel)
+cd "$top" || exit 1
+stamp="$(cd "$(git rev-parse --git-common-dir)" && pwd -P)/grimoire-check-passed"
+
+# Docs-only means *.md or docs/**, except Markdown under a package's Tests, which is parser
+# test data that the tests read.
+is_docs_path() {
+  case "$1" in
+    Packages/*/Tests/*) return 1 ;;
+    *.md | docs/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Reads paths on stdin; true when every one is docs-only (and there is at least one).
+all_docs() {
+  local seen=0 path
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    seen=1
+    is_docs_path "$path" || return 1
+  done
+  [ "$seen" -eq 1 ]
+}
+
+# Reads paths on stdin; true when any one is not docs-only.
+has_code() {
+  local path
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    is_docs_path "$path" || return 0
+  done
+  return 1
+}
+
+# Paths touched by what this push adds. Falls back to "everything changed" (a lone dot) when
+# the remote's old tip isn't known locally, so an unknown range is linted rather than skipped.
+pushed_paths() {
+  local local_sha=$1 remote_sha=$2 commits commit
+  if [ "$remote_sha" = "$zeros" ]; then
+    commits=$(git rev-list "$local_sha" --not --remotes="$remote" 2>/dev/null) || { echo .; return; }
+  else
+    commits=$(git rev-list "$remote_sha..$local_sha" 2>/dev/null) || { echo .; return; }
+  fi
+  for commit in $commits; do
+    git diff-tree --no-commit-id --name-only -r -m --root "$commit"
+  done
+}
+
+stamped() { [ -f "$stamp" ] && awk -v sha="$1" '$1 == sha { found = 1 } END { exit !found }' "$stamp"; }
+
+# True when `commit` is stamped, or differs from a stamped ancestor only in docs.
+passed_check() {
+  local commit=$1 sha
+  stamped "$commit" && return 0
+  [ -f "$stamp" ] || return 1
+  while read -r sha _; do
+    [ -n "$sha" ] || continue
+    git merge-base --is-ancestor "$sha" "$commit" 2>/dev/null || continue
+    git diff --name-only "$sha" "$commit" | all_docs && return 0
+  done < "$stamp"
+  return 1
+}
+
+lint=0
+lint_head=
+refused=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zeros" ] && continue
+
+  if pushed_paths "$local_sha" "$remote_sha" | has_code; then
+    lint=1
+    lint_head=$local_sha
+  fi
+
+  case "$remote_ref" in
+    refs/heads/main | refs/tags/v*)
+      commit=$(git rev-parse "$local_sha^{commit}")
+      if ! passed_check "$commit"; then
+        refused=1
+        echo "pre-push: refusing to push $remote_ref at ${commit:0:12}." >&2
+        echo "  It has not passed scripts/check.sh. Run it at a clean checkout of this commit;" >&2
+        echo "  a pass records the commit in $stamp." >&2
+        echo "  (A commit that only changes *.md or docs/** on top of a passed one is accepted.)" >&2
+      fi
+      ;;
+  esac
+done
+
+[ "$refused" -eq 0 ] || exit 1
+[ "$lint" -eq 1 ] || exit 0
+
+# The linters read the working tree, so they only vouch for the commit that is checked out.
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse "$lint_head^{commit}")" ]; then
+  echo "pre-push: skipping lint, because the pushed commit is not the one checked out." >&2
+  exit 0
+fi
+
+status=0
+echo "pre-push: swift-format" >&2
+xcrun swift-format lint --strict --recursive Apps Packages || status=1
+echo "pre-push: swiftlint" >&2
+swiftlint --strict --quiet || status=1
+if [ "$status" -ne 0 ]; then
+  echo "pre-push: lint failed; fix it, or bypass with --no-verify." >&2
+fi
+exit "$status"
