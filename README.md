@@ -47,6 +47,8 @@ Grimoire is a Mac app for writing in markdown. You edit in blocks, the way you w
 
 **Projects and folders.** A project binds one or more folders from anywhere on disk, each with an optional alias in the sidebar. Open any page with <kbd>⌘P</kbd>, search every page with <kbd>⇧⌘E</kbd> and jump between headings with <kbd>⇧⌘J</kbd>.
 
+**Content templates.** Give a folder a starting template, and new pages in it begin with your frontmatter and structure, with the title, filename, date and time filled in. See [Content templates](docs/templates.md) for the placeholder syntax.
+
 **Themes.** Catppuccin, Dracula, GitHub, Gruvbox, Nord, One Dark, Rosé Pine, Solarized and Tokyo Night, with separate picks for light and dark mode. Borrow the look of any VS Code theme, and choose your own fonts and sizes.
 
 **Focus.** Hide everything but the page with <kbd>⇧⌘F</kbd>, dim all but the current sentence, cap the line length, or highlight parts of speech to see how your sentences are built.
