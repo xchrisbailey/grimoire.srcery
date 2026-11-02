@@ -44,7 +44,7 @@ extension Scratch {
         let root = try self.folder(folder)
         for (path, text) in files { try file(folder + "/" + path, text) }
         let library = ProjectLibrary(store: ProjectStore(fileURL: url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Notes")
+        let project = try library.createProject(named: "Notes")
         try library.bindFolder(root, to: project.id)
         let workspace = Workspace(projectID: project.id, library: library)
         workspace.activate()
@@ -217,19 +217,6 @@ extension Scratch {
     }
 }
 
-@Suite struct FolderWatcherTests {
-    @Test func seesFilesCreatedOutsideTheApp() async throws {
-        let scratch = try Scratch()
-        let (events, continuation) = AsyncStream<[String]>.makeStream()
-        let watcher = FolderWatcher(url: scratch.url, latency: 0.05) { continuation.yield($0) }
-        defer { watcher.stop() }
-        try await Task.sleep(for: .milliseconds(200))
-        try scratch.file("new.md")
-        let saw = await firstEvent(in: events, matching: { $0.contains { $0.hasSuffix("new.md") } })
-        #expect(saw)
-    }
-}
-
 /// Waits up to `timeout` for an element matching `predicate`.
 func firstEvent<T: Sendable>(
     in stream: AsyncStream<T>, timeout: Duration = .seconds(5), matching predicate: @escaping @Sendable (T) -> Bool
@@ -249,7 +236,58 @@ func firstEvent<T: Sendable>(
     }
 }
 
-@MainActor @Suite struct WorkspaceTests {
+@MainActor @Suite(.mainActorGate) struct WorkspaceTests {
+    @Test(arguments: ["{broken", "{\"version\": 2, \"projects\": []}"])
+    func failedProjectLoadPreservesStoredBytesDuringDefaultCreation(json: String) throws {
+        let scratch = try Scratch()
+        let file = try scratch.file("projects.json", json)
+        let original = try Data(contentsOf: file)
+        let library = ProjectLibrary(store: ProjectStore(fileURL: file))
+
+        #expect(library.lastError != nil)
+        #expect(library.loadError != nil)
+        library.lastError = nil
+        #expect(throws: (any Error).self) { try library.createProject(named: "Grimoire") }
+        #expect(library.projects.isEmpty)
+        #expect(try Data(contentsOf: file) == original)
+
+        library.retryLoad()
+        #expect(library.loadError != nil)
+        #expect(try Data(contentsOf: file) == original)
+
+        let root = FolderRoot(name: "Notes", bookmark: Data([1, 2, 3]), lastKnownPath: "/notes")
+        let restored = Project(name: "Recovered", roots: [root])
+        try ProjectStore(fileURL: file).save([restored])
+        library.retryLoad()
+        #expect(library.loadError == nil)
+        #expect(library.lastError == nil)
+        #expect(library.projects == [restored])
+        try library.update(restored.id) { $0.name = "Renamed" }
+        #expect(try ProjectStore(fileURL: file).load().first?.name == "Renamed")
+        #expect(try ProjectStore(fileURL: file).load().first?.roots == [root])
+    }
+
+    @Test func unreadableProjectStoreIsNotTreatedAsMissing() throws {
+        let scratch = try Scratch()
+        let directory = try scratch.folder("projects.json")
+        let marker = try scratch.file("projects.json/preserved", "original bytes")
+        let library = ProjectLibrary(store: ProjectStore(fileURL: directory))
+        #expect(library.loadError != nil)
+        #expect(throws: (any Error).self) { try library.createProject(named: "Grimoire") }
+        #expect(try String(contentsOf: marker, encoding: .utf8) == "original bytes")
+        #expect(library.loadError != nil)
+    }
+
+    @Test func missingProjectStoreAllowsDefaultCreation() throws {
+        let scratch = try Scratch()
+        let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
+        let library = ProjectLibrary(store: store)
+        #expect(library.loadError == nil)
+        if library.projects.isEmpty { try library.createProject(named: "Grimoire") }
+        #expect(try store.load() == library.projects)
+        #expect(library.lastError == nil)
+    }
+
     /// The "done when" for #4: make a project, bind two unrelated folders, see both trees,
     /// relaunch (a new library over the same store) and still have access; a file made
     /// outside the app appears without a manual refresh.
@@ -262,7 +300,7 @@ func firstEvent<T: Sendable>(
         let store = ProjectStore(fileURL: scratch.url.appending(path: "support/projects.json"))
 
         let library = ProjectLibrary(store: store)
-        let project = library.createProject(named: "Grimoire")
+        let project = try library.createProject(named: "Grimoire")
         try library.bindFolder(notes, to: project.id)
         try library.bindFolder(blog, to: project.id)
         try library.bindFolder(notes, to: project.id)
@@ -290,14 +328,14 @@ func firstEvent<T: Sendable>(
         let content = try scratch.folder("somewhere/content")
         let store = ProjectStore(fileURL: scratch.url.appending(path: "projects.json"))
         let library = ProjectLibrary(store: store)
-        let project = library.createProject(named: "Site")
+        let project = try library.createProject(named: "Site")
         let root = try library.bindFolder(content, to: project.id)
         #expect(root.displayName == "content")
 
-        library.setAlias("  srcery.computer ", of: root.id, in: project.id)
+        try library.setAlias("  srcery.computer ", of: root.id, in: project.id)
         #expect(ProjectLibrary(store: store).project(project.id)?.roots.first?.displayName == "srcery.computer")
 
-        library.setAlias(" ", of: root.id, in: project.id)
+        try library.setAlias(" ", of: root.id, in: project.id)
         #expect(library.project(project.id)?.roots.first?.alias == nil)
         #expect(library.project(project.id)?.roots.first?.displayName == "content")
     }
@@ -329,7 +367,7 @@ func firstEvent<T: Sendable>(
         let scratch = try Scratch()
         let gone = try scratch.folder("gone")
         let library = ProjectLibrary(store: ProjectStore(fileURL: scratch.url.appending(path: "projects.json")))
-        let project = library.createProject(named: "Lost")
+        let project = try library.createProject(named: "Lost")
         try library.bindFolder(gone, to: project.id)
         try FileManager.default.removeItem(at: gone)
 
@@ -340,7 +378,7 @@ func firstEvent<T: Sendable>(
 
         let found = try scratch.folder("found")
         try scratch.file("found/page.md")
-        workspace.regrantAccess(to: workspace.folders[0].id, with: found)
+        try workspace.regrantAccess(to: workspace.folders[0].id, with: found)
         try await until { workspace.folders.first?.status == .available }
         #expect(library.project(project.id)?.roots.first?.name == "found")
     }

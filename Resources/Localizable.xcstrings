@@ -1,6 +1,327 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Confirm" : {
+      "extractionState" : "manual"
+    },
+    "Folder template recovery changed. Review the folder and configuration, then retry." : {
+      "extractionState" : "manual"
+    },
+    "Content Templates" : {
+      "extractionState" : "manual"
+    },
+    "Template Source: %@" : {
+      "extractionState" : "manual"
+    },
+    "Locate Folder…" : {
+      "extractionState" : "manual"
+    },
+    "Remove Assignment" : {
+      "extractionState" : "manual"
+    },
+    "Check Folder Template Assignments" : {
+      "extractionState" : "manual"
+    },
+    "Choose the owning folder inside an accessible binding in this project." : {
+      "extractionState" : "manual"
+    },
+    "Owning folder: %@\nNew choice location: %@\nThis changes only this explicit choice and its inherited scope in this project. Nearer choices and separate bindings are unchanged. Template source references and files are unchanged; a broken source still needs separate repair." : {
+      "extractionState" : "manual"
+    },
+    "Carry Content Templates to a Different Folder?" : {
+      "extractionState" : "manual"
+    },
+    "Replace binding %@ with %@? All owned template choices and all source references into this binding keep their relative paths under the new folder. Inactive choices stay inactive. Other bindings and files are unchanged.\n%@" : {
+      "extractionState" : "manual"
+    },
+    "Carry Configuration" : {
+      "extractionState" : "manual"
+    },
+    "A trash operation has an unknown outcome. Review its recorded configuration removal." : {
+      "extractionState" : "manual"
+    },
+    "Retry never moves or restores files." : {
+      "extractionState" : "manual"
+    },
+    "The item went to the Trash, but its configuration removal is pending." : {
+      "extractionState" : "manual"
+    },
+    "The trash operation needs repair. Its configuration is unchanged." : {
+      "extractionState" : "manual"
+    },
+    "Finish configuration removal…" : {
+      "extractionState" : "manual"
+    },
+    "This item goes to the Trash." : {
+      "extractionState" : "manual"
+    },
+    "Its explicit and descendant choices are removed only after successful trash." : {
+      "extractionState" : "manual"
+    },
+    "Restoring it requires reassignment." : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments keep broken source references without a fallback." : {
+      "extractionState" : "manual"
+    },
+    "This applies only the recorded configuration removals and clears this trash recovery record." : {
+      "extractionState" : "manual"
+    },
+    "It does not move, delete, or restore any file." : {
+      "extractionState" : "manual"
+    },
+    "The item's trash outcome is unknown, even if it has reappeared." : {
+      "extractionState" : "manual"
+    },
+    "Removed choices require reassignment." : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments retain their source references, which may be broken." : {
+      "extractionState" : "manual"
+    },
+    "The affected configuration changed. Review it, then confirm again." : {
+      "extractionState" : "manual"
+    },
+    "This removes the binding and its owned template assignments and opt-outs." : {
+      "extractionState" : "manual"
+    },
+    "Files on disk stay unchanged. Rebinding starts unconfigured." : {
+      "extractionState" : "manual"
+    },
+    "Choices to remove" : {
+      "extractionState" : "manual"
+    },
+    "Remaining assignments with broken sources" : {
+      "extractionState" : "manual"
+    },
+    "Folder names may conflict. Restore volume access or resolve the destination choices, then retry." : {
+      "extractionState" : "manual"
+    },
+    "Template choices or source references block this operation. Files and settings are unchanged." : {
+      "extractionState" : "manual"
+    },
+    "Retry Reconciliation" : {
+      "comment" : "plain: reconcile an observed folder move without replay or rollback"
+    },
+    "The item moved, but its project changes are still pending." : {
+      "extractionState" : "manual"
+    },
+    "The destination has folder template choices. Resolve the conflict before moving." : {
+      "extractionState" : "manual"
+    },
+    "A move needs repair. Restore the original at its shown source or destination, then retry." : {
+      "extractionState" : "manual"
+    },
+    "Retry only checks the filesystem; it never moves or reverses files." : {
+      "extractionState" : "manual"
+    },
+    "Move within one bound folder, not across bindings or a bound root. Nothing changed." : {
+      "extractionState" : "manual"
+    },
+    "This move crosses an unsupported filesystem or bound-root boundary. Nothing changed." : {
+      "extractionState" : "manual"
+    },
+    "Folders with template choices can't be moved to another volume. Nothing changed. In Content Template…, choose Inherit for the choices on this folder, its subfolders, or the destination, and for any folder that uses a file inside this one as its template. Remove inactive choices with Remove Assignment under Content Templates. Then move it again." : {
+      "extractionState" : "manual"
+    },
+    "The bound folder “%@” is unavailable, so this move can't be checked. Nothing changed. Grant access to “%@” again, then retry." : {
+      "extractionState" : "manual"
+    },
+    "This folder was moved while a move still needs repair. Nothing changed. Put it back at “%@”, then grant access again." : {
+      "extractionState" : "manual"
+    },
+    "Invalid folder move recovery record. Repair the project settings before retrying." : {
+      "extractionState" : "manual"
+    },
+    "The replacement was saved, but creation details are unavailable." : {
+      "comment" : "plain: successful settings repair with unavailable pending creation context"
+    },
+    "Create Empty Once" : {
+      "comment" : "plain: explicitly bypass the source only for this pending creation"
+    },
+    "Choose Replacement…" : {
+      "comment" : "plain: select a replacement for the supplying folder template assignment"
+    },
+    "Confirm Replacement" : {
+      "comment" : "plain: persist the displayed supplying-assignment repair independently of creation"
+    },
+    "Replacement source" : {
+      "comment" : "plain: saved source selected for a confirmed repair"
+    },
+    "This repairs the owning folder shown above and descendants that inherit its choice within this bound root. Nearer overrides, opt-outs, and separately bound roots are excluded. Other explicit assignments using the old source are unchanged." : {
+      "comment" : "plain: scope confirmation before repairing an inherited template assignment"
+    },
+    "The replacement was saved. You can create the document or cancel without undoing the repair." : {
+      "comment" : "plain: a confirmed assignment repair is independent of document creation"
+    },
+    "Discard Replacement" : {
+      "comment" : "plain: abandon the selected replacement without changing settings"
+    },
+    "Template authoring details changed. Choose the location and folder again." : {
+      "comment" : "plain: authoring context changed before publication or assignment",
+      "extractionState" : "manual"
+    },
+    "Create Template…" : {
+      "comment" : "plain: create and assign an empty ordinary Markdown source"
+    },
+    "Create Template" : {
+      "comment" : "plain: source authoring location picker prompt"
+    },
+    "Edit Template" : {
+      "comment" : "plain: open the ordinary saved template source"
+    },
+    "Open Created Source" : {
+      "comment" : "plain: open the source preserved after an assignment save failure"
+    },
+    "Create an empty Markdown template source inside a folder bound to this project. Existing files are never replaced; a numbered name is used instead." : {
+      "comment" : "plain: source authoring location and collision behavior"
+    },
+    "The empty source was created at %@, but its assignment was not saved. The previous choice is unchanged. After fixing project settings, use Choose Existing File… to assign this source; do not create it again." : {
+      "comment" : "plain: partial source authoring success with actionable assignment recovery"
+    },
+    "Folder" : {
+      "comment" : "plain: folder whose local template choice is being edited"
+    },
+    "Folder Choice" : {
+      "comment" : "plain: explicit choice at the folder being edited"
+    },
+    "Inherit" : {
+      "comment" : "plain: remove only this folder's explicit template choice"
+    },
+    "Use a template" : {
+      "comment" : "plain: choose a saved template source"
+    },
+    "Inherited From" : {
+      "comment" : "plain: ancestor owning the effective content template choice"
+    },
+    "No template (effective choice)" : {
+      "comment" : "plain: effective explicit template opt-out"
+    },
+    "No effective content template." : {
+      "comment" : "plain: no active explicit choice inside the selected bound root"
+    },
+    "This choice applies to this folder and its descendants within this bound root in this project." : {
+      "comment" : "plain: folder template inheritance scope"
+    },
+    "Owning folder: %@" : {
+      "comment" : "plain: identifies the assignment supplying a broken template source"
+    },
+    "Enter a name without surrounding whitespace, leading dots, path separators or control characters." : {
+      "comment" : "plain: literal new-document stem validation",
+      "extractionState" : "manual"
+    },
+    "Creation details changed. Review them, then confirm again." : {
+      "comment" : "plain: relevant context changed during naming"
+    },
+    "Template source: %@" : {
+      "comment" : "plain: identifies a source that blocked creation"
+    },
+    "The document was created at %@, but couldn’t be opened." : {
+      "comment" : "plain: publication succeeded; opening must not retry creation"
+    },
+    "Open that file; don’t create another copy." : {
+      "comment" : "plain: recovery after a published document could not be opened"
+    },
+    "Destination" : {
+      "comment" : "plain: new-document destination folder"
+    },
+    "Template source" : {
+      "comment" : "plain: new-document saved source"
+    },
+    "No template" : {
+      "comment" : "plain: reviewed creation no longer has an assigned source"
+    },
+    "Invalid content template reference. Repair the project settings and retry." : {
+      "comment" : "plain: invalid stored folder template path",
+      "extractionState" : "manual"
+    },
+    "Conflicting folder template choices. Repair the project settings and retry." : {
+      "comment" : "plain: conflicting stored choices for one folder",
+      "extractionState" : "manual"
+    },
+    "The owning folder is unavailable. Restore bound-folder access and retry." : {
+      "comment" : "plain: template owner cannot be accessed",
+      "extractionState" : "manual"
+    },
+    "Choose a Markdown file in this project’s accessible bound folders. For links, bind the target." : {
+      "comment" : "plain: template source is outside eligible project roots or is not a Markdown file",
+      "extractionState" : "manual"
+    },
+    "Use UTF-8 text without NUL bytes. Repair the template source or choose another source." : {
+      "comment" : "plain: source text failed strict decoding",
+      "extractionState" : "manual"
+    },
+    "The template source couldn’t be read. Restore access or choose another source." : {
+      "comment" : "plain: source read failed; the underlying error follows",
+      "extractionState" : "manual"
+    },
+    "Content Template…" : {
+      "comment" : "plain: exact-folder template configuration menu entry"
+    },
+    "Content Template" : {
+      "comment" : "plain: folder template configuration sheet title"
+    },
+    "Owning Folder" : {
+      "comment" : "plain: exact folder that owns the displayed choice"
+    },
+    "Template Source" : {
+      "comment" : "plain: saved source file reference"
+    },
+    "This choice applies to new documents in this exact folder in this project." : {
+      "comment" : "plain: exact-folder creation scope; inheritance is not implemented yet"
+    },
+    "Choose Existing File…" : {
+      "comment" : "plain: choose an existing template source"
+    },
+    "Unresolved folder template assignment (inactive)" : {
+      "comment" : "plain: persisted choice requires explicit relinking"
+    },
+    "No template (explicit choice)" : {
+      "comment" : "plain: inspect a saved template opt-out"
+    },
+    "No explicit content template choice for this folder." : {
+      "comment" : "plain: this exact folder has no saved choice; not an effective-template lookup"
+    },
+    "Choose a Markdown template source inside a folder bound to this project." : {
+      "comment" : "plain: native source picker instructions"
+    },
+    "Use Template" : {
+      "comment" : "plain: native picker confirmation"
+    },
+    "Project changes weren’t saved. Check access to the projects file and try again." : {
+      "comment" : "plain: an atomic project commit failed; the underlying error follows on a new line",
+      "extractionState" : "manual"
+    },
+    "Project changes couldn’t be saved" : {
+      "comment" : "plain: project settings persistence failure heading"
+    },
+    "Your project changes were not saved. Check access to the projects file, then try the change again." : {
+      "comment" : "plain: recovery instructions after a project settings save failure"
+    },
+    "That bound folder no longer exists in the project." : {
+      "comment" : "plain: a project edit refers to a removed bound root",
+      "extractionState" : "manual"
+    },
+    "That loose file no longer exists in the project." : {
+      "comment" : "plain: a project edit refers to a removed loose file",
+      "extractionState" : "manual"
+    },
+    "Projects couldn’t be loaded" : {
+      "comment" : "plain: project storage load failure heading"
+    },
+    "Your projects file is unchanged. Repair it or restore a compatible backup, then retry." : {
+      "comment" : "plain: recovery instructions for a project storage load failure"
+    },
+    "Retry" : {
+      "comment" : "plain: retry loading the projects file"
+    },
+    "Show in Finder" : {
+      "comment" : "plain: locate the preserved projects file"
+    },
+    "This projects file uses an unsupported version (%lld)." : {
+      "comment" : "plain: project envelope version cannot be read by this build",
+      "extractionState" : "manual"
+    },
     " " : {
       "comment" : "A symbol that indicates a change in a diff.",
       "isCommentAutoGenerated" : true
@@ -1257,6 +1578,9 @@
     "Themes" : {
       "comment" : "plain: heading of the theme list in Settings"
     },
+    "The translation couldn't preserve this selection. Your original text hasn't changed." : {
+      "extractionState" : "manual"
+    },
     "There's no text in this image to read." : {
       "comment" : "plain: error (#20)",
       "extractionState" : "manual"
@@ -1275,6 +1599,9 @@
     },
     "This grimoire is empty. Bind a folder to begin." : {
       "comment" : "voice: sidebar empty state for a project with no folders (#5)",
+      "extractionState" : "manual"
+    },
+    "This selection contains Markdown that can't be translated safely. Try a selection with explicit links and plain prose." : {
       "extractionState" : "manual"
     },
     "This is too long for the on-device model. Try a shorter selection, or allow Private Cloud Compute in Settings." : {
@@ -1353,7 +1680,8 @@
       "comment" : "plain: label on a loose file that can't be found anymore"
     },
     "Unbind Folder" : {
-      "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes"
+      "comment" : "voice: context menu item that removes a folder from the project; nothing on disk changes",
+      "extractionState" : "manual"
     },
     "Undo" : {
       "comment" : "plain: Edit menu item"

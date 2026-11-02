@@ -5,7 +5,34 @@ import Testing
 
 @testable import GrimoireEditor
 
-@MainActor @Suite(.serialized) struct SpellsMenuTests {
+@MainActor @Suite(.serialized, EditorFixtureScope()) struct SpellsMenuTests {
+    enum FixtureError: Error { case interrupted }
+
+    @Test(arguments: [false, true]) func freshEditorPreferencesAreIsolatedAndCleanedUp(interrupted: Bool) async throws {
+        var retained: (EditorController, String)?
+        do {
+            try await withEditorFixtures { @MainActor in
+                let controller = makeEditor("", freshDefaults: true)
+                let defaults = try #require(controller.defaults as? EditorTestDefaults)
+                retained = (controller, defaults.suiteName)
+                controller.type("/h2")
+                controller.press(#selector(NSResponder.insertNewline(_:)))
+                #expect(controller.recentSpells == ["h2"])
+                #expect(makeEditor("", freshDefaults: true).recentSpells.isEmpty)
+                #expect(defaults.persistentDomain(forName: defaults.suiteName)?.isEmpty != false)
+                if interrupted { throw FixtureError.interrupted }
+            }
+        } catch FixtureError.interrupted {
+            #expect(interrupted)
+        }
+        let (controller, suite) = try #require(retained)
+        #expect(controller.recentSpells.isEmpty)
+        #expect(UserDefaults.standard.persistentDomain(forName: suite)?.isEmpty != false)
+        let library = try FileManager.default.url(
+            for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+        #expect(!FileManager.default.fileExists(atPath: library.appending(path: "Preferences/\(suite).plist").path))
+    }
+
     func editorAtEnd(_ text: String = "") -> EditorController {
         makeEditor(text, caret: (text as NSString).length, freshDefaults: true)
     }

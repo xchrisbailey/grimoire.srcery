@@ -91,7 +91,11 @@ private struct DocumentEditor: View {
         .textChecking(preferences.textChecking) { preferences.update(from: $0) }
         .projectDictionary(window.project?.dictionary ?? []) { word in
             guard let id = window.projectID else { return }
-            window.library.learnWord(word, in: id)
+            do {
+                try window.library.learnWord(word, in: id)
+            } catch {
+                window.actions.error = error
+            }
         }
         .onEscape {
             guard window.focusMode else { return false }
@@ -141,9 +145,12 @@ private struct DocumentBanners: View {
                 Button("Keep Mine") { document.keepMine() }
                 Button("Load Theirs") { document.loadTheirs() }
             }
-        } else if let error = document.saveError {
+        }
+        if let error = document.saveError {
             banner(saveMessage(error), tint: Color.brand(\.error)) {
-                Button("Try Again") { document.save() }
+                if document.conflict == nil {
+                    Button("Try Again") { document.save() }
+                }
             }
         }
     }

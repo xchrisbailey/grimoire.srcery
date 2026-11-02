@@ -5,7 +5,7 @@ import Testing
 
 @testable import GrimoireEditor
 
-@MainActor @Suite(.serialized) struct TableEditorTests {
+@MainActor @Suite(.serialized, EditorFixtureScope()) struct TableEditorTests {
     func editorAtEnd(_ text: String = "") -> EditorController {
         makeEditor(text, caret: (text as NSString).length, freshDefaults: true)
     }

@@ -12,6 +12,34 @@ struct FileTreeView: View {
 
     var body: some View {
         List(selection: $selectedFile) {
+            if workspace.project?.templateAssignments.isEmpty == false {
+                TemplateRecoverySection(workspace: workspace, actions: actions)
+            }
+            if workspace.hasPendingLifecycleOperations {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(workspace.lifecycleRepairExplanation)
+                            .fixedSize(horizontal: false, vertical: true)
+                        ForEach(workspace.lifecycleRepairURLs, id: \.self) { url in
+                            Text(url.path).textSelection(.enabled)
+                        }
+                        Button("Retry Reconciliation") {
+                            actions.retryReconciliation?()
+                        }
+                        ForEach(workspace.pendingTrashConfigurationRemovals, id: \.self) { id in
+                            Button("Finish configuration removal…") {
+                                actions.finishTrashConfiguration(id, workspace: workspace)
+                            }
+                        }
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting(
+                                workspace.lifecycleRepairURLs.map { $0.deletingLastPathComponent() })
+                        }
+                    }
+                    .brandFont(.chrome)
+                    .controlSize(.small)
+                }
+            }
             if !workspace.looseFiles.isEmpty {
                 Section {
                     ForEach(workspace.looseFiles) { LooseFileRow(file: $0, workspace: workspace, actions: actions) }
@@ -34,7 +62,7 @@ struct FileTreeView: View {
                         needsAccess(folder)
                     }
                 } header: {
-                    RootHeader(folder: folder, workspace: workspace, actions: actions)
+                    RootHeader(folder: folder, workspace: workspace, actions: actions, regrant: { regrant(folder) })
                 }
             }
         }
@@ -73,7 +101,35 @@ struct FileTreeView: View {
         panel.message = String(localized: "Choose “\(folder.root.name)” to keep using it in this project.")
         panel.prompt = String(localized: "Grant Access")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        workspace.regrantAccess(to: folder.id, with: url)
+        do {
+            let plan = try workspace.prepareRootAccess(to: folder.id, with: url)
+            if plan.requiresConfirmation {
+                let alert = NSAlert()
+                alert.messageText = String(localized: "Carry Content Templates to a Different Folder?")
+                let choices = plan.affectedAssignments.map { assignment in
+                    var scope = templateRecoveryPath(assignment.owner, workspace: workspace)
+                    if case .useSource(let source) = assignment.choice {
+                        scope += " → " + templateRecoveryPath(source, workspace: workspace)
+                    }
+                    return scope
+                }.joined(separator: "\n")
+                alert.informativeText = String(
+                    localized:
+                        """
+                        Replace binding \(plan.root.displayName) with \(url.path(percentEncoded: false))? \
+                        All owned template choices and all source references into this binding keep their \
+                        relative paths under the new folder. Inactive choices stay inactive. \
+                        Other bindings and files are unchanged.
+                        \(choices)
+                        """)
+                alert.addButton(withTitle: String(localized: "Carry Configuration"))
+                alert.addButton(withTitle: String(localized: "Cancel"))
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
+            try workspace.confirmRootAccess(plan)
+        } catch {
+            actions.error = error
+        }
     }
 }
 
@@ -82,6 +138,7 @@ private struct RootHeader: View {
     let folder: BoundFolder
     let workspace: Workspace
     let actions: FileActions
+    let regrant: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
@@ -110,9 +167,16 @@ private struct RootHeader: View {
                 Button("Set Alias…") { actions.startAlias(folder.root) }
             } else {
                 Button("Rename Alias…") { actions.startAlias(folder.root) }
-                Button("Remove Alias") { workspace.setAlias("", of: folder.id) }
+                Button("Remove Alias") {
+                    do {
+                        try workspace.setAlias("", of: folder.id)
+                    } catch {
+                        actions.error = error
+                    }
+                }
             }
             Divider()
+            Button("Grant Access…", action: regrant)
             Button("Unbind Folder") { actions.unbind(folder, from: workspace) }
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -270,6 +334,7 @@ private struct FolderMenu: View {
     var body: some View {
         Button("Conjure a page") { actions.createDocument(in: url, workspace: workspace) }
         Button("New Folder") { actions.createFolder(in: url, workspace: workspace) }
+        Button("Content Template…") { actions.configuringTemplate = url }
         Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
 }
@@ -287,6 +352,6 @@ private struct ItemMenu: View {
             Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }
         Divider()
-        Button("Banish…", role: .destructive) { actions.banishing = url }
+        Button("Banish…", role: .destructive) { actions.banish(url, workspace: workspace) }
     }
 }

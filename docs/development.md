@@ -28,6 +28,409 @@ The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRI
 
 `WKWebView` never loads inside `swift test`, so PDF export and print can't be covered there. Check them in the built Mac app.
 
+## Content template configuration demo
+
+In the Mac app, bind a folder to a project and save an ordinary Markdown file inside it
+(a separate bound templates folder also works). Right-click a root or subfolder,
+choose **Content Template…**, then **Use a template** → **Choose Existing File…**.
+The sheet shows the effective owning/inherited-from folder and saved template source.
+Close and reopen the sheet, then relaunch to check persistence. Several folders can
+choose the same source.
+
+Manual QA still needs to check the native picker and sandbox access: cancel a
+replacement, choose an invalid or outside-project source, and simulate a settings
+save failure. Each must leave the previous choice unchanged and a failed edit
+must explain how to recover. Check that a second project using the same folder
+starts unconfigured. Choosing an existing source must not modify its contents or
+create files in content folders. Broken-source recovery checks are listed below.
+
+**Use a template → Create Template…** asks for a Markdown save location in an
+active project binding. It creates an empty ordinary source even in a templated
+destination, then persists the assignment and opens the editor at the empty end.
+Existing filenames use numbered suffixes, never replacement. Cancelling or failed
+publication keeps the old choice. A settings-save failure preserves the published
+source and old choice, reports the source's path, and offers **Open Created Source**;
+repair settings and use **Choose Existing File…** rather than creating another copy.
+**Edit Template** opens the effective source, including an inherited source, using
+ordinary document selection without rewriting it or changing its assignments.
+Creating a source assigns only the edited folder; it never replaces an ancestor's choice.
+
+Native save/open picker, Edit Template selection, post-dismissal editor focus and
+caret acceptance remain **UNVERIFIED**. Check invalid/unbound/symlink destinations,
+cancel, collision protection, assignment persistence failure, and source opening.
+Check reuse across folders, saved versus unsaved edits, and unchanged existing
+documents in the app too; package regressions do not establish native UI acceptance.
+
+New File uses the nearest active explicit choice within the destination's most-specific
+bound root. **Inherit** removes only the edited folder's explicit choice;
+**Use a template** replaces inherited content; **No template** disables it for
+descendants until a deeper source choice. A separately bound inner folder starts
+unconfigured and masks, but retains, outer assignment records. Equivalent-depth
+aliases use project order. A broken inherited source blocks creation and identifies
+its owning folder rather than falling back. Unresolved choices remain inactive.
+
+Native checks for all three choices and effective owner/source display are
+**UNVERIFIED**. Check a root assignment inherited by descendants, a nearer override,
+an opt-out and a deeper re-enable. Choose Inherit on an unconfigured descendant and
+confirm its ancestor choice is not deleted. Also check Inherit after an override,
+save-failure preservation, overlapping-root masking, project isolation, and an
+unavailable inherited source's owner display. No native GUI tools are available;
+package integration tests and compiled UI wiring do not verify these interactions.
+
+Menu/shortcut and palette commands resolve their existing destination before joining the same
+creation flow as the folder context menu. The naming sheet shows destination and
+source, edits a literal stem with `.md` separate, and creates nothing on cancel.
+Relevant context changes require another confirmation; saved edits to the same
+source remain live. Content placeholders now expand once for the allocated filename
+and one local attempt timestamp. `{title}`, `{filename}`, `{date}`, and `{time}`
+support explicit `:yaml` string forms; doubled braces escape them literally.
+Untouched filename suggestions refresh at confirmation and user-visible retry;
+edited stems remain literal. Collision retries keep the same saved source and time.
+
+Native Mac acceptance is **not verified** by package tests or source wiring. Check
+each real menu, shortcut, palette, and folder-context route: destination/source
+display, invalid names without rewriting, cancellation, context review preserving
+input, collision suffixes, no preview or second rename prompt, and focused editor
+with its caret at the UTF-16 content end (including emoji and a BOM). Check an open
+or last-opened-settings failure after publication separately: preserve the created
+file and do not retry creation. No native GUI automation harness is available.
+Check creation with an unrelated document selected: only the actual destination's
+effective choice should apply.
+
+Placeholder-specific native QA is **not verified**: use a source with all four raw
+and YAML-safe forms, doubled braces, and unknown forms. Leave an untouched generated
+name open across midnight, then confirm; repeat with an edited literal name. Check
+matching filename/content dates, collision suffixes in inserted titles and filenames,
+and the focused caret at the expanded content end. Rename/move the created document
+and verify its content and source remain unchanged. Package tests cover the Core
+creation outcomes, not these native interactions.
+
+Also check destination review without a template: prepare creation in an unassigned
+folder, replace that directory before confirmation, review the updated destination,
+then confirm. Success must dismiss the review sheet and hand off once after dismissal,
+even though this output keeps legacy preview behavior. A repeated confirmation must
+not leave a stale sheet, create another document, or open the result twice. Direct
+legacy creation without a sheet must still open immediately and offer its usual rename.
+
+### Broken-source recovery
+
+Native recovery acceptance remains **UNVERIFIED**. In each New File route, remove a
+configured source, revoke its access, point its saved reference outside the project's
+bound folders, or save invalid UTF-8/NUL bytes. The naming sheet must identify the
+broken source and reason (including its root/reference when no live URL is available),
+without using an ancestor, cached content, or empty content automatically.
+While the workspace stays open, move an entire separately bound source folder out
+of its recorded location without changing its bookmark. After any context review,
+both an already-open naming sheet and a new New File command must reach source
+recovery. The still-valid destination must allow explicit empty-once creation or
+repair to an eligible replacement. Restoring source-root availability requires
+another review; losing the destination root must still block creation and repair.
+
+Check **Retry**, **Choose Replacement…**, **Create Empty Once**, and **Cancel**.
+Retry must preserve an edited name, reread saved bytes, refresh untouched generated
+names/date/time, and recheck collisions. Select a replacement for an inherited
+assignment: inspect the owning folder and scope explanation before **Confirm
+Replacement**. Descendants inherit except nearer overrides, opt-outs, and separately
+bound roots; other explicit references to the old source are unchanged. Discarding
+the replacement must not save anything. A confirmed repair must survive cancelling
+creation, destination failure, and relaunch. A failed settings save must retain the
+old choice and report failure, not claim a repair was saved.
+
+Check empty-once destination failure followed by Retry: only this pending creation
+stays empty, with safe collision handling and cleanup. The next separate New File
+must use its configured source again. Change the destination/binding/effective owner
+while recovery is open: review updated details with the name preserved before any
+creation or repair. Successful publication must dismiss the sheet before opening
+exactly once, focused at the UTF-16 content end, without preview/another rename.
+An opening failure must preserve the published file without another creation attempt.
+Also recheck Create Template/Edit Template handoff and ordinary untemplated creation.
+Package integration tests cover Core results and persisted bytes, not these native
+picker, action-label, scope-confirmation, name-preservation, or focus interactions.
+
+### Recoverable same-volume rename and drag/move
+
+Native rename, drag/drop, selected-document following, and restart/repair acceptance
+remain **UNVERIFIED**. Both sidebar routes use the Core Workspace lifecycle coordinator;
+package tests exercise real folders and isolated stores, not native gestures or alerts.
+Rename and drag a configured subtree with descendant overrides/opt-outs and a source
+used by several folders (including another binding in the same project). Check that
+explicit choices follow, inherited content follows the new destination, every source
+reference follows, and existing document/source bytes stay unchanged. Check open
+documents inside the subtree still save at their actual new paths.
+
+Check destination-record conflicts, occupied filesystem destinations (including case
+aliases), case-only source renames, failed intent saves, filesystem failures, and
+failed final saves separately. A successful filesystem move with failed final save
+must still follow the open document while reporting pending project changes. Restart
+before and after the move; only the observable original item at exactly one recorded
+location with unchanged root/parent identities may reconcile. Replaced items/parents,
+both locations occupied, or unavailable root access must retain the record and choices.
+The sidebar retains the recorded paths and **Retry Reconciliation** / **Show in Finder**.
+Manually restore the original item to an unambiguous recorded location, restore store
+access, then retry; retry never moves, reverses, or discards files. Verify conflicting
+assignment/source/binding operations remain blocked while unrelated name/theme edits
+remain available. Same-volume cross-root moves now migrate explicit choices and shared
+source references to the most-specific destination binding. Unsupported operations
+fail closed rather than silently dropping configuration.
+Unbind, trash, and root recovery checks are described below. The full feature is not shipped.
+User-facing configured regrant uses the reviewed carry-over flow below. Authoritative
+library bookmark updates remain allowed without conflicting pending intent; creation
+must still revalidate them rather than writing through stale access.
+Core rechecks the original item/root/parent identities before returning an editor handoff,
+including moves with no configuration changes. Identity rejection retains pending intent
+without retargeting a dirty document to a replacement. Verified movement still hands off
+when final settings persistence fails, or when filesystem I/O throws after an observable
+verified move. No operation is replayed or reversed.
+
+Pending intent reserves its affected assignments' before/after owners, not only spatial
+paths. Check a pending source move followed by an owner rename/drag and the reverse:
+the second operation must leave disk and settings untouched. Independent choices can move.
+Missing destination records use read-only volume case capability and canonical Unicode
+comparison; unknown capability blocks ambiguous aliases without changing saved references.
+
+Fresh and stale creation plans must block source-dependent reads and publication while
+the effective supplying choice/source is reserved. Explicit **Create Empty Once** can
+proceed only through a valid independent destination/owner context without reading that
+source. Unrelated untemplated creation remains available; neither bypass changes assignments.
+
+Genuinely unconfigured cross-volume moves between distinct roots retain an explicit
+legacy result/route, not the identity-verified handoff contract. Source/destination choices,
+descendants, source references, aliases and pending reservations block legacy admission.
+Same-root moves never fall back to legacy; unsupported identity-preserving semantics fail
+before mutation. Native acceptance of these distinctions is still **UNVERIFIED**.
+
+Same-volume cross-root acceptance is also **UNVERIFIED**. Drag configured subtrees and
+shared sources between roots, including into a separately bound inner destination.
+Explicit choices/descendant opt-outs must migrate to that inner binding, while a folder
+with only inherited behavior must use its new surroundings without acquiring an explicit
+choice. Check shared references in all active-project bindings, unchanged document bytes,
+and source-change review preserving a literal name in an already-open naming sheet.
+Check filesystem and destination-record conflicts before mutation, unavailable access,
+failed intent/final saves, and selected dirty documents following only verified movement.
+Restart with either root unavailable or either parent replaced: retain intent and block
+conflicting own/foreign-project writes at both recorded paths; retry never moves files.
+A same-volume cross-root move that changes no choice or source reference writes no
+recovery record, so a failed final save leaves nothing to block later atomic saves of the
+moved files; records with no changes stored by integration builds still load and reconcile.
+Both root identities are required to reconcile. Cross-volume moves of folders with template
+choices or source references (including choices on a destination ancestor or descendant) are
+refused before any filesystem or settings change; they never enter the unconfigured legacy
+route. The message says nothing changed and to choose **Inherit** in **Content Template…**
+for the involved folders, then move again; check that doing so lets the move proceed. An
+unresolved (inactive) choice has no folder to edit, so the message sends the user to
+**Remove Assignment** under **Content Templates** in the sidebar; check that too. A move
+that needs repair still reports repair. Managed cross-volume copy and source retirement are
+deferred to #98. Native GUI verification is still **UNVERIFIED**.
+Outer-root references retained after adding an inner source binding now follow verified
+same-volume moves through recorded alternative source coordinates. Only affected
+coordinates and their observed bound-root identities are recorded. Each must project
+to the same original item/subtree before mutation and during reconciliation; equal
+inodes at unrelated paths do not establish that projection. Check a mixed subtree with
+outer-owned choices and inner-owned choices/sources, including unresolved choices that
+must remain inactive. Unavailable alternative roots or substituted projection parents
+retain repair and both-root/alias save reservations. Malformed projections must report
+settings diagnostics without replacing the original store. Native checks remain
+**UNVERIFIED**; configured cross-volume moves are refused for now (#98).
+
+Recovery records distinguish relocation from trash. An absent operation kind remains
+a legacy relocation; explicit null/unknown kinds or malformed optional fields must
+produce diagnostics without replacing stored settings. Relocation accepts its root-pair
+and source-coordinate fields but no trash scopes; trash accepts its scoped evidence
+but no relocation-only fields, even redundant ones. Restart never observes trash as
+a completed move. Check cross-kind conflicts in either record order and through physical
+aliases/other projects, while unrelated files remain writable and movable. Trash repair
+must remain an explicitly confirmed settings-only action, without document saves,
+access synchronization, or relocation remapping.
+Root regrant must reserve source, destination, projection, and affected-record root IDs,
+including unavailable destination bindings that currently own no choices. Pending
+relocation/trash dependencies must keep missing or non-directory-replaced owners from
+being externally classified or recreated. A verified original-root relocation may still
+reconcile first and then use the normal reviewed regrant flow; last-known paths never
+prove that outcome. Regranting the very folder a stuck relocation recorded for that binding
+(source, destination, or source projection) is allowed without confirmation even when the old
+bookmark no longer resolves, after which reconciliation can finish, but only while that folder
+is still at the binding's last-known path. The same folder at a new path is refused, naming the
+original path to put it back at; a different folder, or a binding recorded only through choice
+references (no recorded identity), stays refused. Check
+a stuck move after its destination bookmark stops resolving. When an unavailable bound folder
+holds the item being renamed or moved, or the destination, the sidebar names that folder and
+asks for access instead of reporting a repair with no paths; nothing changes. Dragging an
+unavailable bound root's own folder is unsupported, since granting access would not help. These combined native recovery
+interactions remain **UNVERIFIED**.
+
+After a verified move whose final settings save fails, dirty editors follow the moved
+file but must not atomically replace it until observation and settings finalization
+succeed. Check autosave, Save, and Keep Mine in two windows, including a document
+inside a moved subtree. Failed authorization must preserve the original inode and
+bytes, local text, saved text, conflict, and versions. Unrelated documents still save.
+Restore settings access and use Retry Reconciliation or retry the save: configuration
+must finish before the editor writes. Reopen the project to check persisted choices.
+
+Native close/quit and deferred-opening acceptance remain **UNVERIFIED**. While saving
+is blocked, try file/project switches, unbinding/removing a loose file, project deletion,
+window close, and Quit. The dirty editor, watcher, and workspace access must survive.
+Exercise a direct native close/view disappearance too: a replacement window must
+reclaim the exact retained state and buffer, without reopening from disk. Check that
+SwiftUI's original window delegate still receives its callbacks. Publish a new document
+while the old editor is blocked, then repair and retry: open that same file once, never
+recreate/delete it or send its caret to the old editor. Retention is in memory only;
+force-quitting, process termination, or power loss cannot guarantee unsaved edits survive.
+
+Bind the same physical folder in two projects in one library. Leave a verified source
+rename/drag pending in project A by failing final settings persistence, then open its
+destination in B. Save, autosave, and Keep Mine in B must preserve the reserved inode,
+bytes, dirty/saved/conflict state and versions. The guard applies to case aliases and
+plausible paths when A's root cannot resolve; last-known paths are guards, never recovery
+evidence or access grants. Repair/reconcile through A's own workspace, then retry B's
+save and restart. No assignments migrate to B; unrelated physical paths remain writable.
+
+While intent is pending, move the item's parent to an in-root sibling and replace the
+recorded parent with a symlink to it. Own-project and foreign-project managed saves
+must remain blocked through both the old lexical URL and the resolved URL, including
+manual/autosave/Keep Mine and documents inside a pending folder move. Reservation
+guards compare recorded lexical and live resolved path variants with the same
+volume-aware component rules; observed original-item/ancestor identity also denies
+hardlink/subtree conflicts. These checks only deny conflicts, never grant access,
+eligibility, or completion. Configuration edits and fresh/stale source-dependent creation
+must not bypass the reservation through an alias either. Unrelated files still save.
+Restoring settings access alone must not reconcile through the substituted parent.
+Directory URL trailing slashes must not make `lstat` follow a symlink as original-parent
+evidence. Repair the actual original parent first, then reconcile and retry the save;
+restart must have no stranded intent. Fully resolved containment and original
+root/item/both-parent reconciliation requirements remain unchanged.
+
+Delete or replace a queued published target before repairing the old dirty editor.
+Also replace its parent directory with a regular file: `ENOTDIR`, like `ENOENT`,
+is a terminal missing publication path, not a retryable access failure. Keep that
+replacement parent untouched and continue any valid neighboring queued handoff.
+After that buffer saves, the missing/mismatched handoff must report its original URL
+and leave the queue, without opening/deleting the replacement or publishing again.
+Several failures must be reported together while valid queued handoffs still run.
+Such terminal open failures must not veto safe file/project/window/quit release or
+poison exact-state reclaim. Permission/read failures with the original identity intact
+remain retryable: repair access and retry the same selected URL, even when no document
+was opened. Repeated notifications use one stable in-memory publication ID/physical
+identity, including template-authoring caret adaptation; they must not multiply queued
+requests, recapture replacements, or repeat editor handoff. A genuinely new publication
+may reuse the same URL. No publication metadata is persisted.
+
+Delete a project shown in two windows, including a strongly retained blocked state.
+Preparation must save/check every affected buffer before persistence without changing
+selection or ownership. A dirty-save failure or unresolved publication handoff vetoes
+deletion. A failed project-store commit preserves exact documents, selections, watchers,
+and access (successful pre-saves are intentional). After a successful commit, all affected
+states must synchronously leave the deleted project without editable orphan authorizers;
+unrelated project windows stay untouched. A removed Workspace's authorizer remains
+fail-closed. These production-method regressions do not establish native GUI acceptance.
+
+### Missing owner and bound-root access recovery
+
+Native sidebar, picker and confirmation acceptance remains **UNVERIFIED**. The full
+content-template feature is not shipped. Package tests do not establish native UI behavior.
+
+Delete a configured folder externally while its root remains readable. After a completed
+scan, or **Check Folder Template Assignments** in the sidebar's **Content Templates**
+section, its choice/opt-out must appear inactive with **Locate Folder…** and **Remove
+Assignment** even though no tree row exists. Recreate its former path, then relaunch:
+the choice must stay inactive. Loss of root/ancestor access, an unavailable volume or
+bookmark, and transient read errors must not be treated as proof of deletion. Source
+loss alone must retain the distinct broken-source recovery flow above.
+
+Delete a configured owner and invoke New File immediately, before a watcher scan.
+Fresh creation/assignment lookup must reconcile pending lifecycle intent and persist
+the affected missing choice inactive before any directory recreation. Repeat with an
+opt-out, an ancestor template, and a naming sheet prepared before deletion: changed
+details require review, and the old choice must remain inactive after creation/relaunch.
+An inactive choice does not block normal ancestor inheritance. Failed retirement saves
+must block the affected creation without creating directories or changing settings;
+independent destinations and never-configured legacy subfolder creation remain usable.
+
+Replace the owner itself, then an ancestor, with an ordinary regular file while the
+root is readable. Detect the folder as gone and persist unresolved state without
+changing that replacement's bytes or inode. Restoring the directory structure must
+not reactivate the choice. Denied access and dangling/uncertain links remain distinct
+from an observed ordinary non-directory entry.
+
+Locate an accessible folder in this project's bindings. Review the old owner, new owner
+and inheritance scope before confirming; source references/files stay unchanged, including
+broken sources needing separate repair. Check cancellation, occupied choices, symlinks
+outside access, most-specific overlapping bindings, and another window changing the
+target identity, bindings or choices while confirmation is open. Remove only the shown
+choice, never neighboring choices or files. Failed persistence must retain the old snapshot
+in both windows and on relaunch, show an error, and permit explicit retry.
+
+Use **Grant Access…** from a bound root's context menu or needs-access row. An observable
+same physical bookmarked root may relocate without copying assignment/source references;
+the root UUID and relative paths stay unchanged. A different target must show all affected
+owned choices and source references before **Carry Configuration**. Cancel and failed
+persistence keep the old binding/access/configuration. Replace the picked target or change
+the displayed scope in another window before confirmation: require another review.
+
+For Locate Folder, revoke read or traversal access on the selected folder both before
+opening recovery and between preparation and confirmation without replacing its inode.
+Each failure must preserve the entire unresolved choice and stored settings. Restore
+read and traversal access and retry the same target; a read-only accessible folder is
+eligible because relinking changes project settings, not that folder's files.
+
+Repeat all recovery actions after an interrupted in-app operation, both before its
+filesystem change and after filesystem success/final-save failure. Reconcile first;
+ambiguous original-item/root/parent identities retain intent and block conflicting edits.
+Proven same-root bookmark relocation may reconcile at its new resolved root without
+weakening the pending-record/root guards. No recovery replays or reverses filesystem I/O.
+External replacements while the app was closed cannot always be correlated reliably.
+With ambiguous trash intent, repeat fresh/stale and empty-once creation while the
+owner is absent, restored, or occupied by an ordinary file. None may complete the
+trash, classify its reserved choice as externally missing, recreate its directory,
+or change the recorded settings. Only the scoped trash repair below can retire it.
+
+### Unbind, trash, and settings-only trash repair
+
+Native warnings, cancellation, trash, restoration, and repair acceptance remain
+**UNVERIFIED**. Actual trash and unbind prepare their impact through Workspace
+and require confirmation after checking every affected managed buffer, including
+retained windows and another project's editor of the same physical item. A failed
+save vetoes mutation without discarding dirty text. Package integration tests and
+compiled app wiring do not verify native sheets or sandbox Trash behavior.
+
+Unbind a root containing assignments, opt-outs, and sources referenced by another
+binding. Review the owned choices to remove and remaining dependencies. Cancel must
+change neither settings nor files. A failed settings commit must preserve access,
+watchers, and configuration; success releases access only after one atomic settings
+commit. Sources and other disk files stay untouched. Rebinding starts unconfigured.
+Remove an inner overlapping binding and check retained outer choices become effective;
+rebind it and check its deleted inner choices do not return. Remaining assignments
+keep broken source references even when their source's root UUID no longer exists.
+
+Trash a configured folder with descendant choices, then a source used by other
+folders/bindings. Review every owned choice and source dependency before confirming.
+Preparation failure changes nothing. A failed filesystem call with the original
+identities unchanged preserves choices. Actual successful trash removes only the
+recorded owned subtree choices; remaining dependencies stay explicit and broken,
+never falling back to an ancestor or empty content. Restoring the item does not
+restore deleted choices. Actual-success selection cleanup does not open a replacement.
+
+Fail final settings persistence after actual trash. The UI must distinguish actual
+filesystem success from pending configuration removal. Restart with the item absent,
+restored, or replaced: none alone proves an interrupted trash outcome. Retry never
+searches Trash, replays, or reverses anything. Pending intent still guards own/foreign
+physical writes, case aliases, and substituted-parent symlinks. Restore original root
+and parent access/identity before attempting settings-only repair.
+
+Use **Finish configuration removal…** to inspect the recorded item, owned choices,
+and retained source dependencies. Confirm that it only applies the recorded settings
+removals and clears that one intent: it never moves, deletes, or restores files.
+Unlike actual trash/unbind, this settings-only repair must not save or release any
+document first: the pending reservation deliberately denies those writes. Open a
+restored document and edit it in same-project and foreign-project windows, including
+a strongly retained state. Check that cancel, failed settings persistence, and
+successful repair preserve the exact dirty buffers, selections, watchers, workspaces,
+access, and on-disk inode/bytes, without a trash callback. After repair clears its
+own reservation, retry a normal save; unrelated pending intent must remain untouched.
+Cancel and failed persistence preserve intent and choices. Relevant scope changes
+require renewed review; unavailable/replaced roots or parents block repair. A successful
+repair preserves unrelated choices and pending records. Any removed choices still
+require reassignment if the item is later restored.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.

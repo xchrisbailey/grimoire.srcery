@@ -7,11 +7,7 @@ public enum FileOperations {
     public static func createDocument(in folder: URL, named baseName: String = "Untitled", extension ext: String = "md")
         throws -> URL
     {
-        let url = uniqueURL(in: folder, baseName: baseName, extension: ext)
-        guard FileManager.default.createFile(atPath: url.path(percentEncoded: false), contents: Data()) else {
-            throw FileOperationError.couldNotCreate(url.lastPathComponent)
-        }
-        return url
+        try createDocument(in: folder, named: baseName, extension: ext, operations: DocumentCreationOperations())
     }
 
     @discardableResult
@@ -25,6 +21,18 @@ public enum FileOperations {
     /// so `potions` becomes `potions.md`.
     @discardableResult
     public static func rename(_ url: URL, to newName: String) throws -> URL {
+        let destination = try renameDestination(url, to: newName)
+        if destination.lastPathComponent == url.lastPathComponent { return url }
+        // A case-only rename is allowed on case-insensitive volumes.
+        let isCaseChange = destination.lastPathComponent.lowercased() == url.lastPathComponent.lowercased()
+        if !isCaseChange, exists(destination) {
+            throw FileOperationError.alreadyExists(destination.lastPathComponent)
+        }
+        try FileManager.default.moveItem(at: url, to: destination)
+        return destination
+    }
+
+    static func renameDestination(_ url: URL, to newName: String) throws -> URL {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains("/"), !trimmed.hasPrefix(".") else {
             throw FileOperationError.invalidName(newName)
@@ -34,15 +42,7 @@ public enum FileOperations {
         if !isFolder, !url.pathExtension.isEmpty, (name as NSString).pathExtension.isEmpty {
             name += "." + url.pathExtension
         }
-        let destination = url.deletingLastPathComponent().appending(path: name)
-        if destination.lastPathComponent == url.lastPathComponent { return url }
-        // A case-only rename is allowed on case-insensitive volumes.
-        let isCaseChange = destination.lastPathComponent.lowercased() == url.lastPathComponent.lowercased()
-        if !isCaseChange, exists(destination) {
-            throw FileOperationError.alreadyExists(name)
-        }
-        try FileManager.default.moveItem(at: url, to: destination)
-        return destination
+        return url.deletingLastPathComponent().appending(path: name)
     }
 
     /// Moves the item at `url` into `folder`.

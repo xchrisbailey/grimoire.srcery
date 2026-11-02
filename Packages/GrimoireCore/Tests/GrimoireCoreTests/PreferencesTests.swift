@@ -3,12 +3,15 @@ import Testing
 
 @testable import GrimoireCore
 
-@MainActor @Suite struct PreferencesTests {
+@MainActor @Suite(.mainActorGate) struct PreferencesTests {
+    let fixture = TestPreferences()
+
     func makeDefaults() -> UserDefaults {
-        UserDefaults(suiteName: "grimoire-tests-\(UUID().uuidString)")!
+        fixture
     }
 
     @Test func startsWithTheBrandDefaults() {
+        defer { fixture.cleanUp() }
         let preferences = Preferences(defaults: makeDefaults())
         #expect(!preferences.opensInRaw)
         #expect(preferences.restoresLastSession)
@@ -27,6 +30,7 @@ import Testing
     }
 
     @Test func savesEveryChange() {
+        defer { fixture.cleanUp() }
         let defaults = makeDefaults()
         let preferences = Preferences(defaults: defaults)
         preferences.opensInRaw = true
@@ -59,6 +63,7 @@ import Testing
     }
 
     @Test func shortcutsOverrideTheirDefaults() {
+        defer { fixture.cleanUp() }
         let defaults = makeDefaults()
         let preferences = Preferences(defaults: defaults)
         #expect(preferences.shortcut(for: .save) == KeyCombo("s"))
@@ -80,11 +85,13 @@ import Testing
     }
 
     @Test func defaultShortcutsDontCollide() {
+        defer { fixture.cleanUp() }
         let combos = ShortcutAction.allCases.map(\.defaultCombo)
         #expect(Set(combos).count == combos.count)
     }
 
     @Test func writesShortcutsLikeMenus() {
+        defer { fixture.cleanUp() }
         #expect(KeyCombo("c", [.option, .shift, .command]).display == "⌥⇧⌘C")
         #expect(KeyCombo(.return).display == "⌘↩")
         #expect(KeyCombo("n", [.control, .command]).display == "⌃⌘N")
@@ -93,12 +100,14 @@ import Testing
     }
 
     @Test func readsExtensionLists() {
+        defer { fixture.cleanUp() }
         #expect(Preferences.parseExtensions("md, .MDX markdown;md") == ["md", "mdx", "markdown"])
         #expect(Preferences.parseExtensions("  ") == ["md", "mdx"])
         #expect(Preferences.parseExtensions("txt, a/b") == ["txt"])
     }
 
     @Test func projectsOverrideTheDefaults() {
+        defer { fixture.cleanUp() }
         let preferences = Preferences(defaults: makeDefaults())
         var project = Project(name: "Blog")
         #expect(preferences.fileExtensions(for: project) == ["md", "mdx"])
@@ -109,6 +118,7 @@ import Testing
     }
 
     @Test func spellingFollowsTheSystemUntilChanged() {
+        defer { fixture.cleanUp() }
         let defaults = makeDefaults()
         defaults.set(false, forKey: "NSAutomaticQuoteSubstitutionEnabled")
         let preferences = Preferences(defaults: defaults)

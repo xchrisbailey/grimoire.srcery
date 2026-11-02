@@ -10,16 +10,30 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if let window {
+            if let error = library.loadError {
+                ContentUnavailableView {
+                    Label("Projects couldn’t be loaded", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(
+                        "Your projects file is unchanged. Repair it or restore a compatible backup, then retry."
+                    )
+                    Text(error.localizedDescription)
+                } actions: {
+                    Button("Retry") { ExternalOpens.shared.retryLibraryLoad() }
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([library.storageURL])
+                    }
+                }
+            } else if let window {
                 WindowContent(window: window)
-                    .background(WindowReader { window.hostWindow = $0 })
+                    .background(WindowReader { window.attach(to: $0) })
             } else {
                 Color.brand(\.page)
             }
         }
         .frame(minWidth: 640, minHeight: 400)
         .onAppear {
-            if window == nil { window = WindowState(library: library) }
+            if window == nil { window = ExternalOpens.shared.reclaimBlocked() ?? WindowState(library: library) }
             ThemeLibrary.shared.applyAppearance()
         }
     }
@@ -27,6 +41,7 @@ struct ContentView: View {
 
 private struct WindowContent: View {
     @Bindable var window: WindowState
+    @State private var presentationID = UUID()
     @Environment(ProjectLibrary.self) private var library
     @SceneStorage("grimoire.project") private var storedProject = ""
     @SceneStorage("grimoire.file") private var storedFile = ""
@@ -68,13 +83,28 @@ private struct WindowContent: View {
             if window.focusMode, window.columnVisibility != .detailOnly { window.setFocusMode(false) }
         }
         .onAppear {
+            window.presentationID = presentationID
             let stored = (project: storedProject, file: storedFile, fallback: lastProject)
+            guard window.workspace == nil else {
+                ExternalOpens.shared.register(window)
+                return
+            }
             ExternalOpens.shared.whenLaunched {
-                if library.projects.isEmpty { library.createProject(named: String(localized: "Grimoire")) }
+                if library.projects.isEmpty {
+                    do {
+                        try library.createProject(named: String(localized: "Grimoire"))
+                    } catch {
+                        window.actions.error = error
+                    }
+                }
                 window.restore(projectID: stored.project, file: stored.file, fallbackProject: stored.fallback)
             }
         }
-        .onDisappear { window.close() }
+        .onDisappear {
+            guard window.presentationID == presentationID else { return }
+            window.presentationID = nil
+            window.close()
+        }
         .onChange(of: window.projectID) {
             storedProject = window.projectID?.uuidString ?? ""
             if !storedProject.isEmpty { lastProject = storedProject }
@@ -134,6 +164,7 @@ private struct FollowsProject: ViewModifier {
             .onChange(of: window.project?.roots) { window.projectRootsChanged() }
             .onChange(of: window.project?.looseFiles) { window.projectRootsChanged() }
             .onChange(of: window.workspace?.scanCount) { window.workspaceScanned() }
+            .onChange(of: window.workspace?.lastError != nil) { window.reportWorkspaceError() }
             .onChange(of: Preferences.shared.fileExtensions(for: window.project)) { window.preferencesChanged() }
             .onChange(of: Preferences.shared.autosaveDelay) { window.preferencesChanged() }
             .onChange(of: Preferences.shared.fileListing) { window.preferencesChanged() }

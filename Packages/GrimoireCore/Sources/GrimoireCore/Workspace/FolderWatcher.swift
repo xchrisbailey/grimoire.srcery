@@ -14,7 +14,7 @@ public final class FolderWatcher: @unchecked Sendable {
     public typealias Handler = @Sendable (_ changedPaths: [String]) -> Void
 
     public let url: URL
-    private let handler: Handler
+    private let delivery: Delivery
     private let queue = DispatchQueue(label: "computer.srcery.grimoire.folder-watcher")
     private let lock = NSLock()
     #if os(macOS)
@@ -27,7 +27,7 @@ public final class FolderWatcher: @unchecked Sendable {
     /// file then renames it) into one callback.
     public init(url: URL, latency: TimeInterval = 0.15, handler: @escaping Handler) {
         self.url = url
-        self.handler = handler
+        self.delivery = Delivery(handler)
         start(latency: latency)
     }
 
@@ -36,6 +36,9 @@ public final class FolderWatcher: @unchecked Sendable {
     }
 
     public func stop() {
+        // Closes the gate first, so a callback already running on the queue finishes before
+        // this returns and none starts afterwards, whatever the stream does next.
+        delivery.close()
         lock.withLock {
             #if os(macOS)
             if let stream {
@@ -53,21 +56,60 @@ public final class FolderWatcher: @unchecked Sendable {
         }
     }
 
+    #if !os(macOS)
     fileprivate func deliver(_ paths: [String]) {
-        handler(paths)
+        delivery.deliver(paths)
+    }
+    #endif
+
+    /// What an FSEvents callback reaches. It never references the watcher, so a callback that
+    /// outlives the watcher (`FSEventStreamStop` doesn't wait for one already running) only
+    /// touches this object, which the stream keeps alive through its context callbacks.
+    private final class Delivery: @unchecked Sendable {
+        private let handler: Handler
+        // Recursive so a handler may call `stop()`. Held across the handler so `close()` waits
+        // for a running delivery; handlers must not block on the thread that calls `stop()`.
+        private let lock = NSRecursiveLock()
+        private var isClosed = false
+
+        init(_ handler: @escaping Handler) {
+            self.handler = handler
+        }
+
+        func close() {
+            lock.withLock { isClosed = true }
+        }
+
+        func deliver(_ paths: [String]) {
+            lock.withLock {
+                guard !isClosed else { return }
+                handler(paths)
+            }
+        }
     }
 
     #if os(macOS)
     private func start(latency: TimeInterval) {
+        // The stream retains `delivery` for as long as it can call back, and releases it when
+        // it is released.
         var context = FSEventStreamContext(
-            version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil,
+            version: 0, info: Unmanaged.passUnretained(delivery).toOpaque(),
+            retain: { info in
+                guard let info else { return nil }
+                _ = Unmanaged<Delivery>.fromOpaque(info).retain()
+                return info
+            },
+            release: { info in
+                guard let info else { return }
+                Unmanaged<Delivery>.fromOpaque(info).release()
+            },
             copyDescription: nil)
         let callback: FSEventStreamCallback = { _, info, count, paths, _, _ in
             guard let info else { return }
-            let watcher = Unmanaged<FolderWatcher>.fromOpaque(info).takeUnretainedValue()
+            let delivery = Unmanaged<Delivery>.fromOpaque(info).takeUnretainedValue()
             let array = unsafeBitCast(paths, to: NSArray.self)
             let changed = (0..<count).compactMap { array[$0] as? String }
-            watcher.deliver(changed)
+            delivery.deliver(changed)
         }
         // No kFSEventStreamCreateFlagWatchRoot: it opens every parent folder to watch for the
         // root moving, and under the sandbox opening a parent like ~/Documents blocks on a
