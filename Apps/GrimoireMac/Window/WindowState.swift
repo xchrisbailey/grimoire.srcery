@@ -289,7 +289,6 @@ final class WindowState {
         return true
     }
 
-
     func itemMoved(from: URL, to: URL) {
         moveDeferredDocuments(from: from, to: to)
         guard let current = selectedFile else { return }
