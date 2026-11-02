@@ -14,6 +14,9 @@ struct ContentTemplateSheet: View {
     @State private var effectiveAssignment: Result<FolderTemplateAssignment?, Error> = .success(nil)
     @State private var editableSource: URL?
 
+    private static let syntaxGuide = URL(
+        string: "https://github.com/xchrisbailey/grimoire.srcery/blob/main/docs/templates.md")!
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Content Template").font(.headline)
@@ -25,6 +28,17 @@ struct ContentTemplateSheet: View {
             Text("This choice applies to this folder and its descendants within this bound root in this project.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(
+                    """
+                    Templates can use {title}, {filename}, {date} and {time}. \
+                    Add :yaml, as in {title:yaml}, for a quoted frontmatter value.
+                    """
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                Link("Template syntax", destination: Self.syntaxGuide).font(.callout)
+            }
             HStack {
                 Button("Inherit") { changeChoice { try workspace.inheritTemplate(in: folder) } }
                 Menu("Use a template") {
