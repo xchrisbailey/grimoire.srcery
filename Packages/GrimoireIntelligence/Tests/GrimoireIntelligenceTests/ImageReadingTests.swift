@@ -67,7 +67,7 @@ let potionRows = [
     ["Hearth", "Rosemary", "1 hour"],
 ]
 
-/// Whether Vision's document recognizer runs here. Virtual Macs, like CI's hosted runners,
+/// Whether Vision's document recognizer runs here. Virtual Macs
 /// can't compile its on-device models.
 func visionReadsDocuments() async -> Bool {
     let context = CGContext(

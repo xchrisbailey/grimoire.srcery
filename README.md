@@ -110,14 +110,14 @@ Each Swift package has its own tests:
 (cd Packages/GrimoireIntelligence && swift test)
 ```
 
-Formatting uses `swift-format` (ships with Xcode) and SwiftLint. CI runs both in strict mode:
+Formatting uses `swift-format` (ships with Xcode) and SwiftLint. `scripts/check.sh` runs both in strict mode:
 
 ```sh
 xcrun swift-format format --in-place --recursive Apps Packages
 swiftlint
 ```
 
-CI runs the package tests, builds the Mac and iOS apps, and lints on every pull request. `docs/development.md` lists the checks a branch passes before it merges.
+`scripts/check.sh` runs the package tests, builds the Mac and iOS apps, and lints; nothing runs in CI. `docs/development.md` says what it covers and when to run it.
 
 ## Project layout
 
@@ -131,9 +131,9 @@ CI runs the package tests, builds the Mac and iOS apps, and lints on every pull 
 | `Apps/Shared` | Asset catalog shared by both apps. |
 | `Resources` | String Catalog and bundled fonts, shared by both apps. |
 | `Brand` | The mark, wordmark and app icon. See [Brand/README.md](Brand/README.md). |
-| `scripts` | `package-mac.sh`, which builds the release DMG. |
+| `scripts` | `check.sh`, the local check, and `package-mac.sh`, which builds the release DMG. |
 
-Packaging a DMG, signing and notarization, and tagged releases from CI are covered in [docs/RELEASING.md](docs/RELEASING.md).
+Packaging a DMG, signing and notarization, and tagged releases are covered in [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Contributing
 

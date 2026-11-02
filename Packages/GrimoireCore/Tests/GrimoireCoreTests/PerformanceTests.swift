@@ -21,7 +21,7 @@ import Testing
     static let budget = Duration.milliseconds(50) * budgetScale
     #endif
 
-    /// Slower machines, like CI's virtualized runners, set `GRIMOIRE_PERF_BUDGET_SCALE`
+    /// Slower machines, like virtualized ones, set `GRIMOIRE_PERF_BUDGET_SCALE`
     /// to stretch every budget here instead of failing on hardware alone.
     static let budgetScale: Int = {
         let value = ProcessInfo.processInfo.environment["GRIMOIRE_PERF_BUDGET_SCALE"]

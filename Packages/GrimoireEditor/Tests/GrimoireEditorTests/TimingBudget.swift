@@ -1,6 +1,6 @@
 import Foundation
 
-/// A timing budget, stretched on slower machines. CI's virtualized runners set
+/// A timing budget, stretched on slower machines. Virtualized machines set
 /// `GRIMOIRE_PERF_BUDGET_SCALE` so keystroke budgets fail on regressions, not on hardware.
 func budget(_ duration: Duration) -> Duration {
     duration * budgetScale

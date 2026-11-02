@@ -4,27 +4,28 @@ Grimoire is a native markdown editor for macOS with an iOS companion. It require
 
 ## Checks
 
-Run these from the root of the checkout or worktree before a branch is reviewed or merged. `Grimoire.xcodeproj` is generated and not checked in, so a fresh worktree has none until the first command runs.
+Checks run locally. `.github/workflows/release.yml` is the only workflow, and it only packages a release (see `docs/RELEASING.md`).
 
-```sh
-xcodegen generate
-xcodebuild build -project Grimoire.xcodeproj -scheme GrimoireMac -destination 'platform=macOS' -derivedDataPath build/DerivedData ARCHS=arm64 CODE_SIGNING_ALLOWED=NO
-xcodebuild build -project Grimoire.xcodeproj -scheme GrimoireiOS -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData ARCHS=arm64 CODE_SIGNING_ALLOWED=NO
-(cd Packages/GrimoireCore && swift test)
-(cd Packages/GrimoireEditor && swift test)
-(cd Packages/GrimoireIntelligence && swift test)
-xcrun swift-format lint --strict --recursive Apps Packages
-swiftlint --strict
-python3 scripts/test-dmg-layout.py
-```
+Run `scripts/check.sh` from the root of the checkout or worktree, at a clean tree, before a branch is reviewed or merged. It runs every step and reports all of them, in this order:
 
-Each build ends in `** BUILD SUCCEEDED **` or `** BUILD FAILED **`, and each package in a `Test run with … passed` or `… failed` line. When clean, `swift-format` prints nothing and SwiftLint ends in `Found 0 violations`. The last command checks the DMG window layout writer and ends in `OK`; it needs only the Python 3 that macOS and the CI runner provide.
+- `xcodegen generate` (`Grimoire.xcodeproj` is generated and not checked in, so a fresh worktree has none until this runs);
+- the Mac and iOS app builds;
+- `swift test` in `GrimoireCore`, `GrimoireEditor` and `GrimoireIntelligence`;
+- the release-mode parse speed tests in `GrimoireCore`;
+- `swift-format` and SwiftLint, both strict;
+- the DMG layout writer test.
 
-The suites in `GrimoireIntelligence` gated on `modelIsReady` run the real on-device model, so they only run on a Mac that has it, and its output varies from run to run. `WritingEvaluations` fails now and then on unchanged code. When one of those suites fails, rerun the package: a pass on the rerun counts, reported with both result lines and the name of the test that failed. A failure anywhere else, or one that repeats, is a real failure.
+It takes a long time. Run it in the foreground with a long timeout, so the result arrives with the run. `--core-runs N` repeats `GrimoireCore`'s debug `swift test` N times, and every run counts; `--only` runs chosen steps while you work on a failure, and a partial run never counts as a check.
+
+Read the result in `build/check-logs/<sha>/summary.txt`, which the script also prints. It holds the head SHA, PASS or FAIL for each step, each build's `** BUILD SUCCEEDED **` or `** BUILD FAILED **` line, each package's `Test run with … passed` or `… failed` line, the `GrimoireCore` tally, and an overall result. Full per-step logs sit beside it. A dirty tree reports `dirty` and fails. A new `swiftpm-testing-helper-*.ips` crash report under `~/Library/Logs/DiagnosticReports` during the run fails it too, and the summary names the file.
+
+A pass at a clean head also records that commit in `grimoire-check-passed` in the git common directory, which every worktree shares. The `pre-push` hook (`scripts/install-hooks.sh`, once per clone) lints every push and refuses `main` and `v*` tags for a commit without that record.
+
+The suites in `GrimoireIntelligence` gated on `modelIsReady` run the real on-device model, so they only run on a Mac that has it, and its output varies from run to run. `WritingEvaluations` fails now and then on unchanged code. When a failure sits only in those suites, the script reruns the package once; a pass on the rerun counts, and the summary shows both result lines and the name of the test that failed. Any other failure is real until it has a ticket or a measured cause, and a failure that repeats is real regardless. Never call a non-model failure a flake without one of those.
 
 Derived data (`build/DerivedData`) and each package's `.build` sit inside the checkout, so runs in separate worktrees don't share a build. The first build in a worktree fetches and compiles the tree-sitter grammars, which takes a few minutes and needs a network connection.
 
-The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRIMOIRE_PERF_BUDGET_SCALE` to stretch their budgets, as CI does.
+The timing tests assume a local Apple silicon Mac. On a slower machine, set `GRIMOIRE_PERF_BUDGET_SCALE` to stretch their budgets.
 
 `WKWebView` never loads inside `swift test`, so PDF export and print can't be covered there. Check them in the built Mac app.
 
@@ -431,8 +432,6 @@ require renewed review; unavailable/replaced roots or parents block repair. A su
 repair preserves unrelated choices and pending records. Any removed choices still
 require reassignment if the item is later restored.
 
-## CI
+## Workflows
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`, on the `xcode-27` GitHub-hosted runner (or the runner named by the `MACOS_RUNNER` repository variable). It runs the same checks: `swift test` in each package, both app builds, both linters, and the DMG layout test (in the Lint job). Pushes to `main` also run the release-mode parse speed tests in `GrimoireCore`. A newer push to the same ref cancels the run in progress.
-
-`.github/workflows/release.yml` packages a DMG when a `v*` tag is pushed; see the README.
+`.github/workflows/release.yml` packages a DMG when a `v*` tag is pushed; see `docs/RELEASING.md`. No other workflow exists, so nothing checks a push or a pull request until `scripts/check.sh` does.
