@@ -52,6 +52,13 @@ import GrimoireCore
         alert.addButton(withTitle: String(localized: "Keep Editing"))
         let discard = alert.addButton(withTitle: String(localized: "Discard Changes and Close"))
         discard.hasDestructiveAction = destructive
+        // NSAlert only binds Escape to a button titled Cancel. Escape here must mean Keep Editing.
+        let escape = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.keyCode == 53 else { return event }
+            NSApp.stopModal(withCode: .alertFirstButtonReturn)
+            return nil
+        }
+        defer { escape.map(NSEvent.removeMonitor) }
         // A quit from the Dock can arrive while another app is in front.
         NSApp.activate()
         return alert.runModal() == .alertSecondButtonReturn ? .discard : .keepEditing
