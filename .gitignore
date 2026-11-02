@@ -8,4 +8,5 @@ DerivedData/
 *.xcresult
 build/
 dist/
+.taste-skill/
 .claude/worktrees

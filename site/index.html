@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Grimoire is a native markdown editor for Mac. Editable blocks, Spells and plain files in folders you own. Download the beta for macOS 27.">
+  <meta name="theme-color" content="#1e1e2e">
+  <title>Grimoire — Native markdown for Mac</title>
+  <link rel="icon" href="assets/mark-dark.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/Geist.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body id="top">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav frame">
+    <a href="#top" aria-label="Grimoire home"><img src="assets/wordmark-dark.svg" alt="Grimoire" width="184" height="48"></a>
+    <nav aria-label="Main navigation">
+      <a href="#tools">Tools</a><a href="#files">Files</a><a href="#install">Install</a><a href="https://github.com/xchrisbailey/grimoire.srcery">Source</a>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero frame" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">Write your<br>own magic</h1>
+        <p class="lead">A native markdown editor for Mac, with editable blocks and ordinary files in folders you own.</p>
+        <a class="button" href="https://github.com/xchrisbailey/grimoire.srcery/releases">Download beta</a>
+        <p class="note">Beta for macOS 27 or later.</p>
+      </div>
+      <figure class="hero-stage tome">
+        <div class="shutter"><img src="assets/mocha-preview.png" alt="Grimoire Preview in Catppuccin Mocha: editable headings, tasks, MDX, a callout and highlighted Swift code" width="1520" height="1640" fetchpriority="high"></div>
+        <figcaption>Edit the page. Keep the markdown.</figcaption>
+      </figure>
+    </section>
+    <section class="tools frame" id="tools" aria-labelledby="tools-title">
+      <div class="tools-index">
+        <h2 id="tools-title" data-enter>Cast a block</h2>
+        <div class="picker" role="group" aria-label="Feature previews" hidden>
+          <button type="button" aria-pressed="false" aria-controls="preview" data-choice="preview">Preview</button>
+          <button type="button" aria-pressed="true" aria-controls="spells" data-choice="spells">Spells</button>
+          <button type="button" aria-pressed="false" aria-controls="incantations" data-choice="incantations">Incantations</button>
+          <button type="button" aria-pressed="false" aria-controls="raw" data-choice="raw">Raw</button>
+        </div>
+        <p data-enter>From a thought to a heading, a task or a table. Keep your hands on the keyboard.</p>
+      </div>
+      <div class="previews tome" data-enter>
+        <figure id="preview" class="preview">
+          <img src="assets/mocha-preview.png" alt="Styled markdown blocks in Preview" width="1520" height="1640" loading="lazy">
+          <figcaption><strong>Preview.</strong> Edit the styled page directly, with markdown shortcuts as you type.</figcaption>
+        </figure>
+        <figure id="spells" class="preview">
+          <img src="assets/spells-menu.png" alt="Spells menu with Table, Text, Heading and list blocks" width="680" height="880" loading="lazy">
+          <figcaption><strong>Spells.</strong> Type <kbd>/</kbd> to turn a line into a heading, list, callout, table and more.</figcaption>
+        </figure>
+        <figure id="incantations" class="preview">
+          <img src="assets/incantations.png" alt="Incantations palette showing file, search, heading, theme and Raw commands" width="1280" height="1040" loading="lazy">
+          <figcaption><strong>Incantations.</strong> Press <kbd>⌘K</kbd> to find every command by name, including theme changes.</figcaption>
+        </figure>
+        <figure id="raw" class="preview">
+          <img src="assets/raw-mode.png" alt="Raw markdown and MDX source with syntax coloring in the light theme" width="1600" height="1280" loading="lazy">
+          <figcaption><strong>Raw.</strong> Press <kbd>⇧⌘R</kbd> to edit the source, with syntax coloring and Spells still at hand.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="files frame" id="files" aria-labelledby="files-title">
+      <div class="file-picture tome" data-enter>
+        <img src="assets/raw-mode.png" alt="An ordinary markdown file, with frontmatter, a task, an MDX component and a fenced code block" width="1600" height="1280" loading="lazy">
+        <p>Plain .md and .mdx.<br>On your disk. In your folders.</p>
+        <figure class="command-picture">
+          <img src="assets/incantations.png" alt="Incantations brings file, heading, theme and Raw source commands together" width="1280" height="1040" loading="lazy">
+        </figure>
+      </div>
+      <div>
+        <h2 id="files-title" data-enter>Your files,<br>your words</h2>
+        <p class="files-intro" data-enter>No database, no account, no sync service. Bind one or more folders to a project and start writing.</p>
+        <div class="points">
+          <div data-enter><h3>Themes</h3><p>Catppuccin, Dracula, Nord and more. Choose light and dark themes, fonts and sizes, or import a VS Code theme.</p></div>
+          <div data-enter><h3>Focus</h3><p>Hide the chrome with <kbd>⇧⌘F</kbd>, dim other sentences or cap your line length.</p></div>
+          <div data-enter><h3>Version history</h3><p>Browse earlier versions and restore a page. In a git repository, see changes since the last commit.</p></div>
+          <div data-enter><h3>Tables</h3><p>Edit cells as a grid. Use Tab and Return, add rows or columns, and paste spreadsheet cells.</p></div>
+          <div data-enter><h3>Code blocks</h3><p>Tree-sitter syntax highlighting for Swift, JavaScript, Python, Rust and other languages.</p></div>
+          <div data-enter><h3>Export</h3><p>Export HTML or PDF, print, or copy rich text into mail and documents.</p></div>
+          <div data-enter><h3>Project search</h3><p>Open a page with <kbd>⌘P</kbd>, search your project with <kbd>⇧⌘E</kbd>, or jump between headings.</p></div>
+          <div data-enter><h3>Intelligence</h3><p>Rewrite, summarize, translate or ask your pages a question using Apple’s on-device model. See requirements below.</p></div>
+        </div>
+      </div>
+    </section>
+    <section class="install frame" id="install" aria-labelledby="install-title">
+      <h2 id="install-title" data-enter>Before you install</h2>
+      <div class="questions">
+        <details name="install" open data-enter><summary>Will it run on my Mac?</summary><p>Grimoire needs <strong>macOS 27 or later</strong>. It is a native Mac app. An iOS app is planned, not available yet.</p></details>
+        <details name="install" data-enter><summary>Is the beta ready to use?</summary><p>It’s ready to write in, but expect rough edges. Keep your folders under git or another backup while the beta settles.</p></details>
+        <details name="install" data-enter><summary>How do I install it?</summary><p>Download the latest beta’s Grimoire DMG from <a href="https://github.com/xchrisbailey/grimoire.srcery/releases">GitHub Releases</a>. Open it, drag Grimoire into Applications, then open the app.</p></details>
+        <details name="install" data-enter><summary>Is the download signed?</summary><p>Builds from beta 2 onward are Developer ID signed and notarized by Apple. If you have beta 1, install the latest beta over it.</p></details>
+        <details name="install" data-enter><summary>What does intelligence need?</summary><p>A Mac with Apple Intelligence turned on. Writing tools and project answers run on Apple’s on-device model. Longer requests use Private Cloud Compute only if you allow it in Settings.</p></details>
+      </div>
+    </section>
+    <section class="download frame" aria-labelledby="download-title">
+      <a href="https://github.com/xchrisbailey/grimoire.srcery/releases">
+        <p>Choose the latest beta DMG on GitHub Releases. <span aria-hidden="true">↗</span></p>
+        <h2 id="download-title">Download</h2>
+      </a>
+    </section>
+  </main>
+  <footer class="frame">
+    <img class="footer-wordmark" src="assets/wordmark-dark.svg" alt="Grimoire" width="960" height="250" loading="lazy">
+    <div class="footer-links"><p>A markdown spellbook for your Mac.</p><a href="https://github.com/xchrisbailey/grimoire.srcery">Source code</a><a href="https://github.com/xchrisbailey/grimoire.srcery/issues">Report an issue</a><a href="#top">Back to top</a></div>
+  </footer>
+</body>
+</html>

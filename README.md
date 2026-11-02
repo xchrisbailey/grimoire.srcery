@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/xchrisbailey/grimoire.srcery/releases">Download</a> ·
+  <a href="https://xchrisbailey.github.io/grimoire.srcery/">Website</a> ·
   <a href="#build-from-source">Build from source</a> ·
   <a href="https://github.com/xchrisbailey/grimoire.srcery/issues">Issues</a>
 </p>
