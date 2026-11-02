@@ -1740,6 +1740,33 @@
       "comment" : "plain: spell subtitle",
       "extractionState" : "manual"
     },
+    "Your changes to %@ haven't been saved." : {
+      "comment" : "plain: alert title when a document can't be released; %@ is the file name"
+    },
+    "%@ changed on disk while you were editing, so Grimoire hasn't saved your changes. Keep Editing to choose Keep Mine or Load Theirs." : {
+      "comment" : "plain: alert text for a conflict when closing or quitting; %@ is the file name"
+    },
+    "Keep Editing to try again." : {
+      "comment" : "plain: alert text after a save error when closing or quitting"
+    },
+    "If you discard them, Grimoire keeps a copy first. Reopen the file and choose Browse Versions… to get it back. The file itself isn't touched." : {
+      "comment" : "plain: alert text explaining that discarded changes are kept as a version"
+    },
+    "Keep Editing" : {
+      "comment" : "plain: default alert button that cancels closing, switching or quitting"
+    },
+    "Discard Changes and Close" : {
+      "comment" : "plain: alert button that gives up unsaved changes and lets go of the document"
+    },
+    "Grimoire couldn't keep a copy of your changes to %@." : {
+      "comment" : "plain: alert title when no version could be kept before discarding; %@ is the file name"
+    },
+    "If you discard them now, they will be lost. The file itself isn't touched." : {
+      "comment" : "plain: alert text warning that discarding without a kept version loses the changes"
+    },
+    "Changes you discarded" : {
+      "comment" : "plain: why a version was kept"
+    },
     "Zoom" : {
       "comment" : "plain: Window menu item"
     }

@@ -192,8 +192,15 @@ final class ExternalOpens {
 
     func prepareTermination() -> Bool {
         var allowed = true
-        for window in windows.compactMap(\.window) where !window.prepareWindowClose() {
-            allowed = false
+        for window in windows.compactMap(\.window) {
+            // Each window with a document that can't be saved asks for itself. Once the user
+            // keeps editing in one, quitting is off, so the rest only save, without pulling
+            // focus away from the window the user chose to stay in.
+            if allowed {
+                if !window.prepareWindowClose() { allowed = false }
+            } else {
+                window.save()
+            }
         }
         return allowed
     }

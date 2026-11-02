@@ -86,7 +86,7 @@ final class WindowState {
     /// Shows project `id`, reopening the file it last had open unless `openLastFile` is false.
     @discardableResult func selectProject(_ id: Project.ID?, openLastFile: Bool = true) -> Bool {
         guard id != projectID else { return true }
-        guard prepareForRelease(), closeDocument() else { return false }
+        guard prepareForRelease(offeringDiscard: true), closeDocument() else { return false }
         workspace?.deactivate()
         projectID = id
         selectedFile = nil
@@ -156,7 +156,7 @@ final class WindowState {
         if url?.standardizedFileURL == selectedFile?.standardizedFileURL, document != nil || url == nil {
             return true
         }
-        guard closeDocument() else { return false }
+        guard closeDocument() || offerToDiscard() == .discarded else { return false }
         selectedFile = url
         selectedLooseFile = url.flatMap { workspace?.looseFile(at: $0)?.id }
         guard let url else { return true }
@@ -289,6 +289,7 @@ final class WindowState {
         return true
     }
 
+
     func itemMoved(from: URL, to: URL) {
         moveDeferredDocuments(from: from, to: to)
         guard let current = selectedFile else { return }
@@ -319,6 +320,15 @@ final class WindowState {
 }
 
 extension WindowState {
+    /// Lets go of a document whose edits the user chose to discard. Nothing is written to its file.
+    func releaseDiscardedDocument() {
+        editor.cancelPendingReveal()
+        document = nil
+        openError = nil
+        selectedFile = nil
+        selectedLooseFile = nil
+    }
+
     @discardableResult func save() -> Bool {
         guard document?.save() ?? true else { return false }
         resumePublishedDocuments()
@@ -327,7 +337,7 @@ extension WindowState {
 
     /// Root changes must not release access while this window still needs it to save.
     func projectRootsChanged() {
-        guard prepareForRelease() else { return }
+        guard prepareForRelease(offeringDiscard: true) else { return }
         workspace?.sync()
         reportWorkspaceError()
         let listed = selectedLooseFile.map { workspace?.isListed($0) ?? false } ?? false
@@ -335,7 +345,7 @@ extension WindowState {
     }
 
     @discardableResult func close() -> Bool {
-        guard prepareForRelease(), closeDocument() else {
+        guard prepareForRelease(offeringDiscard: true), closeDocument() else {
             ExternalOpens.shared.retainBlocked(self)
             return false
         }

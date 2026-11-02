@@ -1,6 +1,20 @@
 import Foundation
 import Observation
 
+/// Why an open document can't be released with its edits intact.
+public enum ReleaseRefusal {
+    /// The file changed on disk while there were unsaved edits.
+    case conflict
+    /// Writing the file failed.
+    case saveFailed(any Error)
+}
+
+public enum DiscardOutcome: Equatable {
+    case discarded
+    /// The edits couldn't be recorded as a kept version, so they were not discarded.
+    case versionNotKept
+}
+
 /// The file a window is editing: its text, whether that text is saved, and what to do
 /// when the file changes on disk.
 ///
@@ -63,6 +77,34 @@ public final class OpenDocument {
         autosave?.cancel()
         watcher?.stop()
         watcher = nil
+    }
+
+    /// Why the text can't be saved, when giving up the edits is a way out. Nil when nothing
+    /// blocks a release, and also while a pending move or trash holds the file: that
+    /// hold is settled by recovery, not by discarding.
+    public var releaseRefusal: ReleaseRefusal? {
+        if conflict != nil { return .conflict }
+        guard isDirty, let saveError, !Self.isLifecycleHold(saveError) else { return nil }
+        return .saveFailed(saveError)
+    }
+
+    /// Gives up the unsaved edits and stops watching, never writing to the file. The text goes
+    /// to the version store first so it can be recovered; if that can't be confirmed and
+    /// `requiringKeptVersion` is true, nothing changes and the edits stay in the editor.
+    @discardableResult
+    public func discardEdits(requiringKeptVersion: Bool = true) -> DiscardOutcome {
+        if isDirty, requiringKeptVersion {
+            guard versions?.keepConfirmed(text, of: url, reason: .discard) == true else { return .versionNotKept }
+        }
+        discard()
+        conflict = nil
+        saveError = nil
+        text = savedText
+        return .discarded
+    }
+
+    private static func isLifecycleHold(_ error: any Error) -> Bool {
+        error is LifecycleError || error is LifecycleRecoveryError || error is TrashRecoveryError
     }
 
     /// Writes the text to disk if it has unsaved changes. Holds off while there's a
