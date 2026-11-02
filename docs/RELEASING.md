@@ -21,6 +21,12 @@ Without `TEAM_ID`, the build is ad-hoc signed and not notarized, so Gatekeeper b
 
 To try the updater on a Mac that has the certificate but no notary profile, `SKIP_NOTARIZE=1 TEAM_ID=<team id> scripts/package-mac.sh <label>` signs everything with the Developer ID identity and stops before notarization. Setting `LOCAL_FEED_URL=http://localhost:8000/appcast.xml` as well points the app at a feed served from this Mac, with an App Transport Security exception for that host. A build made either way is never notarized, and the script refuses `LOCAL_FEED_URL` together with notarization.
 
+## QA builds
+
+`TEAM_ID=<team id> scripts/package-qa.sh <label>` writes `dist/qa/<label>/GrimoireQA.app` for trying a commit on a Mac that has the real Grimoire. It is signed with the Developer ID Application certificate, hardened and sandboxed like a release, and never notarized. Its bundle identifier is `computer.srcery.grimoire.qa` and its name `GrimoireQA`, so the sandbox gives it a container of its own and it can't touch the real app's projects, versions or preferences. Its update feed is removed and automatic checks are off. The production identifier is refused.
+
+It builds `HEAD` from a scratch export (`git archive`), so tracked files in the checkout stay as they were and the app matches a commit. The script verifies the signature, identifier, name, sandbox entitlement and absent feed before reporting. Gatekeeper rejects the app as unnotarized if it is downloaded; one built on the Mac that runs it opens normally.
+
 ## Updates
 
 The Mac app updates itself with [Sparkle](https://sparkle-project.org). It checks `https://xchrisbailey.github.io/grimoire.srcery/appcast.xml` in the background, and the app menu has "Check for Updates…". The feed URL and the EdDSA public key (`SUPublicEDKey`) are in `Config/GrimoireMac-Info.plist`. The app stays sandboxed and installs through Sparkle's XPC installer service, which the `-spks` and `-spki` mach-lookup entries in `GrimoireMac.entitlements` allow. `docs/entitlements.md` says what each sandbox entitlement is for.
@@ -37,13 +43,45 @@ The feed is only published for a signed, notarized build with `SPARKLE_PRIVATE_K
 
 To try an update without a release, build an older build number and a newer one with `SKIP_NOTARIZE=1` and `LOCAL_FEED_URL` as above, build the feed with `SPARKLE_ACCOUNT=grimoire DOWNLOAD_URL_PREFIX=http://localhost:8000/ RELEASE_NOTES_URL=http://localhost:8000/notes.html scripts/make-appcast.sh v<label> dist/Grimoire-<label>.dmg <dir>`, serve `<dir>` and the DMG with `python3 -m http.server 8000`, and open the older app.
 
-## Releasing from CI
+## Before tagging
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which packages the DMG, attaches it to that tag's GitHub release (a prerelease if it's new), and publishes the update feed (see Updates). Raise `CURRENT_PROJECT_VERSION` first:
+Nothing runs in CI, so these steps are the gate. Do them in order:
+
+1. Raise `CURRENT_PROJECT_VERSION` in `project.yml` (see Build numbers) and commit it. That commit is the one you tag, so the check runs on it. A check that passed on the commit before it doesn't cover it: the bump touches `project.yml`, which counts as code.
+2. Run `scripts/check.sh --core-runs 10` at a clean head of the commit, and read `build/check-logs/<sha>/summary.txt`. A pass records the SHA in `grimoire-check-passed` in the git common directory (the stamp), shared by every worktree. The `pre-push` hook (`scripts/install-hooks.sh`) refuses `main` or a `v*` tag for a commit that isn't in the stamp, or doesn't differ from a stamped one only in `*.md` or `docs/**`.
+3. Run the filesystem matrix below with a `scripts/package-qa.sh` build of the same commit.
+4. If this release changes anything an installed build stores (`projects.json`, the version index, a preference key), say in the release notes what rolling back to the previous release loses. `StoredShapeTests` fails when a stored value or key changes, and says which; a deliberate change updates its snapshot. Once the release ships, repoint the snapshot and fixtures in `Packages/GrimoireCore/Tests/GrimoireCoreTests/Fixtures/StoredShape` at the new tag.
+5. Test a Sparkle update (below) when the release changes the updater, the feed, or the app's signing.
+6. Push `main`, then the tag (see Releasing from CI).
+
+**Filesystem matrix.** Documents live on whatever volume the user picked, so try the release on each filesystem it can meet. Make disk images outside the repository, and attach each one:
 
 ```sh
+for fs in APFS HFS+ ExFAT; do
+  hdiutil create -size 100m -fs "$fs" -volname "QA-$fs" "$TMPDIR/qa-$fs.dmg"
+  hdiutil attach "$TMPDIR/qa-$fs.dmg"
+done
+```
+
+In `GrimoireQA`, bind a folder on each volume (`/Volumes/QA-APFS`, `/Volumes/QA-HFS+`, `/Volumes/QA-ExFAT`) to a project, then on each: create a document, edit and save it, rename it, move it into a subfolder and back, and reopen the project. Detach afterwards with `hdiutil detach /Volumes/QA-<fs>` and delete the images. SMB shares are unverified unless someone tests one; say so in the release notes when a release depends on one.
+
+**Testing a Sparkle update without touching a real library.** A human does this; it needs a second login. Create a throwaway standard user in System Settings > Users & Groups, switch to it, and install the previous release there from its GitHub release DMG. Open it, bind a scratch folder inside that account, and edit a few files so it has a library and versions.
+
+- Before publishing, build the previous and the new build numbers with `SKIP_NOTARIZE=1` and `LOCAL_FEED_URL` (see Updates), install the older one in the throwaway account, and serve the feed from your own account with `python3 -m http.server 8000`. `localhost` reaches it from the other account.
+- After publishing, the installed previous release finds the new one through the real feed.
+
+Choose Check for Updates, install, and relaunch. The projects and versions must be there. The throwaway account's home folder holds the only copy of that library, so delete the account, with its home folder, when you finish.
+
+## Releasing from CI
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which packages the DMG, attaches it to that tag's GitHub release (a prerelease if it's new), and publishes the update feed (see Updates). That workflow builds and signs but runs no tests, so the stamp from Before tagging is the only gate: the `pre-push` hook refuses the tag, and `main`, for a commit without it. Tag the commit that passed:
+
+```sh
+git push origin main
 git tag v1.0.0-beta.2 && git push origin v1.0.0-beta.2
 ```
+
+`git push --no-verify` skips the hook. Use it only when the release must go out and the check can't run, and say so in the release notes.
 
 It signs and notarizes when these repository secrets are set (Settings > Secrets and variables > Actions), and builds ad-hoc signed when they aren't:
 
