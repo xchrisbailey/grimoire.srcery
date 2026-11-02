@@ -1,10 +1,16 @@
 name: Deploy product page
 
+# Every Pages deploy replaces the whole site, and the installed app reads its
+# update feed from appcast.xml there. So this deploys site/ plus the appcast.xml
+# from the newest release that has one, and fails if none does. release.yml
+# deploys the same combination.
+
 on:
   push:
     branches: [main]
     paths:
       - 'site/**'
+      - 'scripts/assemble-pages.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -26,12 +32,31 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      # The release's appcast.xml asset is the source of truth for the feed. Newest
+      # non-draft release first (prereleases count). Fail if none has one: a site
+      # deployed without the feed breaks updates for every installed copy.
+      - name: Fetch the latest update feed
+        run: |
+          mkdir feed-download
+          for tag in $(gh release list --exclude-drafts --limit 50 --json tagName --jq '.[].tagName'); do
+            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx appcast.xml; then
+              echo "Using the update feed from $tag."
+              gh release download "$tag" --pattern appcast.xml --dir feed-download
+              exit 0
+            fi
+          done
+          echo "No release has an appcast.xml asset; refusing to deploy a site without the update feed." >&2
+          exit 1
+      - name: Assemble the site and feed
+        run: scripts/assemble-pages.sh feed-download/appcast.xml pages
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

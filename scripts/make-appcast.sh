@@ -2,9 +2,11 @@
 # Builds the update feed for one release: signs the DMG with Sparkle's EdDSA key
 # and writes appcast.xml into <output dir>, with one item for this release.
 #
-# The release workflow runs this after the DMG is attached to the release, and
-# publishes the output directory as the GitHub Pages site. The Sparkle tools come
-# from the package scripts/package-mac.sh resolved, so they match the linked framework.
+# The release workflow runs this after the DMG is attached to the release, attaches
+# the appcast.xml to that release (the source of truth for the feed), and deploys it
+# to GitHub Pages with the product page via scripts/assemble-pages.sh. The Sparkle
+# tools come from the package scripts/package-mac.sh resolved, so they match the
+# linked framework.
 #
 # The private key is read from SPARKLE_PRIVATE_KEY, in the form `generate_keys -x`
 # exports, or from the login keychain account SPARKLE_ACCOUNT when that isn't set.

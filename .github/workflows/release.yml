@@ -10,7 +10,9 @@ name: Release
 #
 # With those and SPARKLE_PRIVATE_KEY set, it then publishes the update feed
 # (appcast.xml) to GitHub Pages, after the DMG is on the release. The release
-# workflow owns the whole Pages site: each deploy replaces it. Before packaging,
+# deploy replaces the whole Pages site, so this workflow and pages.yml both publish
+# site/ plus the latest appcast.xml (scripts/assemble-pages.sh). The release's
+# appcast.xml asset is the source of truth that pages.yml reads. Before packaging,
 # it fails if the build number in project.yml isn't higher than the published feed's.
 on:
   push:
@@ -93,6 +95,11 @@ jobs:
         run: |
           gh release download "$TAG" --pattern "Grimoire-${TAG#v}.dmg" --dir release --clobber
           scripts/make-appcast.sh "$TAG" "release/Grimoire-${TAG#v}.dmg" feed
+      # The durable copy of the feed: pages.yml publishes the newest release's
+      # appcast.xml asset whenever it redeploys the product page.
+      - name: Attach the update feed to the release
+        if: env.PUBLISH_FEED == 'true'
+        run: gh release upload "$TAG" feed/appcast.xml --clobber
       # A fixed name, so the feed job finds it when it alone is re-run; a re-run of
       # this job replaces the earlier attempt's copy.
       - name: Keep the update feed
@@ -110,14 +117,16 @@ jobs:
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
           rm -f "$RUNNER_TEMP/AuthKey.p8"
 
-  # Replaces the whole GitHub Pages site with the feed. A separate job, because
-  # the Pages actions run on Linux and need their own permissions.
+  # Deploys the GitHub Pages site: site/ plus the feed built above. Every deploy
+  # replaces the whole site, so the feed is never published alone. A separate job,
+  # because the Pages actions run on Linux and need their own permissions.
   feed:
     name: Publish update feed
     needs: mac
     if: needs.mac.outputs.publish_feed == 'true'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -127,16 +136,19 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v8
         with:
           name: feed
           path: feed
+      - name: Assemble the site and feed
+        run: scripts/assemble-pages.sh feed/appcast.xml pages
       # Named by attempt, because the Pages artifact can't be replaced within a run
       # and a re-run of this job is a new attempt.
       - uses: actions/upload-pages-artifact@v5
         with:
           name: pages-${{ github.run_attempt }}
-          path: feed
+          path: pages
       - id: deploy
         uses: actions/deploy-pages@v5
         with:
