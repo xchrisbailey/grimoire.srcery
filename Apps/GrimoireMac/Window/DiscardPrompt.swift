@@ -27,8 +27,9 @@ import GrimoireCore
                 + String(
                     localized:
                         """
-                        If you discard them, Grimoire keeps a copy first. Reopen the file and choose \
-                        Browse Versions… to get it back. The file itself isn't touched.
+                        If you discard them, Grimoire keeps a copy in this file's version history. \
+                        Open a file at this path and choose Browse Versions… to get it back. \
+                        The file itself isn't touched.
                         """),
             destructive: false)
     }
@@ -50,7 +51,7 @@ import GrimoireCore
         alert.informativeText = detail
         // The first button is the default, so Return keeps the changes.
         alert.addButton(withTitle: String(localized: "Keep Editing"))
-        let discard = alert.addButton(withTitle: String(localized: "Discard Changes and Close"))
+        let discard = alert.addButton(withTitle: String(localized: "Discard Changes"))
         discard.hasDestructiveAction = destructive
         // NSAlert only binds Escape to a button titled Cancel. Escape here must mean Keep Editing.
         let escape = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
